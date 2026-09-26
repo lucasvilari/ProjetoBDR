@@ -47,3 +47,33 @@ LANGUAGE sql IMMUTABLE AS $$
         WHEN 'SUPERIOR COMPLETO'             THEN 7
     END::SMALLINT
 $$;
+
+-- ACRÉSCIMO: nota de cada partido em cada ano de eleição, pelas duas réguas.
+-- Especialistas: a edição do survey mais próxima do ano. Os partidos renomeados
+-- que mantiveram o número (PMDB -> MDB, PFL -> DEM etc.) herdam a nota do nome
+-- atual; nesse caso nota_herdada é verdadeiro. Coligações: a nota do próprio ano,
+-- nas eleições municipais, ou a média das duas municipais vizinhas, nas gerais.
+CREATE VIEW vw_ideologia_partido AS
+SELECT pa.id_partido,
+       a.ano,
+       esp.nota       AS nota_especialistas,
+       esp.herdada    AS nota_herdada,
+       col.nota       AS nota_coligacoes
+FROM partido pa
+CROSS JOIN generate_series(1998, 2024, 2) AS a (ano)
+LEFT JOIN LATERAL (
+    SELECT i.nota, i.id_partido <> pa.id_partido AS herdada
+    FROM ideologia_partido i
+    JOIN partido pi ON pi.id_partido = i.id_partido
+    WHERE i.id_partido = pa.id_partido
+       OR (pi.numero = pa.numero
+           AND pa.sigla IN ('PMDB', 'PFL', 'PPB', 'PRN', 'PSN', 'PSDC', 'PT DO B', 'PTN', 'PEN'))
+    ORDER BY i.id_partido <> pa.id_partido, ABS(i.ano_survey - a.ano), i.ano_survey DESC
+    LIMIT 1
+) esp ON TRUE
+LEFT JOIN LATERAL (
+    SELECT ROUND(AVG(ic.nota), 2) AS nota
+    FROM ideologia_coligacao ic
+    WHERE ic.id_partido = pa.id_partido
+      AND ABS(ic.ano - a.ano) <= 2
+) col ON TRUE;

@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: nenhum
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-25 18:45:25
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:08:43
 (1 row)
 
 Timing is on.
@@ -36,4 +36,4 @@ ORDER BY ano, nivel_escolaridade(escolaridade);
  2024 | SUPERIOR COMPLETO             |     131060 |   26458 |            20.19
 (15 rows)
 
-Time: 389,549 ms
+Time: 392,265 ms

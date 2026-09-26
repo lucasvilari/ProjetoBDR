@@ -56,7 +56,7 @@ sql() {                         # mostra e executa uma consulta no banco
 if [ "$INICIO" -le 1 ]; then
 passo 1 "O ponto de partida"
 fala "O crawler baixou os arquivos do TSE, do IBGE, do Atlas e do survey de ideologia. São 31 GB de CSV,"
-fala "organizados por fonte, tipo e ano. A carga transforma isso nas 16 tabelas do modelo relacional."
+fala "organizados por fonte, tipo e ano. A carga transforma isso nas 17 tabelas do modelo relacional."
 roda "du -sh $DADOS/tse/* | sort -h"
 sql "SELECT t.relname AS tabela, to_char(c.linhas, 'FM999G999G999') AS linhas,
             pg_size_pretty(pg_total_relation_size(t.relid)) AS tamanho
@@ -109,7 +109,7 @@ sql "WITH ult AS (SELECT DISTINCT ON (etapa, detalhe) * FROM carga.log ORDER BY 
             round(sum(segundos) / 60, 1) AS minutos
      FROM ult
      WHERE etapa IN ('municipio', 'idhm_municipio', 'indicador_anual', 'eleicao', 'partido', 'politico',
-                     'candidatura', 'vaga', 'ideologia_partido', 'apuracao', 'votos_part', 'bem', 'receita',
+                     'candidatura', 'vaga', 'ideologia_partido', 'ideologia_coligacao', 'apuracao', 'votos_part', 'bem', 'receita',
                      'despesa', 'votos_cand', 'perfil_comparecimento')
      GROUP BY etapa ORDER BY min(id)"
 pausa
@@ -149,5 +149,5 @@ fala "minutos com o SQL original; com os votos válidos oficiais e a correção 
 printf '\n%s$ psql -v sigla=PT -f sql/p05_eleitos_legenda.sql%s\n' "$C" "$R"
 { echo '\timing on'; cat sql/p05_eleitos_legenda.sql; } | psql -X -q -d "$BANCO" -P pager=off -v sigla=PT
 fala ""
-fala "Fim da demonstração. O modelo completo, com o D.E.R. e as 16 tabelas, está na página HTML."
+fala "Fim da demonstração. O modelo completo, com o D.E.R. e as 17 tabelas, está na página HTML."
 fi

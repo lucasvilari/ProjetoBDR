@@ -13,7 +13,7 @@ Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 ```
 .
 ├── crawler/     baixa das fontes só os arquivos que as perguntas usam (python -m crawler)
-├── banco/       esquema, carga, validação e as 16 consultas das perguntas
+├── banco/       esquema, carga, validação e as 18 consultas das perguntas
 ├── scripts/     geração e restauração do dump do banco
 ├── site/        site das perguntas (a construir)
 └── docs/        página do modelo (D.E.R. e tabelas) e figuras do D.E.R.
@@ -24,7 +24,7 @@ Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 ### Ver o modelo
 
 Abra `docs/modelo/modelo_relacional.html` no navegador. A página tem os três diagramas
-do D.E.R. e as 16 tabelas, com o mapeamento entre eles.
+do D.E.R. e as 17 tabelas, com o mapeamento entre eles.
 
 ### Antes de montar o banco: PostgreSQL e um papel com permissão
 

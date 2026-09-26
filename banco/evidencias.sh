@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Executa as 16 consultas da seção 6 e grava as evidências da seção 6.11:
+# Executa as 18 consultas da seção 6 e grava as evidências da seção 6.11:
 #   evidencias/ev_<consulta>.txt  sessão do psql (ambiente, comando, resultado, tempo)
 #   evidencias/ev_<consulta>.csv  resultado completo
 #   evidencias/ev_<consulta>.png  print da sessão (gerado por print_sessao.py)
@@ -12,7 +12,11 @@ mkdir -p evidencias
 
 # Político da pergunta 10: identificado pelo título, escolhido pelo nome.
 POLITICO="LUIZ INÁCIO LULA DA SILVA"
-TITULO=$(echo "SELECT titulo_eleitoral FROM politico WHERE nome = :'nome';" | psql -X -At -d "$BANCO" -v nome="$POLITICO")
+titulo() { echo "SELECT titulo_eleitoral FROM politico WHERE nome = :'nome';" | psql -X -At -d "$BANCO" -v nome="$1"; }
+TITULO=$(titulo "$POLITICO")
+# Trajetória ideológica (acréscimo): uma carreira com trocas de partido.
+POLITICO2="MARIA OSMARINA MARINA DA SILVA VAZ DE LIMA"
+TITULO2=$(titulo "$POLITICO2")
 
 # consulta | parâmetros nome=valor separados por ';' (sem aspas: o SQL usa :'var') | anotação
 CONSULTAS=(
@@ -27,11 +31,13 @@ CONSULTAS=(
   "p06a_alternancia||"
   "p06b_jovem_vota_jovem|ano=2024;cargo=VEREADOR|ano = 2024, cargo = VEREADOR"
   "p07_vies_ideologico|nivel=uf|nível = UF"
+  "p07b_ideologia_coligacoes|ano=2024;sigla=|ano = 2024, todos os partidos"
   "p08_dependencia_publica||"
   "p09a_gasto_por_tipo|ano=2024;sq_candidato=|ano = 2024, todos os candidatos"
   "p09b_nuvem_palavras|ano=2024;sq_candidato=|ano = 2024, todos os candidatos"
   "p10a_linha_do_tempo|titulo=$TITULO|político = $POLITICO"
   "p10b_resumo_carreira|titulo=$TITULO|político = $POLITICO"
+  "p10c_trajetoria_ideologica|titulo=$TITULO2|político = $POLITICO2"
 )
 
 echo "consulta,arquivo_sql,parametros,linhas,tempo_s,executado_em" > evidencias/quadro.csv
@@ -55,7 +61,9 @@ SELECT version() AS servidor, current_database() AS banco, now()::timestamp(0) A
 SQL
 
   # o título eleitoral é dado pessoal: não fica gravado na evidência, que vai para o repositório
-  [ -n "$TITULO" ] && sed -i "s/$TITULO/<título eleitoral omitido>/g" "$ev.txt"
+  for t in "$TITULO" "$TITULO2"; do
+    [ -n "$t" ] && sed -i "s/$t/<título eleitoral omitido>/g" "$ev.txt"
+  done
 
   # 2. resultado completo em CSV, pela visão de mesmo nome (descartada ao fim da sessão)
   consulta=$(sed -e '$ s/;[[:space:]]*$//' "sql/${nome}.sql")

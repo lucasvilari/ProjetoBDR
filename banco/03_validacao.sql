@@ -9,6 +9,7 @@ SELECT 'vaga', count(*) FROM vaga UNION ALL
 SELECT 'politico', count(*) FROM politico UNION ALL
 SELECT 'partido', count(*) FROM partido UNION ALL
 SELECT 'ideologia_partido', count(*) FROM ideologia_partido UNION ALL
+SELECT 'ideologia_coligacao', count(*) FROM ideologia_coligacao UNION ALL
 SELECT 'candidatura', count(*) FROM candidatura UNION ALL
 SELECT 'bem', count(*) FROM bem UNION ALL
 SELECT 'receita', count(*) FROM receita UNION ALL

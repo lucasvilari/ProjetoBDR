@@ -5,8 +5,8 @@ baixados pelo crawler (`../crawler/dados`) num PostgreSQL 16.
 
 | Arquivo | O que faz |
 |---|---|
-| `01_tabelas.sql` | Cria as 16 tabelas da seção 4.4, com chaves, restrições e colunas geradas |
-| `02_indices_visoes.sql` | Índices, visões (`vw_candidatura`, `vw_patrimonio`, `vw_qt_mandatos`) e `nivel_escolaridade()` |
+| `01_tabelas.sql` | Cria as 17 tabelas da seção 4.4, com chaves, restrições e colunas geradas |
+| `02_indices_visoes.sql` | Índices, visões (`vw_candidatura`, `vw_patrimonio`, `vw_qt_mandatos`, `vw_ideologia_partido`) e `nivel_escolaridade()` |
 | `carga.py` | Executa `01`, carrega os dados e executa `02` |
 | `03_validacao.sql` | Confere a carga contra os totais dos arquivos do TSE |
 | `sql/`, `evidencias.sh` | Consultas da seção 6 e geração das evidências da seção 6.11 |
@@ -14,7 +14,7 @@ baixados pelo crawler (`../crawler/dados`) num PostgreSQL 16.
 ## Como executar
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install "psycopg[binary]>=3.2"
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
 ```bash
@@ -51,6 +51,7 @@ por par (número, sigla).
 | politico | 2.054.818 | indicador_anual | 55.708 |
 | partido | 76 | apuracao | 104.552 |
 | ideologia_partido | 77 | perfil_comparecimento | 7.890.183 |
+| ideologia_coligacao | 189 | | |
 | candidatura | 3.336.441 | votos_cand | 19.748.670 |
 | bem | 2.107.560 | votos_part | 1.294.128 |
 | receita | 4.951.883 | despesa | 9.015.206 |
@@ -111,7 +112,7 @@ Todos estão incorporados ao dossiê (seções 1, 2, 4 e 5).
 
 ## Consultas da seção 6 e evidências (6.11)
 
-As 16 consultas do dossiê ficam em `sql/`. O script abaixo as executa com
+As 18 consultas do dossiê (16 originais e as 2 do acréscimo abaixo) ficam em `sql/`. O script abaixo as executa com
 parâmetros fixos e grava, em `evidencias/`, a sessão do psql (`.txt`), o print
 (`.png`), o resultado completo (`.csv`) e o `quadro.csv` com linhas e tempo:
 
@@ -133,6 +134,37 @@ A primeira execução revelou três problemas no SQL do dossiê, já corrigidos 
 
 Limitação da fonte, não corrigível: o arquivo de candidatos de 2006 não traz o
 resultado da eleição presidencial, e esses candidatos ficam sem situação final.
+
+## Acréscimo: ideologia pelas coligações e trajetória do político
+
+Inspirado no cálculo ideológico da turma anterior, que reduzia a matriz deputado ×
+votação a um eixo. Não há votações nominais nos dados do TSE, então a matriz aqui
+é partido × partido, com o número de coligações para prefeito em que os dois
+estiveram juntos. Nenhuma fonte nova: tudo sai de `candidatura.coligacao`.
+
+- **Tabela `ideologia_coligacao`** (id_partido, ano, nota, coligacoes), gravada pela
+  etapa `ideologia_coligacao` da carga (`carga.py --etapas ideologia_coligacao`,
+  2 segundos, requer numpy). Em cada eleição municipal de 2000 a 2024, entram os
+  partidos com pelo menos 50 coligações com outros partidos. A posição é o segundo
+  autovetor da matriz de coligações normalizada pelo grau (o primeiro é trivial),
+  o mesmo princípio da análise de correspondência. O sinal do autovetor é
+  arbitrário e é orientado pelas notas dos especialistas, e a escala é convertida
+  para a delas (mesma média e desvio padrão, limitada a 0–10).
+- **Visão `vw_ideologia_partido`**: nota de cada partido em cada ano de eleição
+  pelas duas réguas. Os partidos renomeados que mantiveram o número (PMDB, PFL,
+  PPB, PRN, PSN, PSDC, PT do B, PTN e PEN) herdam a nota do nome atual, marcada em
+  `nota_herdada`.
+- **`sql/p07b_ideologia_coligacoes.sql`**: as duas notas lado a lado e a
+  concordância do ano (correlação de Spearman entre as duas ordens).
+- **`sql/p10c_trajetoria_ideologica.sql`**: nota do partido em cada candidatura do
+  político, deslocamento em relação à anterior, média e amplitude da carreira.
+
+Resultado: a concordância entre alianças e especialistas fica entre −0,02 e 0,28 de 2000
+a 2016 e sobe para 0,59 em 2020 e 0,80 em 2024. Até 2016 o eixo das coligações
+separa partidos grandes de pequenos, não esquerda de direita; por isso a
+trajetória do político usa só a nota dos especialistas. Partidos federados (PT,
+PCdoB e PV; PSDB e Cidadania; PSOL e Rede) coligam sempre juntos e recebem a mesma
+nota em 2024.
 
 ## Dados complementares do Atlas (perguntas 4 e 6)
 

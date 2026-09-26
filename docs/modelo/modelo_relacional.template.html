@@ -228,7 +228,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
       <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg" stroke-dasharray="3 2"/></svg>Derivado</span>
       <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg"/><ellipse cx="17" cy="10" rx="11" ry="5" class="lg"/></svg>Multivalorado</span>
       <span><svg width="34" height="20" aria-hidden="true"><line x1="1" y1="8" x2="33" y2="8" class="lg"/><line x1="1" y1="12" x2="33" y2="12" class="lg"/></svg>Participação total</span>
-      <span class="aj-leg">Em ocre: incluído na carga (ajuste)</span>
+      <span class="aj-leg">Em ocre: ajuste ou acréscimo feito na carga</span>
     </div>
     <div class="der-diagramas" id="der-diagramas"></div>
     <details class="visao">
@@ -239,6 +239,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
         <li>Em APURAÇÃO, brancos e nulos variam por cargo, então o cargo também é discriminador.</li>
         <li>CANDIDATURA guarda a unidade eleitoral (UE): o município nos cargos municipais, a UF nos demais. É o que a liga às vagas e ao município.</li>
         <li>IDHM é multivalorado e composto, porque há edições censitárias distintas (1991, 2000 e 2010).</li>
+        <li>Posição_coligações (acréscimo) é multivalorada e composta como Ideologia: uma nota por eleição municipal, calculada pela carga a partir das coligações para prefeito.</li>
         <li>Isentos e PIB_per_capita são colunas geradas pelo banco; Patrimônio_total e Qt_mandatos, visões.</li>
       </ul>
     </details>
@@ -265,7 +266,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
       <p>Cada linha é uma chave estrangeira: o pé-de-galinha fica na tabela que a guarda (lado N) e o traço, na tabela referenciada (lado 1). Clique numa tabela para destacar as ligações dela e abrir a ficha.</p>
     </header>
     <div class="diagrama-caixa">
-      <svg id="diagrama" viewBox="0 0 960 560" role="img" aria-label="Diagrama das 16 tabelas e das chaves estrangeiras entre elas"></svg>
+      <svg id="diagrama" viewBox="0 0 960 560" role="img" aria-label="Diagrama das 17 tabelas e das chaves estrangeiras entre elas"></svg>
       <div class="diagrama-rodape">
         <span>
           <svg width="74" height="14" aria-hidden="true"><line x1="4" y1="7" x2="70" y2="7" stroke="currentColor" stroke-width="1.4"/><path d="M4 1 L14 7 L4 13 M14 7 L4 7" fill="none" stroke="currentColor" stroke-width="1.4"/><line x1="64" y1="1" x2="64" y2="13" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -279,7 +280,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
   <section class="secao" id="tabelas" aria-labelledby="t-fichas">
     <header>
       <span class="rotulo">Tabelas</span>
-      <h2 id="t-fichas">As 16 tabelas</h2>
+      <h2 id="t-fichas">As 17 tabelas</h2>
       <p>Colunas na ordem do banco, com tipo, chave primária (PK), chave estrangeira (FK), obrigatoriedade (NN) e colunas geradas. Em ocre, os ajustes que os dados reais exigiram em relação ao dossiê.</p>
     </header>
     <div class="filtro">
@@ -294,7 +295,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
     <header>
       <span class="rotulo">Atributos derivados</span>
       <h2 id="t-visoes">Visões e função de apoio</h2>
-      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. As definições abaixo são as que o banco guarda.</p>
+      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. A visão vw_ideologia_partido (acréscimo) reúne as duas notas de ideologia de cada partido por ano. As definições abaixo são as que o banco guarda.</p>
     </header>
     <div class="visoes" id="visoes"></div>
     <p class="fonte" id="fonte"></p>
@@ -318,6 +319,7 @@ const META = {
   politico: { area: 'nucleo', papel: 'A pessoa, identificada pelo título eleitoral entre eleições.', der: ['Entidade forte', 'POLÍTICO'] },
   partido: { area: 'nucleo', papel: 'Partido com código próprio, porque número e sigla mudam em fusões.', der: ['Entidade forte', 'PARTIDO'] },
   ideologia_partido: { area: 'nucleo', papel: 'Nota de 0 (esquerda) a 10 (direita) por edição do survey de especialistas.', der: ['Atributo multivalorado composto', 'Ideologia, de PARTIDO'] },
+  ideologia_coligacao: { area: 'nucleo', papel: 'Acréscimo: posição revelada pelas coligações para prefeito, na escala do survey, por eleição municipal.', der: ['Atributo multivalorado composto', 'Posição_coligações, de PARTIDO'] },
   candidatura: { area: 'nucleo', papel: 'Participação de um político numa eleição, para um cargo e unidade eleitoral.', der: ['Entidade forte', 'CANDIDATURA; guarda as FKs de REGISTRA, DISPUTA e LANÇA'] },
   bem: { area: 'fin', papel: 'Bem declarado no registro da candidatura.', der: ['Entidade fraca', 'BEM, pelo relacionamento identificador DECLARA'] },
   receita: { area: 'fin', papel: 'Documento de receita do TSE, com os itens somados.', der: ['Entidade forte', 'RECEITA, lado N de ARRECADA'] },
@@ -338,6 +340,8 @@ const AJUSTE_COL = {
   'candidatura.reeleicao': 'ST_REELEICAO = "S" ou eleito para o mesmo cargo e unidade eleitoral no pleito anterior.',
   'receita.sq_receita': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
   'despesa.sq_despesa': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
+  'ideologia_coligacao.nota': 'Acréscimo: segundo autovetor da matriz de coligações entre partidos, orientado e reescalado pelas notas do survey.',
+  'ideologia_coligacao.coligacoes': 'Acréscimo: coligações para prefeito com outros partidos no ano; só entram partidos com pelo menos 50.',
   'apuracao.validos': 'Coluna nova: válidos oficiais do TSE, que excluem os votos anulados e entram no quociente eleitoral.',
   'perfil_comparecimento.cod_eleicao': 'O arquivo não traz a eleição: o perfil é ligado a toda eleição apurada no município e turno.',
 };
@@ -352,16 +356,16 @@ const MAPA = [
   ['Relacionamento M:N com atributos', 'Tabela associativa; zona, turno e cargo entram na chave como discriminadores.',
     ['apuracao', 'perfil_comparecimento', 'votos_cand', 'votos_part'], 'votos_part é ternário: eleição, partido e município'],
   ['Atributo multivalorado', 'Tabela própria, com a chave da entidade e o componente que distingue os valores.',
-    ['vaga', 'ideologia_partido', 'idhm_municipio']],
+    ['vaga', 'ideologia_partido', 'ideologia_coligacao', 'idhm_municipio']],
   ['Atributo derivado', 'Coluna gerada pelo banco ou visão, nunca valor digitado.',
     [], 'isentos e pib_per_capita são colunas geradas; Patrimônio_total e Qt_mandatos, as visões vw_patrimonio e vw_qt_mandatos'],
 ];
 
 
 // posições no diagrama (viewBox 960 x 560): coluna esquerda = núcleo, meio = finanças e votação, direita = território
-const W = 178, H = 34;
+const W = 196, H = 34;
 const POS = {
-  politico: [20, 58], candidatura: [20, 168], partido: [20, 278], ideologia_partido: [20, 348], eleicao: [20, 448], vaga: [20, 510],
+  politico: [20, 58], candidatura: [20, 168], partido: [20, 278], ideologia_partido: [20, 340], ideologia_coligacao: [20, 390], eleicao: [20, 448], vaga: [20, 510],
   bem: [391, 118], receita: [391, 172], despesa: [391, 226], votos_cand: [391, 300], votos_part: [391, 368], apuracao: [391, 436], perfil_comparecimento: [391, 504],
   idhm_municipio: [762, 212], municipio: [762, 300], indicador_anual: [762, 388],
 };
@@ -443,11 +447,14 @@ for (const t of NOMES) {
   const [x, y] = POS[t];
   const g = s('g', { class: 'no', transform: `translate(${x} ${y})`, tabindex: '0', role: 'button', 'aria-label': `Tabela ${t}, ${fmt(TAB[t].linhas)} linhas` });
   g.style.setProperty('--c', cor(t));
-  g.append(s('rect', { width: W, height: H, rx: 5 }), s('rect', { class: 'faixa', width: 5, height: H, rx: 2 }),
-           s('text', { x: 14, y: 21.5 }, t), s('text', { class: 'n', x: W - 8, y: 21.5, 'text-anchor': 'end' }, abrev(TAB[t].linhas)));
+  const nome = s('text', { x: 14, y: 21.5 }, t), num = s('text', { class: 'n', x: W - 8, y: 21.5, 'text-anchor': 'end' }, abrev(TAB[t].linhas));
+  g.append(s('rect', { width: W, height: H, rx: 5 }), s('rect', { class: 'faixa', width: 5, height: H, rx: 2 }), nome, num);
   g.addEventListener('click', () => focar(t, true));
   g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); focar(t, true); } });
   nos[t] = g; svg.append(g);
+  // nomes longos (perfil_comparecimento) diminuem a fonte para não encostar na contagem
+  const livre = W - 8 - num.getComputedTextLength() - 10 - 14, larg = nome.getComputedTextLength();
+  if (larg > livre) nome.style.fontSize = (13 * livre / larg).toFixed(1) + 'px';
 }
 function abrev(n) { return n >= 1e6 ? (n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mi' : n >= 1e3 ? Math.round(n / 1e3).toLocaleString('pt-BR') + ' mil' : String(n); }
 
@@ -573,7 +580,9 @@ const DER = [
           ['CANDIDATURA', 'Sq_candidato', 'chave', null, true], ['CANDIDATURA', 'UE'], ['CANDIDATURA', 'Cargo'], ['CANDIDATURA', 'Coligação'], ['CANDIDATURA', 'Escolaridade'],
           ['CANDIDATURA', 'Idade_posse', '', null, true], ['CANDIDATURA', 'Reeleição', '', null, true], ['CANDIDATURA', 'Situação_final', '', null, true], ['CANDIDATURA', 'Patrimônio_total', 'derivado'],
           ['PARTIDO', 'Id_partido', 'chave'], ['PARTIDO', 'Número'], ['PARTIDO', 'Sigla'], ['PARTIDO', 'Nome'], ['PARTIDO', 'Ideologia', 'multi', 'ideologia_partido'],
-          ['PARTIDO', 'Ano_survey', 'comp:Ideologia', 'ideologia_partido'], ['PARTIDO', 'Nota', 'comp:Ideologia', 'ideologia_partido']] },
+          ['PARTIDO', 'Ano_survey', 'comp:Ideologia', 'ideologia_partido'], ['PARTIDO', 'Nota', 'comp:Ideologia', 'ideologia_partido'],
+          ['PARTIDO', 'Posição_coligações', 'multi', 'ideologia_coligacao', true], ['PARTIDO', 'Ano', 'comp:Posição_coligações', 'ideologia_coligacao', true],
+          ['PARTIDO', 'Nota', 'comp:Posição_coligações', 'ideologia_coligacao', true], ['PARTIDO', 'Coligações', 'comp:Posição_coligações', 'ideologia_coligacao', true]] },
   { area: 'fin', titulo: 'Patrimônio e finanças', texto: 'O dinheiro de cada candidatura. BEM é entidade fraca; RECEITA e DESPESA têm participação total, porque não existem sem uma candidatura.',
     ent: [['CANDIDATURA', 'CANDIDATURA', 'candidatura'], ['BEM', 'BEM', 'bem', true], ['RECEITA', 'RECEITA', 'receita'], ['DESPESA', 'DESPESA', 'despesa']],
     rel: [['DECLARA', 'DECLARA', 'bem', true, [['CANDIDATURA', '1'], ['BEM', 'N', true]]],
@@ -633,7 +642,7 @@ function dotDER(d, c) {
     const cor = ajuste ? c.aj : c.linha, fonte = ajuste ? c.aj : c.ink;
     const rotulo = tipo === 'chave' ? `<<U>${rot}</U>>` : q(rot);
     const extra = (tipo === 'derivado' ? ', style="filled,dashed"' : '') + (tipo === 'multi' ? ', peripheries=2' : '') + (ajuste ? ', penwidth=1.8' : '');
-    L.push(`${q(id)} [shape=ellipse, label=${rotulo}, color=${q(cor)}, fontcolor=${q(fonte)}, margin="0.06,0.02"${extra}, tooltip=${q('Tabela ' + tabela[id] + (ajuste ? ' (ajuste na carga)' : ''))}];`);
+    L.push(`${q(id)} [shape=ellipse, label=${rotulo}, color=${q(cor)}, fontcolor=${q(fonte)}, margin="0.06,0.02"${extra}, tooltip=${q('Tabela ' + tabela[id] + (ajuste ? ' (ajuste ou acréscimo na carga)' : ''))}];`);
     const pai = tipo.startsWith('comp:') ? d.atr.findIndex(a => a[0] === dono && a[1] === tipo.slice(5)) : -1;
     L.push(`${q(id)} -- ${q(pai >= 0 ? `${dono}.${tipo.slice(5)}.${pai}` : dono)} [len=${pai >= 0 ? 0.75 : 1.0}];`);
   });

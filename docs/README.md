@@ -3,7 +3,7 @@
 ## `modelo/modelo_relacional.html`
 
 Página única, que abre direto no navegador, com o D.E.R. em notação de Chen (zoom e
-navegação) e as 16 tabelas do banco, com o mapeamento entre os dois e as chaves
+navegação) e as 17 tabelas do banco, com o mapeamento entre os dois e as chaves
 estrangeiras. Precisa de internet só para as fontes e para o Graphviz, que desenha os
 diagramas no navegador.
 

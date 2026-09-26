@@ -20,7 +20,8 @@ import re
 import sys
 import time
 import unicodedata
-from collections import defaultdict
+from collections import Counter, defaultdict
+from itertools import combinations
 from pathlib import Path
 
 import psycopg
@@ -224,13 +225,13 @@ def etapa_esquema(c):
     log('== esquema')
     c.sql("""DROP TABLE IF EXISTS votos_part, votos_cand, perfil_comparecimento, apuracao,
              indicador_anual, idhm_municipio, municipio, despesa, receita, bem, candidatura,
-             ideologia_partido, partido, politico, vaga, eleicao CASCADE""")
+             ideologia_coligacao, ideologia_partido, partido, politico, vaga, eleicao CASCADE""")
     c.sql('DROP FUNCTION IF EXISTS nivel_escolaridade(VARCHAR)')
     c.sql('DROP SCHEMA IF EXISTS stg CASCADE')
     c.sql('DROP SCHEMA IF EXISTS carga CASCADE')
     c.sql(FUNCOES_STG)
     c.sql((RAIZ / '01_tabelas.sql').read_text())
-    c.registra('esquema', '01_tabelas.sql aplicado', 16)
+    c.registra('esquema', '01_tabelas.sql aplicado', 17)
 
 
 def etapa_territorio(c):
@@ -717,7 +718,7 @@ def etapa_perfil(c):
 
 def etapa_indices(c):
     log('== índices, visões e estatísticas')
-    c.sql('DROP VIEW IF EXISTS vw_qt_mandatos, vw_patrimonio, vw_candidatura')
+    c.sql('DROP VIEW IF EXISTS vw_ideologia_partido, vw_qt_mandatos, vw_patrimonio, vw_candidatura')
     c.sql('DROP FUNCTION IF EXISTS nivel_escolaridade(VARCHAR)')
     for idx in ('idx_candidatura_eleicao', 'idx_candidatura_politico', 'idx_receita_candidato',
                 'idx_despesa_candidato', 'idx_votos_cand_mun', 'idx_votos_part_mun'):
@@ -728,6 +729,100 @@ def etapa_indices(c):
     t0 = time.time()
     c.sql('ANALYZE')
     c.registra('analyze', 'estatísticas do planejador', 0, time.time() - t0)
+
+
+# Um partido entra no cálculo do ano se participou de pelo menos tantas coligações
+# para prefeito com outros partidos; abaixo disso a posição dele é instável.
+MIN_COLIGACOES = 50
+
+
+def siglas_coligacao(texto):
+    """'PP / PSD / Federação PSDB CIDADANIA (45-PSDB / 23-CIDADANIA)' -> PP, PSD, PSDB, CIDADANIA"""
+    for parte in re.split(r'\s*/\s*(?![^()]*\))', texto):
+        if parte.upper().startswith('FEDERA'):
+            yield from (s.strip().upper() for s in re.findall(r'\d+\s*-\s*([^/()]+)', parte))
+        elif parte.strip():
+            yield parte.strip().upper()
+
+
+def etapa_ideologia_coligacao(c):
+    """Posição de cada partido pelas coligações para prefeito (acréscimo ao dossiê).
+
+    Em cada eleição municipal, monta a matriz partido x partido com o número de
+    coligações em que os dois estiveram juntos. O segundo autovetor da matriz
+    normalizada (o primeiro é trivial) ordena os partidos de modo que os que se
+    coligam entre si fiquem próximos: é o eixo revelado pelas alianças. O sinal
+    do autovetor é arbitrário e é orientado pelas notas dos especialistas; a escala
+    é convertida para a delas (mesma média e desvio padrão), de 0 a 10.
+    """
+    import numpy as np
+
+    log('== ideologia pelas coligações')
+    if c.um("SELECT to_regclass('vw_ideologia_partido')")[0] is None:
+        ddl = (RAIZ / '01_tabelas.sql').read_text()
+        c.sql(re.search(r'CREATE TABLE ideologia_coligacao .*?\n\);', ddl, re.S).group(0)
+              .replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS'))
+        visoes = (RAIZ / '02_indices_visoes.sql').read_text()
+        c.sql(re.search(r'CREATE VIEW vw_ideologia_partido .*?\) col ON TRUE;', visoes, re.S).group(0))
+    c.sql('TRUNCATE ideologia_coligacao')
+
+    coligacoes = defaultdict(set)   # ano -> {(ue, título, texto)}: uma por candidato, mesmo com 2º turno
+    for ano, ue, titulo, texto in c.sql("""
+            SELECT DISTINCT e.ano, c.ue, c.titulo_eleitoral, c.coligacao
+            FROM candidatura c JOIN eleicao e USING (cod_eleicao)
+            WHERE c.cargo = 'PREFEITO' AND c.coligacao IS NOT NULL"""):
+        coligacoes[ano].add((ue, titulo, texto))
+
+    linhas = []
+    for ano in sorted(coligacoes):
+        ids = dict(c.sql("""SELECT DISTINCT ON (upper(pa.sigla)) upper(pa.sigla), pa.id_partido
+                            FROM candidatura c JOIN eleicao e USING (cod_eleicao)
+                            JOIN partido pa USING (id_partido)
+                            WHERE e.ano = %s
+                            GROUP BY 1, 2 ORDER BY 1, count(*) DESC""", (ano,)))
+        pares, n, sem_partido = Counter(), Counter(), 0
+        for _, _, texto in coligacoes[ano]:
+            siglas = set(siglas_coligacao(texto))
+            sem_partido += len(siglas - ids.keys())
+            partidos = sorted(ids[s] for s in siglas if s in ids)
+            if len(partidos) < 2:
+                continue
+            n.update(partidos)
+            pares.update(combinations(partidos, 2))
+        if sem_partido:
+            c.registra('ideologia_coligacao descarte', f'{ano}: sigla da coligação sem partido no ano', sem_partido)
+
+        P = sorted(p for p in n if n[p] >= MIN_COLIGACOES)
+        pos = {p: i for i, p in enumerate(P)}
+        M = np.zeros((len(P), len(P)))
+        for (a, b), v in pares.items():
+            if a in pos and b in pos:
+                M[pos[a], pos[b]] = M[pos[b], pos[a]] = v
+        grau = M.sum(axis=1)
+        if len(P) < 5 or (grau == 0).any():
+            c.registra('ideologia_coligacao aviso', f'{ano}: partidos insuficientes', len(P))
+            continue
+        _, vetores = np.linalg.eigh(M / np.sqrt(np.outer(grau, grau)))
+        eixo = vetores[:, -2] / np.sqrt(grau)
+
+        nota_esp = dict(c.sql("""SELECT id_partido, nota_especialistas FROM vw_ideologia_partido
+                                 WHERE ano = %s AND nota_especialistas IS NOT NULL""", (ano,)))
+        ref = [p for p in P if p in nota_esp]
+        x = np.array([eixo[pos[p]] for p in ref])
+        y = np.array([float(nota_esp[p]) for p in ref])
+        if np.corrcoef(x, y)[0, 1] < 0:
+            eixo, x = -eixo, -x
+        nota = np.clip(y.mean() + y.std() * (eixo - x.mean()) / x.std(), 0, 10)
+        ordem = lambda v: np.searchsorted(np.sort(v), v)   # empates com a mesma posição, como RANK()
+        spearman = np.corrcoef(ordem(np.round([nota[pos[p]] for p in ref], 2)), ordem(y))[0, 1]
+
+        linhas += [(p, ano, round(float(nota[pos[p]]), 2), n[p]) for p in P]
+        c.registra('ideologia_coligacao', f'{ano}: {len(P)} partidos, {len(coligacoes[ano])} coligações, '
+                                          f'concordância {spearman:.2f}', len(P))
+    with c.conn.cursor() as cur:
+        cur.executemany('INSERT INTO ideologia_coligacao (id_partido, ano, nota, coligacoes) VALUES (%s, %s, %s, %s)',
+                        linhas)
+    c.sql('ANALYZE ideologia_coligacao')
 
 
 def etapa_limpeza(c):
@@ -748,6 +843,7 @@ ETAPAS = {
     'votos_cand': etapa_votos_cand,
     'perfil': etapa_perfil,
     'indices': etapa_indices,
+    'ideologia_coligacao': etapa_ideologia_coligacao,
     'limpeza': etapa_limpeza,
 }
 

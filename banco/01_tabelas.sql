@@ -3,7 +3,8 @@
 -- PostgreSQL 16
 --
 -- O script segue o dossiê. Os pontos em que os dados reais do TSE obrigaram a
--- um ajuste estão marcados com "AJUSTE" e explicados em banco/README.md.
+-- um ajuste estão marcados com "AJUSTE", e o que foi acrescentado depois, com
+-- "ACRÉSCIMO"; os dois são explicados em banco/README.md.
 -- Índices, visões e a função de apoio ficam em 02_indices_visoes.sql, criados
 -- depois da carga para não pesar nas inserções.
 -- =============================================================================
@@ -45,6 +46,17 @@ CREATE TABLE ideologia_partido (
     ano_survey    SMALLINT     NOT NULL,
     nota          NUMERIC(4,2) NOT NULL CHECK (nota BETWEEN 0 AND 10),
     PRIMARY KEY (id_partido, ano_survey)
+);
+
+-- ACRÉSCIMO: posição de cada partido revelada pelas coligações para prefeito,
+-- na mesma escala de 0 (esquerda) a 10 (direita) do survey. Calculada pela carga
+-- (etapa ideologia_coligacao) a partir de candidatura.coligacao, sem fonte nova.
+CREATE TABLE ideologia_coligacao (
+    id_partido    INTEGER      NOT NULL REFERENCES partido (id_partido),
+    ano           SMALLINT     NOT NULL,
+    nota          NUMERIC(4,2) NOT NULL CHECK (nota BETWEEN 0 AND 10),
+    coligacoes    INTEGER      NOT NULL CHECK (coligacoes > 0),
+    PRIMARY KEY (id_partido, ano)
 );
 
 -- AJUSTE 1: antes de 2018 o SQ_CANDIDATO do TSE não identifica a candidatura
