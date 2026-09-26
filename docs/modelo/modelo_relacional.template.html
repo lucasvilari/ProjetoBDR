@@ -1,0 +1,781 @@
+<title>Modelo de Dados das Eleições</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<style>
+:root {
+  --bg: #F4F5F2;
+  --surface: #FFFFFF;
+  --surface-2: #EDEFEA;
+  --ink: #18202B;
+  --ink-2: #4B5563;
+  --ink-3: #6B7480;
+  --line: #D8DCD3;
+  --line-2: #E6E9E2;
+  --pk: #1D5FB3;
+  --pk-bg: #E4EDF9;
+  --fk: #9A4B16;
+  --fk-bg: #F6E9DF;
+  --ajuste: #8A6300;
+  --ajuste-bg: #F7EFD6;
+  --nucleo: #2F5DA8;
+  --fin: #2B7A57;
+  --terr: #7B4894;
+  --edge: #A9B0A6;
+  --dim: 0.18;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #10141A; --surface: #171D25; --surface-2: #1E2630; --ink: #E4E8EE; --ink-2: #A9B2BE; --ink-3: #8690A0;
+    --line: #2B3440; --line-2: #232B36; --pk: #74A6EE; --pk-bg: #1B2B42; --fk: #E39A62; --fk-bg: #33241A;
+    --ajuste: #E3BB57; --ajuste-bg: #322A14; --nucleo: #7FA2E3; --fin: #5CBB90; --terr: #BC8ED2; --edge: #4B5563;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #10141A; --surface: #171D25; --surface-2: #1E2630; --ink: #E4E8EE; --ink-2: #A9B2BE; --ink-3: #8690A0;
+  --line: #2B3440; --line-2: #232B36; --pk: #74A6EE; --pk-bg: #1B2B42; --fk: #E39A62; --fk-bg: #33241A;
+  --ajuste: #E3BB57; --ajuste-bg: #322A14; --nucleo: #7FA2E3; --fin: #5CBB90; --terr: #BC8ED2; --edge: #4B5563;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+.pagina { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 56px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(28px, 4.2vw, 40px); font-weight: 700; letter-spacing: -0.015em; }
+h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.005em; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--mono); font-size: 0.9em; }
+a { color: var(--pk); }
+.rotulo { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.secao { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
+.grupo, .topo, .secao > header { min-width: 0; }
+.secao > header { display: grid; gap: 6px; }
+.secao > header p { color: var(--ink-2); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--pk); outline-offset: 2px; border-radius: 4px; }
+
+/* ---- cabeçalho ---- */
+.topo { display: grid; gap: 14px; }
+.topo p { color: var(--ink-2); font-size: 16px; }
+.numeros { display: flex; flex-wrap: wrap; gap: 10px 36px; padding-top: 6px; }
+.numeros div { display: grid; }
+.numeros strong { font: 600 26px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.numeros span { color: var(--ink-3); font-size: 13px; }
+.areas-legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-2); }
+.areas-legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.pino { width: 10px; height: 10px; border-radius: 2px; background: var(--c); flex: none; }
+
+/* ---- quadro D.E.R. -> tabelas ---- */
+.rolagem { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table.mapa { border-collapse: collapse; width: 100%; min-width: 720px; }
+.mapa th, .mapa td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line-2); }
+.mapa th { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); background: var(--surface-2); }
+.mapa tr:last-child td { border-bottom: 0; }
+.mapa td:first-child { font-weight: 600; white-space: nowrap; }
+.mapa td:nth-child(2) { color: var(--ink-2); max-width: 36ch; }
+.fichas-link { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px/1 var(--mono); padding: 5px 8px; border-radius: 5px;
+        border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; }
+.chip:hover { border-color: var(--c, var(--pk)); }
+.chip .pino { width: 7px; height: 7px; }
+.nota-chip { color: var(--ink-3); font: 12px var(--sans); align-self: center; }
+
+/* ---- diagrama ---- */
+.diagrama-caixa { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow-x: auto; }
+.diagrama-caixa svg { display: block; width: 100%; min-width: 860px; height: auto; }
+.no rect { fill: var(--surface); stroke: var(--c); stroke-width: 1.5; }
+.no .faixa { fill: var(--c); stroke: none; }
+.no text { font: 500 13px var(--mono); fill: var(--ink); }
+.no .n { font: 400 11px var(--mono); fill: var(--ink-3); }
+.no { cursor: pointer; transition: opacity .15s; }
+.no:hover rect:not(.faixa) { stroke-width: 2.5; }
+.aresta { fill: none; stroke: var(--edge); stroke-width: 1.4; transition: opacity .15s, stroke .15s; }
+.col-titulo { font: 600 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; fill: var(--ink-3); }
+svg.foco .no:not(.ativo):not(.vizinho) { opacity: var(--dim); }
+svg.foco .aresta:not(.ativa) { opacity: var(--dim); }
+svg.foco .aresta.ativa { stroke: var(--fk); stroke-width: 2; }
+svg.foco .no.ativo rect:not(.faixa) { stroke-width: 3; }
+.diagrama-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; padding: 10px 14px;
+                   border-top: 1px solid var(--line-2); font-size: 13px; color: var(--ink-2); }
+.diagrama-rodape svg { vertical-align: middle; }
+#limpar-foco { border: 1px solid var(--line); background: var(--surface-2); border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+#limpar-foco[hidden] { display: none; }
+
+/* ---- fichas ---- */
+.filtro { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.filtro label { font-size: 13px; color: var(--ink-2); }
+.filtro input { font: 14px var(--mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+                color: var(--ink); width: min(100%, 320px); }
+.filtro output { font-size: 13px; color: var(--ink-3); }
+.grupo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.grupo > h3 { display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--ink-2); font-weight: 600; }
+.grupo > h3 .pino { width: 12px; height: 12px; }
+.fichas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 16px; align-items: start; }
+.ficha { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; scroll-margin-top: 20px;
+         transition: box-shadow .2s, border-color .2s; }
+.ficha.alvo { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); }
+.ficha > header { display: grid; gap: 6px; padding: 14px 16px 12px; border-top: 4px solid var(--c); }
+.ficha .titulo-linha { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.ficha h4 { margin: 0; font: 600 17px var(--mono); }
+.ficha .linhas { font: 500 12.5px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ficha .papel { color: var(--ink-2); font-size: 14px; }
+.ficha .der { font-size: 12.5px; color: var(--ink-3); }
+.ficha .der b { font-weight: 600; color: var(--ink-2); }
+.colunas { width: 100%; border-collapse: collapse; }
+.colunas td { padding: 7px 16px; border-top: 1px solid var(--line-2); vertical-align: top; }
+.colunas td:first-child { font: 500 13.5px var(--mono); white-space: nowrap; width: 1%; }
+.colunas td:nth-child(2) { font: 13px var(--mono); color: var(--ink-2); white-space: nowrap; width: 1%; }
+.colunas tr.oculta { display: none; }
+.colunas tr.casa td:first-child { background: color-mix(in srgb, var(--pk) 14%, transparent); }
+.marcas { display: flex; flex-wrap: wrap; gap: 5px; }
+.m { font: 600 11px/1 var(--mono); padding: 4px 6px; border-radius: 4px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.m.pk { background: var(--pk-bg); color: var(--pk); }
+.m.fk { background: var(--fk-bg); color: var(--fk); cursor: pointer; border: 0; }
+.m.aj { background: var(--ajuste-bg); color: var(--ajuste); }
+.nota-aj { flex-basis: 100%; font-size: 12.5px; color: var(--ajuste); line-height: 1.45; }
+.gerada { flex-basis: 100%; font: 12px var(--mono); color: var(--ink-3); }
+.ficha footer { padding: 10px 16px 14px; border-top: 1px solid var(--line-2); display: grid; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.ficha footer .lig { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ficha footer .lig > span:first-child { color: var(--ink-3); min-width: 9.5em; }
+.checks { font: 12px var(--mono); color: var(--ink-3); }
+
+/* ---- visões ---- */
+.visoes { display: grid; gap: 10px; }
+details.visao { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+details.visao summary { cursor: pointer; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; list-style: none; }
+details.visao summary::-webkit-details-marker { display: none; }
+details.visao summary::before { content: "▸"; color: var(--ink-3); transition: transform .15s; }
+details.visao[open] summary::before { transform: rotate(90deg); }
+details.visao summary b { font: 600 14.5px var(--mono); }
+details.visao summary span { color: var(--ink-2); font-size: 14px; }
+details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--line-2); overflow-x: auto; font: 12.5px/1.6 var(--mono);
+                    background: var(--surface-2); border-radius: 0 0 8px 8px; }
+
+.fonte { font-size: 13px; color: var(--ink-3); }
+
+/* ---- índice e D.E.R. ---- */
+.indice { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; padding-top: 2px; }
+.indice a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 1px; }
+.indice a:hover { color: var(--pk); border-color: var(--pk); }
+.der-legenda { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--ink-2); }
+.der-legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.der-legenda .lg { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.2; }
+.der-legenda .aj-leg { color: var(--ajuste); font-weight: 500; }
+.der-diagramas { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.der-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.der-fig > header { display: grid; gap: 4px; padding: 14px 16px 10px; border-top: 4px solid var(--c); }
+.der-fig > header h3 { font-size: 16px; }
+.der-fig > header p { font-size: 14px; color: var(--ink-2); }
+.der-tela { position: relative; height: clamp(420px, 72vh, 780px); overflow: hidden; border-top: 1px solid var(--line-2);
+            background: radial-gradient(circle, var(--line) 1px, transparent 1.2px) 0 0 / 22px 22px, var(--surface);
+            cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.der-tela.arrastando { cursor: grabbing; }
+.der-tela svg { display: block; width: 100%; height: 100%; }
+.der-tela:fullscreen { height: 100%; }
+.der-ctrl { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; align-items: center; padding: 4px;
+            background: var(--surface); border: 1px solid var(--line); border-radius: 7px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.08); }
+.der-ctrl button { min-width: 34px; height: 32px; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: var(--ink);
+                   cursor: pointer; font: 500 14px var(--sans); }
+.der-ctrl button:hover { background: var(--surface-2); }
+.der-ctrl output { min-width: 3.6em; text-align: center; font: 500 12.5px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.der-ctrl .sep { width: 1px; align-self: stretch; background: var(--line); margin: 3px 2px; }
+.der-dica { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: var(--ink-3); background: color-mix(in srgb, var(--surface) 85%, transparent);
+            padding: 3px 7px; border-radius: 4px; pointer-events: none; }
+.der-tela svg g.node { cursor: pointer; }
+.der-tela.arrastando svg g.node { cursor: grabbing; }
+.der-tela svg g.node:hover polygon, .der-tela svg g.node:hover ellipse { stroke-width: 2.4; }
+.der-tela svg text { font-family: var(--sans); }
+.der-aviso { padding: 24px 16px; color: var(--ink-3); font-size: 14px; }
+.decisoes { margin: 0; padding: 12px 16px 16px 34px; border-top: 1px solid var(--line-2); display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 560px) {
+  .colunas td { padding-inline: 12px; }
+  .ficha > header, .ficha footer { padding-inline: 12px; }
+  .numeros strong { font-size: 22px; }
+}
+</style>
+
+<main class="pagina">
+  <header class="topo">
+    <span class="rotulo">Bancos de Dados Relacionais · UFPI · Eleições brasileiras</span>
+    <h1>Modelo de dados das eleições</h1>
+    <p>Os três diagramas do D.E.R. (núcleo eleitoral, patrimônio e finanças, território e votação) e a redução deles a tabelas do PostgreSQL 16. As tabelas são lidas diretamente do catálogo do banco <code>eleicoes</code>, depois da carga dos dados do TSE, do IBGE, do Atlas do Desenvolvimento Humano e do survey de ideologia partidária.</p>
+    <nav class="indice" aria-label="Seções da página">
+      <a href="#der">D.E.R.</a><a href="#mapeamento">Do D.E.R. às tabelas</a><a href="#chaves">Chaves estrangeiras</a><a href="#tabelas">Tabelas</a><a href="#visoes-sec">Visões</a>
+    </nav>
+    <div class="numeros" id="numeros"></div>
+    <div class="areas-legenda" id="legenda-areas"></div>
+  </header>
+
+  <section class="secao" id="der" aria-labelledby="t-der">
+    <header>
+      <span class="rotulo">Modelo conceitual</span>
+      <h2 id="t-der">Diagrama entidade-relacionamento</h2>
+      <p>Notação de Chen, dividida em três diagramas como no dossiê. CANDIDATURA, ELEIÇÃO e PARTIDO aparecem em mais de um diagrama e são, em todos, a mesma entidade. Arraste para mover e use os botões, Ctrl + roda do mouse ou pinça para o zoom; clique num elemento para ver a tabela em que ele se transformou.</p>
+    </header>
+    <div class="der-legenda" aria-label="Legenda da notação">
+      <span><svg width="34" height="20" aria-hidden="true"><rect x="2" y="3" width="30" height="14" class="lg"/></svg>Entidade</span>
+      <span><svg width="34" height="20" aria-hidden="true"><rect x="1" y="2" width="32" height="16" class="lg"/><rect x="4" y="5" width="26" height="10" class="lg"/></svg>Entidade fraca</span>
+      <span><svg width="34" height="20" aria-hidden="true"><path d="M17 1 L33 10 L17 19 L1 10 Z" class="lg"/></svg>Relacionamento</span>
+      <span><svg width="34" height="20" aria-hidden="true"><path d="M17 1 L33 10 L17 19 L1 10 Z" class="lg"/><path d="M17 5 L26 10 L17 15 L8 10 Z" class="lg"/></svg>Relacionamento identificador</span>
+      <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg"/><line x1="9" y1="13" x2="25" y2="13" class="lg"/></svg>Identificador (sublinhado)</span>
+      <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg" stroke-dasharray="3 2"/></svg>Derivado</span>
+      <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg"/><ellipse cx="17" cy="10" rx="11" ry="5" class="lg"/></svg>Multivalorado</span>
+      <span><svg width="34" height="20" aria-hidden="true"><line x1="1" y1="8" x2="33" y2="8" class="lg"/><line x1="1" y1="12" x2="33" y2="12" class="lg"/></svg>Participação total</span>
+      <span class="aj-leg">Em ocre: incluído na carga (ajuste)</span>
+    </div>
+    <div class="der-diagramas" id="der-diagramas"></div>
+    <details class="visao">
+      <summary><b>Decisões de modelagem</b><span>O que os diagramas registram e por quê (dossiê, seção 3.4).</span></summary>
+      <ul class="decisoes">
+        <li>APURAÇÃO, COMPARECIMENTO, VOTOS_CAND e VOTOS_PART são relacionamentos M:N cujos atributos zona e turno se repetem para o mesmo par de entidades; funcionam como discriminadores e compõem a chave das tabelas.</li>
+        <li>VOTOS_PART é ternário (ELEIÇÃO, PARTIDO, MUNICÍPIO): sem a ELEIÇÃO não se saberia a que pleito pertencem os votos de um partido.</li>
+        <li>Em APURAÇÃO, brancos e nulos variam por cargo, então o cargo também é discriminador.</li>
+        <li>CANDIDATURA guarda a unidade eleitoral (UE): o município nos cargos municipais, a UF nos demais. É o que a liga às vagas e ao município.</li>
+        <li>IDHM é multivalorado e composto, porque há edições censitárias distintas (1991, 2000 e 2010).</li>
+        <li>Isentos e PIB_per_capita são colunas geradas pelo banco; Patrimônio_total e Qt_mandatos, visões.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="secao" id="mapeamento" aria-labelledby="t-mapa">
+    <header>
+      <span class="rotulo">Mapeamento</span>
+      <h2 id="t-mapa">Do D.E.R. às tabelas</h2>
+      <p>Cada construção da notação de Chen virou tabela, chave estrangeira, coluna gerada ou visão segundo uma regra fixa. O esquema resultante está na terceira forma normal: todo atributo não chave depende da chave inteira e só dela.</p>
+    </header>
+    <div class="rolagem">
+      <table class="mapa">
+        <thead><tr><th>Construção no D.E.R.</th><th>Regra de redução</th><th>Resultado no banco</th></tr></thead>
+        <tbody id="mapa-corpo"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="secao" id="chaves" aria-labelledby="t-diagrama">
+    <header>
+      <span class="rotulo">Relacionamentos</span>
+      <h2 id="t-diagrama">Chaves estrangeiras</h2>
+      <p>Cada linha é uma chave estrangeira: o pé-de-galinha fica na tabela que a guarda (lado N) e o traço, na tabela referenciada (lado 1). Clique numa tabela para destacar as ligações dela e abrir a ficha.</p>
+    </header>
+    <div class="diagrama-caixa">
+      <svg id="diagrama" viewBox="0 0 960 560" role="img" aria-label="Diagrama das 16 tabelas e das chaves estrangeiras entre elas"></svg>
+      <div class="diagrama-rodape">
+        <span>
+          <svg width="74" height="14" aria-hidden="true"><line x1="4" y1="7" x2="70" y2="7" stroke="currentColor" stroke-width="1.4"/><path d="M4 1 L14 7 L4 13 M14 7 L4 7" fill="none" stroke="currentColor" stroke-width="1.4"/><line x1="64" y1="1" x2="64" y2="13" stroke="currentColor" stroke-width="1.4"/></svg>
+          lado N (tabela com a FK) → lado 1 (tabela referenciada)
+        </span>
+        <button type="button" id="limpar-foco" hidden>Mostrar todas as ligações</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao" id="tabelas" aria-labelledby="t-fichas">
+    <header>
+      <span class="rotulo">Tabelas</span>
+      <h2 id="t-fichas">As 16 tabelas</h2>
+      <p>Colunas na ordem do banco, com tipo, chave primária (PK), chave estrangeira (FK), obrigatoriedade (NN) e colunas geradas. Em ocre, os ajustes que os dados reais exigiram em relação ao dossiê.</p>
+    </header>
+    <div class="filtro">
+      <label for="busca">Procurar coluna ou tabela</label>
+      <input id="busca" type="search" placeholder="ex.: cod_tse, votos, receita" autocomplete="off">
+      <output id="busca-res" for="busca"></output>
+    </div>
+    <div id="grupos" class="secao"></div>
+  </section>
+
+  <section class="secao" id="visoes-sec" aria-labelledby="t-visoes">
+    <header>
+      <span class="rotulo">Atributos derivados</span>
+      <h2 id="t-visoes">Visões e função de apoio</h2>
+      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. As definições abaixo são as que o banco guarda.</p>
+    </header>
+    <div class="visoes" id="visoes"></div>
+    <p class="fonte" id="fonte"></p>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.30.0/dist/viz-global.js"></script>
+<script>
+const DADOS = /*__DADOS__*/null;
+
+const AREAS = {
+  nucleo: { nome: 'Núcleo eleitoral', cor: 'var(--nucleo)' },
+  fin: { nome: 'Patrimônio e finanças', cor: 'var(--fin)' },
+  terr: { nome: 'Território e votação', cor: 'var(--terr)' },
+};
+
+const META = {
+  eleicao: { area: 'nucleo', papel: 'Cada eleição ordinária; o TSE usa um código por turno.', der: ['Entidade forte', 'ELEIÇÃO'] },
+  vaga: { area: 'nucleo', papel: 'Cadeiras em disputa por cargo e unidade eleitoral.', der: ['Atributo multivalorado composto', 'Vagas, de ELEIÇÃO'] },
+  politico: { area: 'nucleo', papel: 'A pessoa, identificada pelo título eleitoral entre eleições.', der: ['Entidade forte', 'POLÍTICO'] },
+  partido: { area: 'nucleo', papel: 'Partido com código próprio, porque número e sigla mudam em fusões.', der: ['Entidade forte', 'PARTIDO'] },
+  ideologia_partido: { area: 'nucleo', papel: 'Nota de 0 (esquerda) a 10 (direita) por edição do survey de especialistas.', der: ['Atributo multivalorado composto', 'Ideologia, de PARTIDO'] },
+  candidatura: { area: 'nucleo', papel: 'Participação de um político numa eleição, para um cargo e unidade eleitoral.', der: ['Entidade forte', 'CANDIDATURA; guarda as FKs de REGISTRA, DISPUTA e LANÇA'] },
+  bem: { area: 'fin', papel: 'Bem declarado no registro da candidatura.', der: ['Entidade fraca', 'BEM, pelo relacionamento identificador DECLARA'] },
+  receita: { area: 'fin', papel: 'Documento de receita do TSE, com os itens somados.', der: ['Entidade forte', 'RECEITA, lado N de ARRECADA'] },
+  despesa: { area: 'fin', papel: 'Documento de despesa contratada, com os itens somados.', der: ['Entidade forte', 'DESPESA, lado N de GASTA'] },
+  municipio: { area: 'terr', papel: 'Município com códigos do TSE e do IBGE, UF, região e indicadores do Censo 2022.', der: ['Entidade forte', 'MUNICÍPIO'] },
+  idhm_municipio: { area: 'terr', papel: 'IDHM por edição censitária (1991, 2000 e 2010).', der: ['Atributo multivalorado composto', 'IDHM, de MUNICÍPIO'] },
+  indicador_anual: { area: 'terr', papel: 'PIB e população por ano; o PIB per capita é calculado pelo banco.', der: ['Entidade fraca', 'INDICADOR_ANUAL, pelo relacionamento identificador POSSUI'] },
+  apuracao: { area: 'terr', papel: 'Aptos, abstenções, brancos, nulos e válidos por eleição, município, zona, turno e cargo.', der: ['Relacionamento M:N', 'APURAÇÃO, entre ELEIÇÃO e MUNICÍPIO'] },
+  perfil_comparecimento: { area: 'terr', papel: 'Eleitorado apto e comparecimento por faixa etária e escolaridade.', der: ['Relacionamento M:N', 'COMPARECIMENTO, entre ELEIÇÃO e MUNICÍPIO'] },
+  votos_cand: { area: 'terr', papel: 'Votos nominais de cada candidatura por município, zona e turno.', der: ['Relacionamento M:N', 'VOTOS_CAND, entre CANDIDATURA e MUNICÍPIO'] },
+  votos_part: { area: 'terr', papel: 'Votos nominais e de legenda de cada partido por município, zona, turno e cargo.', der: ['Relacionamento ternário', 'VOTOS_PART, entre ELEIÇÃO, PARTIDO e MUNICÍPIO'] },
+};
+
+const AJUSTE_COL = {
+  'candidatura.sq_candidato': 'SQ_CANDIDATO do TSE de 2018 em diante; antes, identificador sintético negativo, porque o SQ do TSE se repete.',
+  'candidatura.situacao_final': 'VARCHAR(50) em vez de 30: o TSE publica situações como "RENÚNCIA/FALECIMENTO/CASSAÇÃO ANTES DA ELEIÇÃO".',
+  'candidatura.idade_posse': 'Calculada da data de nascimento quando o TSE não publica NR_IDADE_DATA_POSSE.',
+  'candidatura.reeleicao': 'ST_REELEICAO = "S" ou eleito para o mesmo cargo e unidade eleitoral no pleito anterior.',
+  'receita.sq_receita': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
+  'despesa.sq_despesa': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
+  'apuracao.validos': 'Coluna nova: válidos oficiais do TSE, que excluem os votos anulados e entram no quociente eleitoral.',
+  'perfil_comparecimento.cod_eleicao': 'O arquivo não traz a eleição: o perfil é ligado a toda eleição apurada no município e turno.',
+};
+
+const MAPA = [
+  ['Entidade forte', 'Vira tabela, com o identificador como chave primária.',
+    ['eleicao', 'politico', 'partido', 'candidatura', 'receita', 'despesa', 'municipio']],
+  ['Entidade fraca', 'Chave primária = chave da entidade dona + chave parcial.',
+    ['bem', 'indicador_anual'], 'bem: sq_candidato + nr_ordem · indicador_anual: cod_tse + ano'],
+  ['Relacionamento 1:N', 'Chave estrangeira no lado N, NOT NULL quando a participação é total.',
+    ['candidatura', 'receita', 'despesa'], 'REGISTRA, DISPUTA e LANÇA em candidatura; ARRECADA em receita; GASTA em despesa'],
+  ['Relacionamento M:N com atributos', 'Tabela associativa; zona, turno e cargo entram na chave como discriminadores.',
+    ['apuracao', 'perfil_comparecimento', 'votos_cand', 'votos_part'], 'votos_part é ternário: eleição, partido e município'],
+  ['Atributo multivalorado', 'Tabela própria, com a chave da entidade e o componente que distingue os valores.',
+    ['vaga', 'ideologia_partido', 'idhm_municipio']],
+  ['Atributo derivado', 'Coluna gerada pelo banco ou visão, nunca valor digitado.',
+    [], 'isentos e pib_per_capita são colunas geradas; Patrimônio_total e Qt_mandatos, as visões vw_patrimonio e vw_qt_mandatos'],
+];
+
+
+// posições no diagrama (viewBox 960 x 560): coluna esquerda = núcleo, meio = finanças e votação, direita = território
+const W = 178, H = 34;
+const POS = {
+  politico: [20, 58], candidatura: [20, 168], partido: [20, 278], ideologia_partido: [20, 348], eleicao: [20, 448], vaga: [20, 510],
+  bem: [391, 118], receita: [391, 172], despesa: [391, 226], votos_cand: [391, 300], votos_part: [391, 368], apuracao: [391, 436], perfil_comparecimento: [391, 504],
+  idhm_municipio: [762, 212], municipio: [762, 300], indicador_anual: [762, 388],
+};
+
+const fmt = n => n.toLocaleString('pt-BR');
+const el = (tag, attrs = {}, ...filhos) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v; else if (k === 'style') e.style.cssText = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const f of filhos.flat()) if (f !== null && f !== undefined) e.append(f.nodeType ? f : document.createTextNode(f));
+  return e;
+};
+const cor = t => AREAS[META[t].area].cor;
+const TAB = DADOS.tabelas;
+const NOMES = Object.keys(POS);
+
+// referências recebidas
+const RECEBE = Object.fromEntries(NOMES.map(t => [t, []]));
+for (const t of NOMES) for (const f of TAB[t].fks) RECEBE[f.ref].push({ de: t, colunas: f.colunas });
+
+function chipTabela(t) {
+  return el('a', { class: 'chip', href: '#tab-' + t, style: '--c:' + cor(t), onclick: ev => { ev.preventDefault(); focar(t, true); } },
+    el('span', { class: 'pino', style: '--c:' + cor(t) }), t);
+}
+
+// ---- números
+(() => {
+  const cols = NOMES.reduce((s, t) => s + TAB[t].colunas.length, 0);
+  const fks = NOMES.reduce((s, t) => s + TAB[t].fks.length, 0);
+  const linhas = NOMES.reduce((s, t) => s + TAB[t].linhas, 0);
+  const itens = [[NOMES.length, 'tabelas'], [cols, 'colunas'], [fks, 'chaves estrangeiras'], [Object.keys(DADOS.visoes).length, 'visões'],
+                 [(linhas / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mi', 'linhas carregadas'],
+                 [fmt(parseInt(DADOS.tamanho, 10)) + ' MB', 'em disco']];
+  document.getElementById('numeros').append(...itens.map(([v, r]) => el('div', {}, el('strong', {}, typeof v === 'number' ? fmt(v) : v), el('span', {}, r))));
+  document.getElementById('legenda-areas').append(...Object.values(AREAS).map(a => el('span', {}, el('span', { class: 'pino', style: '--c:' + a.cor }), a.nome)));
+})();
+
+// ---- quadro de mapeamento
+document.getElementById('mapa-corpo').append(...MAPA.map(([c, r, tabs, nota]) =>
+  el('tr', {}, el('td', {}, c), el('td', {}, r),
+     el('td', {}, el('div', { class: 'fichas-link' }, tabs.map(chipTabela), nota ? el('span', { class: 'nota-chip' }, nota) : null)))));
+
+// ---- diagrama
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('diagrama');
+const s = (tag, attrs = {}, texto) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (texto !== undefined) e.textContent = texto; return e; };
+const marcador = (id, desenho, refX, corVar) => {
+  const m = s('marker', { id, viewBox: '0 0 12 12', refX, refY: '6', markerWidth: '12', markerHeight: '12', orient: 'auto', markerUnits: 'userSpaceOnUse' });
+  m.append(s('path', { d: desenho, fill: 'none', style: `stroke: var(${corVar}); stroke-width: 1.4` }));
+  return m;
+};
+const PE = 'M1 0 L11 6 M1 12 L11 6 M1 6 L11 6', TRACO = 'M6 0 L6 12';
+svg.append(s('defs', {}, marcador('muitos', PE, '1', '--edge'), marcador('um', TRACO, '12', '--edge'),
+                          marcador('muitos-a', PE, '1', '--fk'), marcador('um-a', TRACO, '12', '--fk')));
+[['Núcleo eleitoral', 20], ['Finanças e votação', 391], ['Território', 762]].forEach(([t, x]) => svg.append(s('text', { class: 'col-titulo', x, y: 30 }, t)));
+
+const arestas = [];
+const centroY = t => POS[t][1] + H / 2;
+for (const filho of NOMES) for (const f of TAB[filho].fks) {
+  const pai = f.ref, [xf, yf] = POS[filho], [xp, yp] = POS[pai];
+  let d;
+  if (xf === xp) {                              // mesma coluna: arco pelo lado de fora
+    const lado = xf > 400 ? xf + W : xf, dir = xf > 400 ? 1 : -1;
+    const y1 = centroY(filho), y2 = centroY(pai), bojo = 26 + Math.abs(y2 - y1) * 0.12;
+    d = `M${lado} ${y1} C${lado + dir * bojo} ${y1} ${lado + dir * bojo} ${y2} ${lado} ${y2}`;
+  } else {                                      // colunas diferentes: curva horizontal
+    const [xa, xb] = xf < xp ? [xf + W, xp] : [xf, xp + W];
+    const mx = (xa + xb) / 2;
+    d = `M${xa} ${centroY(filho)} C${mx} ${centroY(filho)} ${mx} ${centroY(pai)} ${xb} ${centroY(pai)}`;
+  }
+  const p = s('path', { class: 'aresta', d, 'marker-start': 'url(#muitos)', 'marker-end': 'url(#um)' });
+  p.append(s('title', {}, `${filho}.${f.colunas.join(', ')} → ${pai}`));
+  arestas.push({ filho, pai, p });
+  svg.append(p);
+}
+const nos = {};
+for (const t of NOMES) {
+  const [x, y] = POS[t];
+  const g = s('g', { class: 'no', transform: `translate(${x} ${y})`, tabindex: '0', role: 'button', 'aria-label': `Tabela ${t}, ${fmt(TAB[t].linhas)} linhas` });
+  g.style.setProperty('--c', cor(t));
+  g.append(s('rect', { width: W, height: H, rx: 5 }), s('rect', { class: 'faixa', width: 5, height: H, rx: 2 }),
+           s('text', { x: 14, y: 21.5 }, t), s('text', { class: 'n', x: W - 8, y: 21.5, 'text-anchor': 'end' }, abrev(TAB[t].linhas)));
+  g.addEventListener('click', () => focar(t, true));
+  g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); focar(t, true); } });
+  nos[t] = g; svg.append(g);
+}
+function abrev(n) { return n >= 1e6 ? (n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mi' : n >= 1e3 ? Math.round(n / 1e3).toLocaleString('pt-BR') + ' mil' : String(n); }
+
+let focado = null;
+function focar(t, rolar) {
+  focado = t;
+  svg.classList.add('foco');
+  const viz = new Set();
+  for (const a of arestas) {
+    const ativa = a.filho === t || a.pai === t;
+    a.p.classList.toggle('ativa', ativa);
+    a.p.setAttribute('marker-start', ativa ? 'url(#muitos-a)' : 'url(#muitos)');
+    a.p.setAttribute('marker-end', ativa ? 'url(#um-a)' : 'url(#um)');
+    if (ativa) { viz.add(a.filho); viz.add(a.pai); }
+  }
+  for (const [n, g] of Object.entries(nos)) { g.classList.toggle('ativo', n === t); g.classList.toggle('vizinho', viz.has(n) && n !== t); }
+  document.getElementById('limpar-foco').hidden = false;
+  document.querySelectorAll('.ficha.alvo').forEach(f => f.classList.remove('alvo'));
+  const ficha = document.getElementById('tab-' + t);
+  if (ficha) { ficha.classList.add('alvo'); if (rolar) ficha.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+}
+document.getElementById('limpar-foco').addEventListener('click', () => {
+  focado = null; svg.classList.remove('foco');
+  arestas.forEach(a => { a.p.classList.remove('ativa'); a.p.setAttribute('marker-start', 'url(#muitos)'); a.p.setAttribute('marker-end', 'url(#um)'); });
+  Object.values(nos).forEach(g => g.classList.remove('ativo', 'vizinho'));
+  document.querySelectorAll('.ficha.alvo').forEach(f => f.classList.remove('alvo'));
+  document.getElementById('limpar-foco').hidden = true;
+});
+
+// ---- fichas
+const grupos = document.getElementById('grupos');
+for (const [chave, area] of Object.entries(AREAS)) {
+  const tabs = NOMES.filter(t => META[t].area === chave);
+  grupos.append(el('div', { class: 'grupo' },
+    el('h3', {}, el('span', { class: 'pino', style: '--c:' + area.cor }), area.nome),
+    el('div', { class: 'fichas' }, tabs.map(ficha))));
+}
+function ficha(t) {
+  const d = TAB[t], m = META[t];
+  const pk = new Set(d.pk || []), uq = new Set(d.uq || []);
+  const fkDe = {}; for (const f of d.fks) for (const c of f.colunas) (fkDe[c] ||= []).push(f);
+  const linhas = d.colunas.map(c => {
+    const marcas = [];
+    if (pk.has(c.nome)) marcas.push(el('span', { class: 'm pk', title: 'parte da chave primária' }, 'PK'));
+    for (const f of fkDe[c.nome] || []) marcas.push(el('button', { type: 'button', class: 'm fk', title: 'chave estrangeira para ' + f.ref + (f.cascata ? ', exclusão em cascata' : ''), onclick: () => focar(f.ref, true) }, 'FK → ' + f.ref + (f.cascata ? ' ⟲' : '')));
+    if (uq.has(c.nome)) marcas.push(el('span', { class: 'm' }, 'UNIQUE'));
+    if (!c.nulo && !c.gerada && !pk.has(c.nome)) marcas.push(el('span', { class: 'm', title: 'obrigatória' }, 'NN'));
+    if (c.padrao) marcas.push(el('span', { class: 'm', title: 'valor padrão' }, 'DEFAULT ' + c.padrao.toLowerCase()));
+    if (c.gerada) marcas.push(el('span', { class: 'm', title: 'coluna gerada pelo banco' }, 'GERADA'));
+    const aj = AJUSTE_COL[t + '.' + c.nome];
+    if (aj) marcas.push(el('span', { class: 'm aj' }, 'AJUSTE'));
+    return el('tr', { 'data-busca': (t + ' ' + c.nome).toLowerCase() },
+      el('td', {}, c.nome), el('td', {}, c.tipo),
+      el('td', {}, el('div', { class: 'marcas' }, marcas,
+        c.gerada ? el('span', { class: 'gerada' }, '= ' + c.gerada.replace(/^\((.*)\)$/, '$1')) : null,
+        aj ? el('span', { class: 'nota-aj' }, aj) : null)));
+  });
+  const refs = d.fks.map(f => f.ref), recebe = RECEBE[t].map(r => r.de);
+  const checks = (d.checks || []).filter(c => !/IS NOT NULL/.test(c));
+  return el('article', { class: 'ficha', id: 'tab-' + t, style: '--c:' + cor(t) },
+    el('header', {},
+      el('div', { class: 'titulo-linha' }, el('h4', {}, t), el('span', { class: 'linhas' }, fmt(d.linhas) + ' linhas')),
+      el('p', { class: 'papel' }, m.papel),
+      el('p', { class: 'der' }, el('b', {}, m.der[0] + ': '), m.der[1])),
+    el('table', { class: 'colunas' }, el('tbody', {}, linhas)),
+    el('footer', {},
+      el('div', { class: 'lig' }, el('span', {}, 'Chave primária'), el('code', {}, '(' + (d.pk || []).join(', ') + ')')),
+      refs.length ? el('div', { class: 'lig' }, el('span', {}, 'Referencia'), [...new Set(refs)].map(chipTabela)) : null,
+      recebe.length ? el('div', { class: 'lig' }, el('span', {}, 'É referenciada por'), [...new Set(recebe)].map(chipTabela)) : null,
+      checks.length ? el('div', { class: 'checks' }, checks.join('  ·  ')) : null));
+}
+
+// ---- busca
+const busca = document.getElementById('busca'), res = document.getElementById('busca-res');
+busca.addEventListener('input', () => {
+  const q = busca.value.trim().toLowerCase();
+  let fichas = 0, cols = 0;
+  document.querySelectorAll('.ficha').forEach(f => {
+    const nomeTab = f.id.slice(4);
+    let algum = false;
+    f.querySelectorAll('.colunas tr').forEach(tr => {
+      const nomeCol = tr.dataset.busca.split(' ')[1];
+      const casa = q && nomeCol.includes(q);
+      tr.classList.toggle('casa', !!casa);
+      if (casa) { algum = true; cols++; }
+    });
+    const mostra = !q || algum || nomeTab.includes(q);
+    f.hidden = !mostra; if (mostra && q) fichas++;
+  });
+  document.querySelectorAll('.grupo').forEach(g => g.hidden = !g.querySelector('.ficha:not([hidden])'));
+  res.value = q ? `${cols} coluna(s) em ${fichas} tabela(s)` : '';
+});
+
+// ---- visões e função
+const VIS_TXT = {
+  vw_candidatura: 'Candidatura com ano, abrangência e a coluna eleito.',
+  vw_patrimonio: 'Patrimônio_total: soma dos bens declarados, zero quando não há bens.',
+  vw_qt_mandatos: 'Qt_mandatos: número de candidaturas eleitas de cada político.',
+};
+document.getElementById('visoes').append(
+  ...Object.entries(DADOS.visoes).sort().map(([v, def]) => el('details', { class: 'visao' },
+    el('summary', {}, el('b', {}, v), el('span', {}, VIS_TXT[v] || '')), el('pre', {}, 'CREATE VIEW ' + v + ' AS\n' + def.trim()))),
+  el('details', { class: 'visao' }, el('summary', {}, el('b', {}, 'nivel_escolaridade(texto)'), el('span', {}, 'Converte o grau de instrução numa escala de 0 (analfabeto) a 7 (superior completo).')),
+    el('pre', {}, "CASE UPPER(texto)\n    WHEN 'ANALFABETO'                    THEN 0\n    WHEN 'LÊ E ESCREVE'                  THEN 1\n    WHEN 'ENSINO FUNDAMENTAL INCOMPLETO' THEN 2\n    WHEN 'ENSINO FUNDAMENTAL COMPLETO'   THEN 3\n    WHEN 'ENSINO MÉDIO INCOMPLETO'       THEN 4\n    WHEN 'ENSINO MÉDIO COMPLETO'         THEN 5\n    WHEN 'SUPERIOR INCOMPLETO'           THEN 6\n    WHEN 'SUPERIOR COMPLETO'             THEN 7\nEND")),
+  el('details', { class: 'visao' }, el('summary', {}, el('b', {}, 'Índices secundários'), el('span', {}, 'Criados depois da carga para as junções das consultas da seção 6.')),
+    el('pre', {}, DADOS.indices.map(i => i.def.replace(' USING btree', '').replace('public.', '')).join(';\n') + ';')));
+
+document.getElementById('fonte').textContent =
+  'Estrutura, contagens e tamanho lidos do catálogo do PostgreSQL (information_schema e pg_catalog) após a carga de 25/09/2026.';
+
+// ---- D.E.R. (notação de Chen), desenhado pelo Graphviz a partir destas descrições
+// entidade: [id, rótulo, tabela, fraca?]   relacionamento: [id, rótulo, tabela, identificador?, [[entidade, cardinalidade, total?], ...]]
+// atributo: [dono, rótulo, tipo, tabela?, ajuste?]  tipo: chave | derivado | multi | comp:<id do multivalorado> | (vazio)
+const DER = [
+  { area: 'nucleo', titulo: 'Núcleo eleitoral', texto: 'Quem concorre, por qual partido e em qual eleição. POLÍTICO é a pessoa; CANDIDATURA, cada participação dela numa eleição.',
+    ent: [['POLITICO', 'POLÍTICO', 'politico'], ['ELEICAO', 'ELEIÇÃO', 'eleicao'], ['CANDIDATURA', 'CANDIDATURA', 'candidatura'], ['PARTIDO', 'PARTIDO', 'partido']],
+    rel: [['REGISTRA', 'REGISTRA', 'candidatura', false, [['POLITICO', '1'], ['CANDIDATURA', 'N', true]]],
+          ['DISPUTA', 'DISPUTA', 'candidatura', false, [['ELEICAO', '1'], ['CANDIDATURA', 'N', true]]],
+          ['LANCA', 'LANÇA', 'candidatura', false, [['PARTIDO', '1'], ['CANDIDATURA', 'N', true]]]],
+    atr: [['POLITICO', 'Título_eleitoral', 'chave'], ['POLITICO', 'Nome'], ['POLITICO', 'CPF'], ['POLITICO', 'Data_nasc'], ['POLITICO', 'Gênero'], ['POLITICO', 'Qt_mandatos', 'derivado'],
+          ['ELEICAO', 'Cód_eleição', 'chave'], ['ELEICAO', 'Ano'], ['ELEICAO', 'Abrangência'], ['ELEICAO', 'Vagas', 'multi', 'vaga'],
+          ['ELEICAO', 'UE', 'comp:Vagas', 'vaga'], ['ELEICAO', 'Cargo', 'comp:Vagas', 'vaga'], ['ELEICAO', 'Qt_vagas', 'comp:Vagas', 'vaga'],
+          ['CANDIDATURA', 'Sq_candidato', 'chave', null, true], ['CANDIDATURA', 'UE'], ['CANDIDATURA', 'Cargo'], ['CANDIDATURA', 'Coligação'], ['CANDIDATURA', 'Escolaridade'],
+          ['CANDIDATURA', 'Idade_posse', '', null, true], ['CANDIDATURA', 'Reeleição', '', null, true], ['CANDIDATURA', 'Situação_final', '', null, true], ['CANDIDATURA', 'Patrimônio_total', 'derivado'],
+          ['PARTIDO', 'Id_partido', 'chave'], ['PARTIDO', 'Número'], ['PARTIDO', 'Sigla'], ['PARTIDO', 'Nome'], ['PARTIDO', 'Ideologia', 'multi', 'ideologia_partido'],
+          ['PARTIDO', 'Ano_survey', 'comp:Ideologia', 'ideologia_partido'], ['PARTIDO', 'Nota', 'comp:Ideologia', 'ideologia_partido']] },
+  { area: 'fin', titulo: 'Patrimônio e finanças', texto: 'O dinheiro de cada candidatura. BEM é entidade fraca; RECEITA e DESPESA têm participação total, porque não existem sem uma candidatura.',
+    ent: [['CANDIDATURA', 'CANDIDATURA', 'candidatura'], ['BEM', 'BEM', 'bem', true], ['RECEITA', 'RECEITA', 'receita'], ['DESPESA', 'DESPESA', 'despesa']],
+    rel: [['DECLARA', 'DECLARA', 'bem', true, [['CANDIDATURA', '1'], ['BEM', 'N', true]]],
+          ['ARRECADA', 'ARRECADA', 'receita', false, [['CANDIDATURA', '1'], ['RECEITA', 'N', true]]],
+          ['GASTA', 'GASTA', 'despesa', false, [['CANDIDATURA', '1'], ['DESPESA', 'N', true]]]],
+    atr: [['CANDIDATURA', 'Sq_candidato', 'chave'], ['CANDIDATURA', 'Situação_final'], ['CANDIDATURA', 'Patrimônio_total', 'derivado'],
+          ['BEM', 'Nr_ordem', 'chave'], ['BEM', 'Tipo'], ['BEM', 'Descrição'], ['BEM', 'Valor'],
+          ['RECEITA', 'Sq_receita', 'chave', null, true], ['RECEITA', 'Fonte'], ['RECEITA', 'Origem'], ['RECEITA', 'Doador'], ['RECEITA', 'Valor'],
+          ['DESPESA', 'Sq_despesa', 'chave', null, true], ['DESPESA', 'Tipo'], ['DESPESA', 'Descrição'], ['DESPESA', 'Fornecedor'], ['DESPESA', 'Valor']] },
+  { area: 'terr', titulo: 'Território e votação', texto: 'Liga as eleições ao território. Zona, turno e cargo sublinhados nos relacionamentos são discriminadores que compõem a chave das tabelas.',
+    ent: [['ELEICAO', 'ELEIÇÃO', 'eleicao'], ['MUNICIPIO', 'MUNICÍPIO', 'municipio'], ['PARTIDO', 'PARTIDO', 'partido'], ['CANDIDATURA', 'CANDIDATURA', 'candidatura'],
+          ['INDICADOR_ANUAL', 'INDICADOR_ANUAL', 'indicador_anual', true]],
+    rel: [['APURACAO', 'APURAÇÃO', 'apuracao', false, [['ELEICAO', 'M'], ['MUNICIPIO', 'N']]],
+          ['COMPARECIMENTO', 'COMPARECIMENTO', 'perfil_comparecimento', false, [['ELEICAO', 'M'], ['MUNICIPIO', 'N']]],
+          ['VOTOS_CAND', 'VOTOS_CAND', 'votos_cand', false, [['CANDIDATURA', 'N'], ['MUNICIPIO', 'M']]],
+          ['VOTOS_PART', 'VOTOS_PART', 'votos_part', false, [['ELEICAO', 'M'], ['PARTIDO', 'N'], ['MUNICIPIO', 'P']]],
+          ['POSSUI', 'POSSUI', 'indicador_anual', true, [['MUNICIPIO', '1'], ['INDICADOR_ANUAL', 'N', true]]]],
+    atr: [['ELEICAO', 'Cód_eleição', 'chave'],
+          ['APURACAO', 'Zona', 'chave'], ['APURACAO', 'Turno', 'chave'], ['APURACAO', 'Cargo', 'chave'], ['APURACAO', 'Aptos'], ['APURACAO', 'Abstenções'],
+          ['APURACAO', 'Brancos'], ['APURACAO', 'Nulos'], ['APURACAO', 'Válidos', '', null, true], ['APURACAO', 'Isentos', 'derivado'],
+          ['COMPARECIMENTO', 'Zona', 'chave'], ['COMPARECIMENTO', 'Turno', 'chave'], ['COMPARECIMENTO', 'Faixa_etária', 'chave'], ['COMPARECIMENTO', 'Escolaridade', 'chave'],
+          ['COMPARECIMENTO', 'Aptos'], ['COMPARECIMENTO', 'Comparecimento'],
+          ['VOTOS_CAND', 'Zona', 'chave'], ['VOTOS_CAND', 'Turno', 'chave'], ['VOTOS_CAND', 'Votos'],
+          ['VOTOS_PART', 'Zona', 'chave'], ['VOTOS_PART', 'Turno', 'chave'], ['VOTOS_PART', 'Cargo', 'chave'], ['VOTOS_PART', 'Votos_nominais'], ['VOTOS_PART', 'Votos_legenda'],
+          ['MUNICIPIO', 'Cód_TSE', 'chave'], ['MUNICIPIO', 'Cód_IBGE'], ['MUNICIPIO', 'Nome'], ['MUNICIPIO', 'UF'], ['MUNICIPIO', 'Região'],
+          ['MUNICIPIO', 'Idade_mediana'], ['MUNICIPIO', 'Índice_envelhecimento'], ['MUNICIPIO', 'IDHM', 'multi', 'idhm_municipio'],
+          ['MUNICIPIO', 'Ano', 'comp:IDHM', 'idhm_municipio'], ['MUNICIPIO', 'Valor', 'comp:IDHM', 'idhm_municipio'],
+          ['INDICADOR_ANUAL', 'Ano', 'chave'], ['INDICADOR_ANUAL', 'PIB'], ['INDICADOR_ANUAL', 'População'], ['INDICADOR_ANUAL', 'PIB_per_capita', 'derivado']] },
+];
+
+function coresDER() {
+  const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
+  return { ink: v('--ink'), ink2: v('--ink-2'), linha: v('--ink-3'), sup: v('--surface'), sup2: v('--surface-2'), aj: v('--ajuste'),
+           area: { nucleo: v('--nucleo'), fin: v('--fin'), terr: v('--terr') } };
+}
+const AREA_DE_TABELA = t => (META[t] || META.candidatura).area;
+const q = t => '"' + String(t).replace(/"/g, '\\"') + '"';
+
+function dotDER(d, c) {
+  const L = [`graph DER { graph [layout=neato, overlap=false, splines=true, sep="+8", esep="+4", start=11, bgcolor="transparent", pad=0.25, outputorder=edgesfirst];`,
+             `node [fontname="Helvetica", fontsize=11, fontcolor=${q(c.ink)}, color=${q(c.linha)}, penwidth=1.2, style=filled, fillcolor=${q(c.sup)}];`,
+             `edge [color=${q(c.linha)}, penwidth=1.1, fontname="Helvetica-Bold", fontsize=12, fontcolor=${q(c.ink2)}];`];
+  const tabela = {};
+  for (const [id, rot, t, fraca] of d.ent) {
+    tabela[id] = t;
+    L.push(`${q(id)} [shape=box, label=${q(rot)}, fontname="Helvetica-Bold", fontsize=12.5, color=${q(c.area[AREA_DE_TABELA(t)])}, penwidth=2, margin="0.16,0.07"${fraca ? ', peripheries=2' : ''}, tooltip=${q('Tabela ' + t)}];`);
+  }
+  for (const [id, rot, t, ident, lados] of d.rel) {
+    tabela[id] = t;
+    L.push(`${q(id)} [shape=diamond, label=${q(rot)}, fontsize=10.5, fillcolor=${q(c.sup2)}, margin="0.04,0.02"${ident ? ', peripheries=2' : ''}, tooltip=${q('Tabela ' + t)}];`);
+    for (const [ent, card, total] of lados)
+      L.push(`${q(id)} -- ${q(ent)} [len=2.0, label=${q(card)}${total ? `, color=${q(c.linha + ':invis:' + c.linha)}` : ''}];`);
+  }
+  d.atr.forEach(([dono, rot, tipo = '', t, ajuste], i) => {
+    const id = `${dono}.${rot}.${i}`;
+    tabela[id] = t || tabela[dono];
+    const cor = ajuste ? c.aj : c.linha, fonte = ajuste ? c.aj : c.ink;
+    const rotulo = tipo === 'chave' ? `<<U>${rot}</U>>` : q(rot);
+    const extra = (tipo === 'derivado' ? ', style="filled,dashed"' : '') + (tipo === 'multi' ? ', peripheries=2' : '') + (ajuste ? ', penwidth=1.8' : '');
+    L.push(`${q(id)} [shape=ellipse, label=${rotulo}, color=${q(cor)}, fontcolor=${q(fonte)}, margin="0.06,0.02"${extra}, tooltip=${q('Tabela ' + tabela[id] + (ajuste ? ' (ajuste na carga)' : ''))}];`);
+    const pai = tipo.startsWith('comp:') ? d.atr.findIndex(a => a[0] === dono && a[1] === tipo.slice(5)) : -1;
+    L.push(`${q(id)} -- ${q(pai >= 0 ? `${dono}.${tipo.slice(5)}.${pai}` : dono)} [len=${pai >= 0 ? 0.75 : 1.0}];`);
+  });
+  L.push('}');
+  return { dot: L.join('\n'), tabela };
+}
+
+let motorDER = null;
+async function desenharDER() {
+  const alvo = document.getElementById('der-diagramas');
+  if (!window.Viz) { alvo.innerHTML = '<p class="der-aviso">Não foi possível carregar o Graphviz para desenhar os diagramas. Recarregue a página.</p>'; return; }
+  motorDER ||= await Viz.instance();
+  const c = coresDER();
+  alvo.replaceChildren(...DER.map(d => {
+    const { dot, tabela } = dotDER(d, c);
+    const tela = el('div', { class: 'der-tela' });
+    try {
+      const svgDER = motorDER.renderSVGElement(dot);
+      svgDER.removeAttribute('width'); svgDER.removeAttribute('height');
+      svgDER.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svgDER.setAttribute('role', 'img'); svgDER.setAttribute('aria-label', 'D.E.R.: ' + d.titulo);
+      svgDER.querySelectorAll('g.node').forEach(g => {
+        const t = tabela[g.querySelector('title').textContent];
+        g.setAttribute('tabindex', '0');
+        g.addEventListener('click', ev => { if (tela.dataset.arrastou === '1') { ev.stopPropagation(); return; } focar(t, true); });
+        g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); focar(t, true); } });
+      });
+      svgDER.querySelectorAll('title').forEach(ti => ti.remove());
+      tela.append(svgDER);
+      navegavel(tela, svgDER, d.titulo);
+    } catch (e) { tela.append(el('p', { class: 'der-aviso' }, 'Falha ao desenhar este diagrama: ' + e.message)); }
+    return el('article', { class: 'der-fig', style: '--c:' + AREAS[d.area].cor },
+      el('header', {}, el('h3', {}, d.titulo), el('p', {}, d.texto)), tela);
+  }));
+}
+
+// ---- visualizador: zoom (botões, Ctrl + roda, pinça) e arraste, alterando o viewBox do SVG
+function navegavel(tela, svg, nome) {
+  const b0 = svg.viewBox.baseVal;                    // tamanho natural do desenho, em pontos
+  const orig = { x: b0.x, y: b0.y, width: b0.width, height: b0.height };
+  const ZMIN = 0.15, ZMAX = 4;
+  let vb = { ...orig };
+  const saida = el('output', { 'aria-live': 'polite' });
+  const aplicar = () => {
+    svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.width} ${vb.height}`);
+    saida.value = Math.round(escala() * 100) + '%';
+  };
+  // pixels de tela por ponto do desenho, com o viewBox atual
+  const escala = () => { const r = tela.getBoundingClientRect(); return Math.min(r.width / vb.width, r.height / vb.height) || 1; };
+  const ponto = (cx, cy) => {                         // coordenada do desenho sob um ponto da tela
+    const r = tela.getBoundingClientRect(), e = escala();
+    const ox = (r.width - vb.width * e) / 2, oy = (r.height - vb.height * e) / 2;
+    return { x: vb.x + (cx - r.left - ox) / e, y: vb.y + (cy - r.top - oy) / e };
+  };
+  const zoomEm = (fator, cx, cy) => {
+    const r = tela.getBoundingClientRect();
+    cx ??= r.left + r.width / 2; cy ??= r.top + r.height / 2;
+    const alvo = Math.min(ZMAX, Math.max(ZMIN, escala() * fator)), f = escala() / alvo;
+    const p = ponto(cx, cy);
+    vb = { x: p.x - (p.x - vb.x) * f, y: p.y - (p.y - vb.y) * f, width: vb.width * f, height: vb.height * f };
+    aplicar();
+  };
+  const ajustar = () => {                             // o desenho inteiro, com margem, preenchendo a moldura
+    const r = tela.getBoundingClientRect(), m = 16;
+    const e = Math.min((r.width - 2 * m) / orig.width, (r.height - 2 * m) / orig.height);
+    const w = r.width / e, h = r.height / e;
+    vb = { x: orig.x - (w - orig.width) / 2, y: orig.y - (h - orig.height) / 2, width: w, height: h };
+    aplicar();
+  };
+  const real = () => {                                // 1 ponto do desenho = 1 pixel, centrado no meio atual
+    const r = tela.getBoundingClientRect(), cx = vb.x + vb.width / 2, cy = vb.y + vb.height / 2;
+    vb = { x: cx - r.width / 2, y: cy - r.height / 2, width: r.width, height: r.height };
+    aplicar();
+  };
+  const botao = (rotulo, titulo, acao) => el('button', { type: 'button', title: titulo, 'aria-label': titulo, onclick: acao }, rotulo);
+  const ctrl = el('div', { class: 'der-ctrl', role: 'toolbar', 'aria-label': 'Navegação do diagrama ' + nome },
+    botao('−', 'Afastar', () => zoomEm(1 / 1.25)), saida, botao('+', 'Aproximar', () => zoomEm(1.25)),
+    el('span', { class: 'sep' }), botao('Ajustar', 'Mostrar o diagrama inteiro', ajustar), botao('100%', 'Tamanho real', real));
+  if (tela.requestFullscreen) ctrl.append(botao('⛶', 'Tela cheia', () => {
+    (document.fullscreenElement ? document.exitFullscreen() : tela.requestFullscreen()).then(() => setTimeout(ajustar, 60)).catch(() => {});
+  }));
+  tela.append(ctrl, el('span', { class: 'der-dica' }, 'Arraste para mover · Ctrl + roda ou pinça para zoom'));
+  ctrl.addEventListener('pointerdown', ev => ev.stopPropagation());
+
+  // arraste com um ponteiro; pinça com dois
+  const ativos = new Map();
+  let inicio = null, pinca = null;
+  tela.addEventListener('pointerdown', ev => {
+    if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+    tela.setPointerCapture(ev.pointerId);
+    ativos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    tela.dataset.arrastou = '0';
+    if (ativos.size === 1) inicio = { x: ev.clientX, y: ev.clientY, vb: { ...vb } };
+    if (ativos.size === 2) { const [a, b] = [...ativos.values()]; pinca = { d: Math.hypot(a.x - b.x, a.y - b.y) }; inicio = null; }
+  });
+  tela.addEventListener('pointermove', ev => {
+    if (!ativos.has(ev.pointerId)) return;
+    ativos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pinca && ativos.size === 2) {
+      const [a, b] = [...ativos.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      zoomEm(d / pinca.d, (a.x + b.x) / 2, (a.y + b.y) / 2); pinca.d = d; tela.dataset.arrastou = '1';
+    } else if (inicio) {
+      const dx = ev.clientX - inicio.x, dy = ev.clientY - inicio.y;
+      if (Math.hypot(dx, dy) > 4) { tela.dataset.arrastou = '1'; tela.classList.add('arrastando'); }
+      const e = escala();
+      vb = { ...inicio.vb, x: inicio.vb.x - dx / e, y: inicio.vb.y - dy / e };
+      aplicar();
+    }
+  });
+  const soltar = ev => {
+    ativos.delete(ev.pointerId);
+    if (ativos.size < 2) pinca = null;
+    if (ativos.size === 0) { inicio = null; tela.classList.remove('arrastando'); }
+  };
+  tela.addEventListener('pointerup', soltar);
+  tela.addEventListener('pointercancel', soltar);
+  // roda: só com Ctrl (ou Cmd), para a roda sozinha continuar rolando a página
+  tela.addEventListener('wheel', ev => {
+    if (!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    zoomEm(Math.exp(-ev.deltaY * 0.0015), ev.clientX, ev.clientY);
+  }, { passive: false });
+  // teclado, com o foco na moldura
+  tela.tabIndex = 0;
+  tela.setAttribute('aria-label', 'Diagrama ' + nome + '. Setas movem, + e − ajustam o zoom, 0 mostra o diagrama inteiro.');
+  tela.addEventListener('keydown', ev => {
+    const passo = 60 / escala();
+    const mov = { ArrowLeft: [-passo, 0], ArrowRight: [passo, 0], ArrowUp: [0, -passo], ArrowDown: [0, passo] }[ev.key];
+    if (mov) { vb.x += mov[0]; vb.y += mov[1]; aplicar(); ev.preventDefault(); }
+    else if (ev.key === '+' || ev.key === '=') { zoomEm(1.25); ev.preventDefault(); }
+    else if (ev.key === '-') { zoomEm(1 / 1.25); ev.preventDefault(); }
+    else if (ev.key === '0') { ajustar(); ev.preventDefault(); }
+  });
+  new ResizeObserver(() => { if (!inicio && !pinca) ajustar(); }).observe(tela);
+  requestAnimationFrame(ajustar);
+}
+desenharDER();
+// redesenha com as cores do tema quando ele muda
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', desenharDER);
+new MutationObserver(desenharDER).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// abre na tabela indicada pelo endereço (#candidatura, por exemplo)
+const alvo = location.hash.slice(1).replace(/^tab-/, '');
+if (TAB[alvo]) setTimeout(() => focar(alvo, true), 50);
+</script>

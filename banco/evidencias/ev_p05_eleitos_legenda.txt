@@ -1,0 +1,61 @@
+Pager usage is off.
+-- consulta: sql/p05_eleitos_legenda.sql
+-- parâmetros: partido = PT
+                                                                 servidor                                                                 |  banco   |    executado_em     
+------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-25 18:45:42
+(1 row)
+
+Timing is on.
+WITH validos AS (
+    SELECT a.cod_eleicao, a.cargo,
+           CASE e.abrangencia WHEN 'MUNICIPAL' THEN a.cod_tse ELSE m.uf::VARCHAR END AS ue,
+           SUM(a.validos) AS votos_validos
+    FROM apuracao a
+    JOIN eleicao e   ON e.cod_eleicao = a.cod_eleicao
+    JOIN municipio m ON m.cod_tse = a.cod_tse
+    WHERE a.turno = 1
+      AND a.cargo IN ('VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'DEPUTADO DISTRITAL')
+    GROUP BY 1, 2, 3
+),
+quociente AS (
+    SELECT va.cod_eleicao, va.cargo, va.ue, va.votos_validos, vg.qt_vagas,
+           CEIL(va.votos_validos::NUMERIC / vg.qt_vagas - 0.5) AS quociente_eleitoral
+    FROM validos va
+    JOIN vaga vg ON vg.cod_eleicao = va.cod_eleicao AND vg.cargo = va.cargo AND vg.ue = va.ue
+),
+nominais AS (
+    SELECT sq_candidato, SUM(votos) AS votos_nominais
+    FROM votos_cand
+    WHERE turno = 1
+    GROUP BY sq_candidato
+)
+SELECT c.ano,
+       c.cargo,
+       pa.sigla,
+       COUNT(*)                                                     AS eleitos_proporcional,
+       COUNT(*) FILTER (WHERE n.votos_nominais < q.quociente_eleitoral) AS eleitos_por_legenda,
+       ROUND(100.0 * COUNT(*) FILTER (WHERE n.votos_nominais < q.quociente_eleitoral)
+             / COUNT(*), 2)                                         AS pct_por_legenda
+FROM vw_candidatura c
+JOIN partido pa  ON pa.id_partido = c.id_partido
+JOIN quociente q ON q.cod_eleicao = c.cod_eleicao AND q.cargo = c.cargo AND q.ue = c.ue
+JOIN nominais n  ON n.sq_candidato = c.sq_candidato
+WHERE c.situacao_final IN ('ELEITO POR QP', 'ELEITO POR MÉDIA')
+  AND c.ano IN (2018, 2020, 2022, 2024)
+  AND pa.sigla = 'PT'
+GROUP BY c.ano, c.cargo, pa.sigla
+ORDER BY c.ano, c.cargo;
+ ano  |       cargo        | sigla | eleitos_proporcional | eleitos_por_legenda | pct_por_legenda 
+------+--------------------+-------+----------------------+---------------------+-----------------
+ 2018 | DEPUTADO DISTRITAL | PT    |                    2 |                   2 |          100.00
+ 2018 | DEPUTADO ESTADUAL  | PT    |                   84 |                  84 |          100.00
+ 2018 | DEPUTADO FEDERAL   | PT    |                   56 |                  53 |           94.64
+ 2020 | VEREADOR           | PT    |                 2668 |                2641 |           98.99
+ 2022 | DEPUTADO DISTRITAL | PT    |                    3 |                   3 |          100.00
+ 2022 | DEPUTADO ESTADUAL  | PT    |                  114 |                 110 |           96.49
+ 2022 | DEPUTADO FEDERAL   | PT    |                   68 |                  66 |           97.06
+ 2024 | VEREADOR           | PT    |                 3123 |                3051 |           97.69
+(8 rows)
+
+Time: 2682,318 ms (00:02,682)

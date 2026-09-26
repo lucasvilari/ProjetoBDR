@@ -1,0 +1,2 @@
+psycopg[binary]>=3.2   # carga.py
+pillow>=10             # print_sessao.py (prints das evidências)

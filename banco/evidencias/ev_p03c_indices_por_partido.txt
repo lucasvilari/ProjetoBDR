@@ -1,0 +1,65 @@
+Pager usage is off.
+-- consulta: sql/p03c_indices_por_partido.sql
+-- parâmetros: ano = 2024
+                                                                 servidor                                                                 |  banco   |    executado_em     
+------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-25 18:45:25
+(1 row)
+
+Timing is on.
+WITH prefeito AS (
+    SELECT v.ano, v.ue AS cod_tse, v.id_partido
+    FROM vw_candidatura v
+    WHERE v.cargo = 'PREFEITO' AND v.eleito AND v.ano = 2024
+),
+indices AS (
+    SELECT p.cod_tse, p.id_partido,
+           (SELECT i.pib_per_capita FROM indicador_anual i
+             WHERE i.cod_tse = p.cod_tse AND i.ano <= p.ano AND i.pib_per_capita IS NOT NULL
+             ORDER BY i.ano DESC LIMIT 1) AS pib_per_capita,
+           (SELECT h.idhm FROM idhm_municipio h
+             WHERE h.cod_tse = p.cod_tse ORDER BY h.ano DESC LIMIT 1) AS idhm,
+           (SELECT 100.0 * SUM(a.brancos + a.nulos + a.abstencoes) / NULLIF(SUM(a.aptos), 0)
+              FROM apuracao a JOIN eleicao e ON e.cod_eleicao = a.cod_eleicao
+             WHERE a.cod_tse = p.cod_tse AND e.ano = p.ano
+               AND a.turno = 1 AND a.cargo = 'PREFEITO') AS isentos_pct
+    FROM prefeito p
+)
+SELECT pa.sigla,
+       COUNT(*)                          AS prefeituras,
+       ROUND(AVG(pib_per_capita), 2)     AS pib_per_capita_medio,
+       ROUND(AVG(idhm), 3)               AS idhm_medio,
+       ROUND(AVG(isentos_pct), 2)        AS isentos_pct_medio
+FROM indices i
+JOIN partido pa ON pa.id_partido = i.id_partido
+GROUP BY pa.sigla
+ORDER BY prefeituras DESC;
+     sigla     | prefeituras | pib_per_capita_medio | idhm_medio | isentos_pct_medio 
+---------------+-------------+----------------------+------------+-------------------
+ PSD           |         886 |             35211.03 |      0.669 |             21.06
+ MDB           |         859 |             35925.47 |      0.650 |             20.14
+ PP            |         747 |             37976.28 |      0.663 |             19.83
+ UNIÃO         |         588 |             39169.73 |      0.657 |             20.58
+ PL            |         515 |             50044.30 |      0.698 |             22.45
+ REPUBLICANOS  |         434 |             35268.21 |      0.656 |             21.17
+ PSB           |         311 |             24332.25 |      0.624 |             19.48
+ PSDB          |         272 |             41723.20 |      0.665 |             21.61
+ PT            |         252 |             25570.23 |      0.618 |             19.48
+ PDT           |         151 |             40892.79 |      0.653 |             18.93
+ AVANTE        |         134 |             21599.71 |      0.621 |             21.18
+ PODE          |         127 |             37931.55 |      0.688 |             23.34
+ PRD           |          77 |             37822.51 |      0.660 |             20.06
+ SOLIDARIEDADE |          63 |             31305.44 |      0.654 |             21.53
+ CIDADANIA     |          32 |             53607.37 |      0.717 |             26.44
+ MOBILIZA      |          20 |             22722.56 |      0.632 |             20.37
+ PC DO B       |          19 |             14611.60 |      0.585 |             19.22
+ NOVO          |          19 |             51209.53 |      0.735 |             27.64
+ PV            |          13 |             27152.81 |      0.605 |             19.15
+ REDE          |           4 |             19611.78 |      0.615 |             23.46
+ AGIR          |           3 |             57560.70 |      0.665 |             27.30
+ DC            |           2 |             30967.30 |      0.676 |             26.92
+ PMB           |           2 |             24178.75 |      0.656 |             24.64
+ PRTB          |           1 |             40936.22 |      0.643 |             20.48
+(24 rows)
+
+Time: 147,247 ms

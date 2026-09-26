@@ -1,0 +1,17 @@
+# Dados baixados pelo crawler: 31 GB, regeneráveis com `python -m crawler`
+crawler/dados/
+
+# Ambientes virtuais e caches do Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Logs de execuções locais
+*.log
+
+# Dumps do banco: vão para as Releases do GitHub, não para o git
+*.dump
+
+# Biblioteca do Graphviz usada só para gerar as figuras do D.E.R. (baixar do jsdelivr)
+docs/modelo/der/viz-global.js

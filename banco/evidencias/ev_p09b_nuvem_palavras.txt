@@ -1,0 +1,138 @@
+Pager usage is off.
+-- consulta: sql/p09b_nuvem_palavras.sql
+-- parâmetros: ano = 2024, todos os candidatos
+                                                                 servidor                                                                 |  banco   |    executado_em     
+------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-25 18:46:05
+(1 row)
+
+Timing is on.
+WITH palavras AS (
+    SELECT d.valor,
+           REGEXP_SPLIT_TO_TABLE(LOWER(d.descricao), '[^a-zà-ú0-9]+') AS palavra
+    FROM despesa d
+    JOIN vw_candidatura v ON v.sq_candidato = d.sq_candidato
+    WHERE v.ano = 2024
+      AND ('' = '' OR v.sq_candidato = NULLIF('', '')::BIGINT)
+),
+stopwords (palavra) AS (
+    VALUES ('de'), ('da'), ('do'), ('das'), ('dos'), ('e'), ('a'), ('o'), ('as'), ('os'),
+           ('em'), ('para'), ('com'), ('por'), ('no'), ('na'), ('nos'), ('nas'), ('um'),
+           ('uma'), ('ref'), ('referente'), ('servico'), ('servicos'),
+           ('serviço'), ('serviços')
+)
+SELECT p.palavra,
+       COUNT(*)      AS frequencia,
+       SUM(p.valor)  AS valor_associado
+FROM palavras p
+WHERE LENGTH(p.palavra) > 2
+  AND p.palavra !~ '^[0-9]+$'
+  AND NOT EXISTS (SELECT 1 FROM stopwords s WHERE s.palavra = p.palavra)
+GROUP BY p.palavra
+ORDER BY frequencia DESC
+LIMIT 100;
+     palavra     | frequencia | valor_associado 
+-----------------+------------+-----------------
+ eleitoral       |     465712 |    701954594.50
+ adesivo         |     416999 |   2339190512.21
+ cabo            |     305813 |    309992693.95
+ campanha        |     300512 |    758462144.21
+ prestação       |     219209 |    484559212.00
+ militancia      |     210514 |    211404195.41
+ rua             |     210065 |    225309676.33
+ santinhos       |     187518 |    797915551.05
+ adesivos        |     183946 |    781405356.69
+ panfletagem     |     158092 |    157375618.58
+ santinho        |     145775 |    863535953.75
+ gasolina        |     140456 |    230541173.60
+ perfurado       |     136664 |    719810551.67
+ contrato        |     118610 |    242411743.14
+ mobilização     |     117076 |    113165220.79
+ comum           |     109483 |    206091462.24
+ impulsionamento |      93215 |    297199492.01
+ bandeira        |      91637 |    471689302.56
+ tarifa          |      90885 |      3580914.80
+ militância      |      90865 |     83386361.94
+ serv            |      72068 |    364891509.74
+ 4x4             |      68004 |    394674085.58
+ divulgação      |      67220 |     88900477.58
+ vinil           |      67112 |    394580799.27
+ bandeiras       |      65799 |    290914938.99
+ vereador        |      58461 |    360048330.92
+ papel           |      55874 |    276034675.92
+ couche          |      54925 |    281956741.65
+ praguinha       |      53969 |    408424750.97
+ atividade       |      53491 |     50630395.68
+ tam             |      51569 |    279889307.64
+ colinha         |      51110 |    228037242.60
+ locação         |      49701 |    339296571.98
+ cores           |      49537 |    336020828.85
+ 7x10            |      49289 |    248199678.30
+ perfurados      |      49085 |    258501798.65
+ material        |      48793 |    110549396.37
+ bancaria        |      44973 |      1819158.99
+ militante       |      43122 |     39007004.92
+ banner          |      42842 |    262449458.63
+ produção        |      42139 |    273693651.66
+ impressão       |      41509 |    177745277.08
+ assessoria      |      41294 |    251389014.78
+ jingle          |      40830 |     50466451.42
+ atividades      |      40781 |     40312630.34
+ prest           |      39295 |    109423318.76
+ prefeito        |      39157 |    333353839.53
+ facebook        |      38076 |     90555005.39
+ confecção       |      37578 |    119495997.92
+ bola            |      35227 |    245195166.86
+ praguinhas      |      35217 |    181587254.52
+ contabeis       |      34289 |    150568455.75
+ tamanho         |      34158 |    131678253.91
+ 7x7             |      33269 |    146828933.64
+ prestacao       |      32920 |     67813797.71
+ propaganda      |      32087 |    165454833.23
+ ted             |      31944 |       816869.52
+ 7x10cm          |      31776 |    154411915.72
+ digital         |      31216 |    152452408.65
+ assistente      |      30995 |     35868713.31
+ apoio           |      30851 |     50046782.02
+ carro           |      30407 |    206738530.50
+ botons          |      30378 |    149292368.02
+ 10x7            |      30024 |    118258860.11
+ coordenador     |      29830 |    113425062.70
+ distribuição    |      29487 |     35072128.32
+ ver             |      28549 |    206909952.94
+ parachoque      |      28537 |    134606687.47
+ colinhas        |      27831 |    101314810.80
+ advocaticios    |      27092 |    145561863.87
+ contas          |      26946 |    136530685.82
+ eleição         |      26722 |     98936037.67
+ etanol          |      26402 |     47880958.69
+ impresso        |      26342 |    104463780.57
+ 30x10           |      26060 |    131747757.49
+ doc             |      25971 |      1950003.85
+ lona            |      25795 |    152319492.74
+ impressao       |      25696 |     98805654.67
+ veiculo         |      25693 |    117447136.89
+ redondo         |      25501 |    141717245.36
+ 4x0             |      24606 |    185362705.18
+ conteudo        |      24579 |     92552209.51
+ 30x30           |      23663 |    143905613.68
+ politico        |      23357 |     77111127.73
+ wind            |      22934 |    190986047.33
+ fiscal          |      22771 |     11069209.54
+ panfletos       |      22553 |     74720463.71
+ 90g             |      22481 |    115017073.59
+ despesa         |      22418 |     52279677.58
+ cartão          |      22188 |    140941715.09
+ diesel          |      20607 |     83884956.15
+ sociais         |      20507 |     83385473.14
+ eleições        |      20493 |     55065507.31
+ politica        |      20108 |     74171529.94
+ candidato       |      19987 |     60416535.21
+ tecido          |      19874 |    124384648.42
+ impressos       |      19727 |     97040641.53
+ gravação        |      19718 |     62804298.50
+ prestados       |      19660 |     39756778.68
+ ativista        |      19622 |     19148729.50
+(100 rows)
+
+Time: 6509,757 ms (00:06,510)

@@ -1,0 +1,65 @@
+Pager usage is off.
+-- consulta: sql/p01_custo_cadeira.sql
+-- parâmetros: nenhum
+                                                                 servidor                                                                 |  banco   |    executado_em     
+------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-25 18:45:13
+(1 row)
+
+Timing is on.
+WITH gasto AS (
+    SELECT sq_candidato, SUM(valor) AS total
+    FROM despesa
+    GROUP BY sq_candidato
+),
+cadeiras AS (
+    SELECT e.ano, vg.cargo, SUM(vg.qt_vagas) AS vagas
+    FROM vaga vg
+    JOIN eleicao e ON e.cod_eleicao = vg.cod_eleicao
+    GROUP BY e.ano, vg.cargo
+)
+SELECT v.ano,
+       v.cargo,
+       k.vagas,
+       COUNT(*) FILTER (WHERE v.eleito)                         AS eleitos,
+       SUM(COALESCE(g.total, 0))                                AS gasto_todos_candidatos,
+       SUM(COALESCE(g.total, 0)) FILTER (WHERE v.eleito)        AS gasto_eleitos,
+       ROUND(SUM(COALESCE(g.total, 0)) / k.vagas, 2)            AS custo_cadeira_disputa,
+       ROUND(AVG(COALESCE(g.total, 0)) FILTER (WHERE v.eleito), 2) AS custo_medio_por_eleito
+FROM vw_candidatura v
+JOIN cadeiras k ON k.ano = v.ano AND k.cargo = v.cargo
+LEFT JOIN gasto g ON g.sq_candidato = v.sq_candidato
+WHERE v.ano IN (2018, 2020, 2022, 2024)
+GROUP BY v.ano, v.cargo, k.vagas
+ORDER BY v.ano, custo_medio_por_eleito DESC NULLS LAST;
+ ano  |       cargo        | vagas | eleitos | gasto_todos_candidatos | gasto_eleitos | custo_cadeira_disputa | custo_medio_por_eleito 
+------+--------------------+-------+---------+------------------------+---------------+-----------------------+------------------------
+ 2018 | GOVERNADOR         |    27 |      27 |           460322906.99 |  150980677.12 |           17048996.56 |             5591876.93
+ 2018 | PRESIDENTE         |     1 |       1 |           218192968.63 |    2456215.03 |          218192968.63 |             2456215.03
+ 2018 | SENADOR            |    54 |      53 |           290823993.48 |   92898716.78 |            5385629.51 |             1752805.98
+ 2018 | DEPUTADO FEDERAL   |   513 |     513 |          1287006918.31 |  554033808.09 |            2508785.42 |             1079987.93
+ 2018 | DEPUTADO ESTADUAL  |  1035 |    1035 |           874730903.13 |  319581038.76 |             845150.63 |              308773.95
+ 2018 | DEPUTADO DISTRITAL |    24 |      24 |            29879732.67 |    6118508.77 |            1244988.86 |              254937.87
+ 2018 | 1º SUPLENTE        |    27 |      53 |                      0 |             0 |                  0.00 |                   0.00
+ 2018 | 2º SUPLENTE        |    27 |      53 |                1539.60 |             0 |                 57.02 |                   0.00
+ 2018 | VICE-GOVERNADOR    |    27 |      27 |                3500.00 |             0 |                129.63 |                   0.00
+ 2018 | VICE-PRESIDENTE    |     1 |       1 |                      0 |             0 |                  0.00 |                   0.00
+ 2020 | PREFEITO           |  5568 |    5494 |          2025789846.67 |  773589733.89 |             363827.20 |              140806.29
+ 2020 | VEREADOR           | 58114 |   58105 |          1181629128.07 |  319725391.00 |              20332.95 |                5502.55
+ 2020 | VICE-PREFEITO      |  5568 |    5494 |              645502.30 |      36300.00 |                115.93 |                   6.61
+ 2022 | PRESIDENTE         |     1 |       1 |           343205679.91 |  131313037.45 |          343205679.91 |           131313037.45
+ 2022 | GOVERNADOR         |    27 |      27 |           842820088.82 |  287711695.97 |           31215558.85 |            10655988.74
+ 2022 | SENADOR            |    27 |      27 |           337159686.78 |   92825799.02 |           12487395.81 |             3437992.56
+ 2022 | DEPUTADO FEDERAL   |   513 |     513 |          3163042138.12 |  975085642.27 |            6165774.15 |             1900751.74
+ 2022 | DEPUTADO ESTADUAL  |  1035 |    1035 |          1624801340.66 |  515232723.14 |            1569856.37 |              497809.39
+ 2022 | DEPUTADO DISTRITAL |    24 |      24 |            50156801.25 |   11110143.56 |            2089866.72 |              462922.65
+ 2022 | 1º SUPLENTE        |    27 |      27 |                      0 |             0 |                  0.00 |                   0.00
+ 2022 | 2º SUPLENTE        |    27 |      27 |                      0 |             0 |                  0.00 |                   0.00
+ 2022 | VICE-GOVERNADOR    |    27 |      27 |                      0 |             0 |                  0.00 |                   0.00
+ 2022 | VICE-PRESIDENTE    |     1 |       1 |                      0 |             0 |                  0.00 |                   0.00
+ 2024 | PREFEITO           |  5569 |    5531 |          3770160011.33 | 1574089611.22 |             676990.49 |              284594.04
+ 2024 | VEREADOR           | 58435 |   58151 |          2620317440.84 |  735943773.68 |              44841.58 |               12655.74
+ 2024 | VICE-PREFEITO      |  5569 |    5531 |              118957.35 |             0 |                 21.36 |                   0.00
+(26 rows)
+
+Time: 3689,571 ms (00:03,690)
