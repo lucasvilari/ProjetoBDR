@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: ano = 2024, cargo = VEREADOR
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:39
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:30
 (1 row)
 
 Timing is on.
@@ -55,4 +55,4 @@ ORDER BY quintil_escolaridade NULLS LAST;
                       |       1238 |             3.27 |         4.79 |          4.91 |      0.514
 (6 rows)
 
-Time: 1606,450 ms (00:01,606)
+Time: 1728,347 ms (00:01,728)

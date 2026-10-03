@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: nível = UF
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:44
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:36
 (1 row)
 
 Timing is on.
@@ -22,7 +22,7 @@ WITH votos AS (
     GROUP BY 1, 2, 3
 ),
 com_nota AS (
-    SELECT v.*, ip.nota
+    SELECT v.*, ip.nota, vi.espectro_camara AS espectro
     FROM votos v
     JOIN LATERAL (
         SELECT i.nota FROM ideologia_partido i
@@ -30,6 +30,7 @@ com_nota AS (
         ORDER BY ABS(i.ano_survey - v.ano), i.ano_survey DESC
         LIMIT 1
     ) ip ON TRUE
+    LEFT JOIN vw_ideologia_partido vi ON vi.id_partido = v.id_partido AND vi.ano = v.ano
 )
 SELECT ano,
        territorio,
@@ -40,36 +41,40 @@ SELECT ano,
            WHEN SUM(votos * nota) / SUM(votos) < 5.5 THEN 'Centro'
            WHEN SUM(votos * nota) / SUM(votos) < 6.5 THEN 'Centro-direita'
            ELSE 'Direita'
-       END AS classificacao
+       END AS classificacao,
+       ROUND(SUM(votos * espectro) / NULLIF(SUM(votos) FILTER (WHERE espectro IS NOT NULL), 0), 1)
+                                                         AS indice_camara,
+       ROUND(100.0 * SUM(votos) FILTER (WHERE espectro IS NOT NULL) / SUM(votos), 1)
+                                                         AS cobertura_camara_pct
 FROM com_nota
 GROUP BY ano, territorio
 ORDER BY territorio, ano;
- ano  | territorio | indice_ideologico | classificacao  
-------+------------+-------------------+----------------
- 2018 | AP         |              6.24 | Centro-direita
- 2020 | AP         |              6.54 | Direita
- 2022 | AP         |              6.03 | Centro-direita
- 2024 | AP         |              6.39 | Centro-direita
- 2018 | MG         |              6.41 | Centro-direita
- 2020 | MG         |              6.62 | Direita
- 2022 | MG         |              6.67 | Direita
- 2024 | MG         |              6.75 | Direita
- 2018 | MS         |              6.57 | Direita
- 2020 | MS         |              6.73 | Direita
- 2022 | MS         |              6.75 | Direita
- 2024 | MS         |              6.92 | Direita
- 2018 | PB         |              6.56 | Direita
- 2020 | PB         |              6.87 | Direita
- 2022 | PB         |              7.20 | Direita
- 2024 | PB         |              6.56 | Direita
- 2018 | RO         |              6.98 | Direita
- 2020 | RO         |              6.71 | Direita
- 2022 | RO         |              7.43 | Direita
- 2024 | RO         |              7.47 | Direita
- 2018 | RR         |              7.04 | Direita
- 2020 | RR         |              7.02 | Direita
- 2022 | RR         |              7.52 | Direita
- 2024 | RR         |              7.09 | Direita
+ ano  | territorio | indice_ideologico | classificacao  | indice_camara | cobertura_camara_pct 
+------+------------+-------------------+----------------+---------------+----------------------
+ 2018 | AP         |              6.24 | Centro-direita |         -22.5 |                 70.0
+ 2020 | AP         |              6.54 | Direita        |         -22.4 |                 72.7
+ 2022 | AP         |              6.03 | Centro-direita |         -27.9 |                 88.7
+ 2024 | AP         |              6.39 | Centro-direita |         -20.9 |                100.0
+ 2018 | MG         |              6.41 | Centro-direita |         -29.1 |                 68.8
+ 2020 | MG         |              6.62 | Direita        |         -29.0 |                 72.4
+ 2022 | MG         |              6.67 | Direita        |         -17.1 |                 88.6
+ 2024 | MG         |              6.75 | Direita        |         -20.6 |                 92.5
+ 2018 | MS         |              6.57 | Direita        |         -35.8 |                 71.1
+ 2020 | MS         |              6.73 | Direita        |         -31.5 |                 75.6
+ 2022 | MS         |              6.75 | Direita        |         -22.8 |                 95.9
+ 2024 | MS         |              6.92 | Direita        |         -25.0 |                 99.5
+ 2018 | PB         |              6.56 | Direita        |         -30.0 |                 75.7
+ 2020 | PB         |              6.87 | Direita        |         -23.7 |                 76.7
+ 2022 | PB         |              7.20 | Direita        |         -23.4 |                 84.1
+ 2024 | PB         |              6.56 | Direita        |         -30.5 |                 96.5
+ 2018 | RO         |              6.98 | Direita        |         -24.5 |                 67.3
+ 2020 | RO         |              6.71 | Direita        |         -32.8 |                 72.7
+ 2022 | RO         |              7.43 | Direita        |         -18.8 |                 90.5
+ 2024 | RO         |              7.47 | Direita        |         -15.1 |                 88.6
+ 2018 | RR         |              7.04 | Direita        |         -16.2 |                 64.2
+ 2020 | RR         |              7.02 | Direita        |         -19.1 |                 69.1
+ 2022 | RR         |              7.52 | Direita        |         -19.5 |                 95.4
+ 2024 | RR         |              7.09 | Direita        |         -25.5 |                 94.6
 (24 rows)
 
-Time: 38,951 ms
+Time: 52,095 ms

@@ -12,7 +12,8 @@ de uma tela sobre um município, um político, um partido ou o custo das cadeira
   comparação entre eleitorado e eleitos.
 - **Ficha do político:** carreira em linha do tempo, trajetória ideológica,
   financiamento e destino do gasto de campanha.
-- **Ficha do partido:** posição segundo os especialistas e segundo as coligações,
+- **Ficha do partido:** posição segundo os especialistas, as coligações e as
+  votações da Câmara,
   onde é forte e perfil dos municípios que governa.
 - **O mercado das cadeiras:** custo por cargo e fatores associados à eleição.
 - **Bastidores:** fontes, modelo de dados, consultas e limitações conhecidas.

@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: ano = 2024, todos os candidatos
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:47
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:39
 (1 row)
 
 Timing is on.
@@ -135,4 +135,4 @@ LIMIT 100;
  marketing       |       3726 |     41160913.45
 (100 rows)
 
-Time: 2560,435 ms (00:02,560)
+Time: 2773,301 ms (00:02,773)

@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: município = João Pessoa (20516)
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:38
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:29
 (1 row)
 
 Timing is on.
@@ -62,4 +62,4 @@ ORDER BY e.ano;
  João Pessoa | PB | 2024 |    2022 |       29582.65 | 0.763 |    888679 | 566290 |                  0.6372 |  149056 |       26.32
 (4 rows)
 
-Time: 2,017 ms
+Time: 3,957 ms

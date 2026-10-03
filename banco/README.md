@@ -10,6 +10,7 @@ Minas Gerais, Paraíba, Rondônia e Roraima (ver "Escopo geográfico").
 | `02_indices_visoes.sql` | Índices, visões (`vw_candidatura`, `vw_patrimonio`, `vw_qt_mandatos`, `vw_ideologia_partido`) e `nivel_escolaridade()` |
 | `carga.py` | Executa `01`, carrega os dados e executa `02` |
 | `03_validacao.sql` | Confere a carga contra os totais dos arquivos do TSE |
+| `fontes/espectro_camara.json` | Cópia da posição dos partidos nas votações da Câmara (ver "Ideologia") |
 | `sql/`, `evidencias.sh` | Consultas das perguntas e geração das evidências de execução |
 
 ## Como executar
@@ -155,36 +156,112 @@ Três cuidados nas consultas:
 Limitação da fonte, não corrigível: o arquivo de candidatos de 2006 não traz o
 resultado da eleição presidencial, e esses candidatos ficam sem situação final.
 
-## Ideologia pelas coligações e trajetória do político
+## Ideologia dos partidos: três medidas
 
-Inspirado no cálculo ideológico da turma anterior, que reduzia a matriz deputado ×
-votação a um eixo. Não há votações nominais nos dados do TSE, então a matriz aqui
-é partido × partido, com o número de coligações para prefeito em que os dois
-estiveram juntos. Nenhuma fonte nova: tudo sai de `candidatura.coligacao`.
+O banco tem três medidas de ideologia por partido. Elas vêm de fontes diferentes,
+usam escalas diferentes e respondem a perguntas diferentes, por isso ficam lado a
+lado em vez de virar um número só.
 
-- **Tabela `ideologia_coligacao`** (id_partido, ano, nota, coligacoes), gravada pela
-  etapa `ideologia_coligacao` da carga (`carga.py --etapas ideologia_coligacao`,
-  2 segundos, requer numpy). Em cada eleição municipal de 2000 a 2024, entram os
-  partidos com pelo menos 50 coligações com outros partidos. A posição é o segundo
-  autovetor da matriz de coligações normalizada pelo grau (o primeiro é trivial),
-  o mesmo princípio da análise de correspondência. O sinal do autovetor é
-  arbitrário e é orientado pelas notas dos especialistas, e a escala é convertida
-  para a delas (mesma média e desvio padrão, limitada a 0–10).
-- **Visão `vw_ideologia_partido`**: nota de cada partido em cada ano de eleição
-  pelas duas réguas. Os partidos renomeados que mantiveram o número (PMDB, PFL,
-  PPB, PRN, PSN, PSDC, PT do B, PTN e PEN) herdam a nota do nome atual, marcada em
-  `nota_herdada`.
-- **`sql/p07b_ideologia_coligacoes.sql`**: as duas notas lado a lado e a
-  concordância do ano (correlação de Spearman entre as duas ordens).
-- **`sql/p10c_trajetoria_ideologica.sql`**: nota do partido em cada candidatura do
-  político, deslocamento em relação à anterior, média e amplitude da carreira.
+| Medida | Onde fica | Escala | Variação no tempo | Origem |
+|---|---|---|---|---|
+| Especialistas | `ideologia_partido.nota` | 0 (esquerda) a 10 (direita) | edições 2018 e 2022 | survey de especialistas (Harvard Dataverse) |
+| Coligações | `ideologia_coligacao.nota` | 0 a 10 | uma por eleição municipal, 2000 a 2024 | calculada pela carga a partir de `candidatura.coligacao` |
+| Câmara | `partido.espectro_camara` | −100 (esquerda) a +100 (direita) | um valor só | votações nominais da Câmara, do painel da turma anterior |
 
-Resultado: a concordância entre alianças e especialistas fica entre −0,08 e 0,11 de
-2000 a 2016 e sobe para 0,61 em 2020 e 0,75 em 2024. Até 2016 o eixo das coligações
-separa partidos grandes de pequenos, não esquerda de direita; por isso a
-trajetória do político usa só a nota dos especialistas. Partidos federados (PT,
-PCdoB e PV; PSDB e Cidadania; PSOL e Rede) coligam sempre juntos e recebem a mesma
-nota em 2024.
+### Especialistas
+
+Cientistas políticos deram a cada partido uma nota de 0 a 10; a nota do partido é a
+média delas (77 linhas na tabela: 39 de 2018 e 38 de 2022). É a medida de referência:
+o índice e a classificação da pergunta 7 (Esquerda, Centro-esquerda, Centro,
+Centro-direita e Direita) usam só ela. As colunas do survey (`ideol_18_mdb`,
+`ideol_22_pt` etc.) são traduzidas para as siglas do TSE em `SIGLAS_SURVEY`, no
+`carga.py`; PRD e Mobiliza, criados depois de 2022, recebem a média dos partidos que
+os formaram.
+
+### Coligações
+
+É a posição revelada pelas alianças. O painel da Câmara reduz a matriz deputado ×
+votação a um eixo; como os dados do TSE não têm votações nominais, a matriz aqui é
+partido × partido, com o número de coligações para prefeito em que os dois
+estiveram juntos.
+
+- A etapa `ideologia_coligacao` da carga (`carga.py --etapas ideologia_coligacao`,
+  2 segundos, requer numpy) monta a matriz de cada eleição municipal, com os
+  partidos que participaram de pelo menos 50 coligações com outros partidos
+  (coluna `coligacoes`).
+- A posição é o segundo autovetor da matriz normalizada pelo grau (o primeiro é
+  trivial), o mesmo princípio da análise de correspondência: partidos que se aliam
+  entre si ficam próximos no eixo.
+- O sinal do autovetor é arbitrário e é orientado pelas notas dos especialistas; a
+  escala é convertida para a delas (mesma média e desvio padrão, limitada a 0–10).
+
+A concordância com os especialistas (correlação de Spearman entre as ordens dos
+partidos) fica entre −0,08 e 0,11 de 2000 a 2016 e sobe para 0,61 em 2020 e 0,75 em
+2024. Até 2016 o eixo separa partidos grandes de pequenos, e não esquerda de direita.
+Partidos federados (PT, PCdoB e PV; PSDB e Cidadania; PSOL e Rede) coligam sempre
+juntos e recebem a mesma nota em 2024.
+
+### Câmara
+
+A coluna `partido.espectro_camara` guarda a posição média de cada partido no painel
+[Análise da Câmara dos Deputados](https://dados-camara-dashboard-alpha.vercel.app/),
+que reduz a matriz de 637 deputados × 1.549 votações nominais a um eixo (SVD de uma
+dimensão, 25,4% da variância). Os valores vêm do arquivo de dados do painel e ficam
+copiados em `fontes/espectro_camara.json`, com a data da cópia, para que a carga não
+dependa do site. A etapa `espectro_camara` os grava nos 21 partidos atuais (com
+candidatura de 2022 em diante); MISSÃO e os deputados sem partido não têm
+correspondente no banco.
+
+O eixo separa sobretudo quem vota com o governo de quem vota com a oposição. A ordem
+dos partidos concorda só em parte com a dos especialistas (Spearman de 0,66): PSOL
+(−37) e Rede (−5,8) ficam perto do centro, e União, Republicanos, MDB e PSD, do lado
+esquerdo.
+
+### A visão `vw_ideologia_partido`
+
+Reúne as três medidas, com uma linha por partido e ano de eleição (1998 a 2024). É
+por ela que as consultas leem a ideologia.
+
+| Coluna | Como é preenchida |
+|---|---|
+| `nota_especialistas` | a edição do survey mais próxima do ano (de 2020 em diante, a de 2022) |
+| `nota_herdada` | verdadeiro quando a nota veio do nome atual de um partido renomeado que manteve o número (PMDB → MDB, PFL → DEM, PPB → PP, PT do B → AVANTE etc.) |
+| `nota_coligacoes` | a nota do próprio ano, nas eleições municipais; nos anos gerais, a média das duas municipais vizinhas |
+| `espectro_camara` | o valor único do partido; nomes antigos de partidos que hoje estão na Câmara com o mesmo número (PMDB, PPB, PRB, PR, PPS, PTN, PT do B e SD) recebem o do nome atual |
+
+Exemplos:
+
+| Partido | Ano | Especialistas | Herdada | Coligações | Câmara |
+|---|---|---:|:-:|---:|---:|
+| PT | 2016 | 2,97 | não | 5,88 | −68,0 |
+| PMDB | 2016 | 7,02 | sim (do MDB) | 5,01 | −29,5 |
+| MDB | 2022 | 6,50 | não | 6,69 (média de 2020 e 2024) | −29,5 |
+| PT | 2024 | 2,68 | não | 2,16 | −68,0 |
+| PSOL | 2024 | 1,41 | não | 1,92 | −37,0 |
+| PL | 2024 | 8,80 | não | 8,38 | +49,0 |
+
+Em 2016 as coligações põem o PT perto do centro (5,88), porque o eixo ainda não media
+ideologia; em 2024 as duas notas de 0 a 10 já estão próximas. A Câmara põe o MDB do
+lado esquerdo.
+
+### Onde cada medida entra
+
+| Consulta | Uso |
+|---|---|
+| `sql/p07_vies_ideologico.sql` (pergunta 7) | `indice_ideologico` e `classificacao`: especialistas, média ponderada pelos votos; ao lado, `indice_camara` e `cobertura_camara_pct`, a parcela dos votos de partidos com posição na Câmara |
+| `sql/p07b_ideologia_coligacoes.sql` | especialistas e coligações lado a lado por partido, a `concordancia` do ano e a posição na Câmara para comparação |
+| `sql/p10c_trajetoria_ideologica.sql` (pergunta 10) | especialistas e Câmara do partido em cada candidatura do político, com o deslocamento a cada troca, a média e a amplitude da carreira; a nota das coligações fica de fora, porque antes de 2020 não mede ideologia |
+
+### Cuidados de leitura
+
+- As escalas não se somam nem se subtraem: a Câmara vai de −100 a +100 e as outras
+  de 0 a 10. Para comparar medidas, use a ordem dos partidos (Spearman).
+- Só a nota dos especialistas mede ideologia em todos os anos. A das coligações
+  vale de 2020 em diante, e a da Câmara mistura ideologia e alinhamento com o
+  governo; por isso o `indice_camara` é negativo nos seis estados, que os
+  especialistas classificam como de direita.
+- Um partido é o par (número, sigla). O PL de 2002 e o atual têm o mesmo par e,
+  portanto, a mesma nota (8,80), embora fossem partidos diferentes.
 
 ## Dados complementares do Atlas (perguntas 4 e 6)
 

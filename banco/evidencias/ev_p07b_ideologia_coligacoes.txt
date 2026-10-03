@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: ano = 2024, todos os partidos
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:44
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:36
 (1 row)
 
 Timing is on.
@@ -13,7 +13,8 @@ WITH notas AS (
            ic.coligacoes,
            vi.nota_especialistas,
            vi.nota_herdada,
-           ic.nota AS nota_coligacoes
+           ic.nota AS nota_coligacoes,
+           vi.espectro_camara
     FROM ideologia_coligacao ic
     JOIN partido pa               ON pa.id_partido = ic.id_partido
     JOIN vw_ideologia_partido vi  ON vi.id_partido = ic.id_partido AND vi.ano = ic.ano
@@ -32,6 +33,7 @@ SELECT n.ano,
        n.nota_herdada,
        n.nota_coligacoes,
        n.nota_coligacoes - n.nota_especialistas              AS diferenca,
+       n.espectro_camara,
        ROUND(c.concordancia::NUMERIC, 2)                     AS concordancia
 FROM notas n
 JOIN (SELECT ano, CORR(ordem_esp, ordem_col) AS concordancia
@@ -39,33 +41,33 @@ JOIN (SELECT ano, CORR(ordem_esp, ordem_col) AS concordancia
 WHERE ('2024' = '' OR n.ano = NULLIF('2024', '')::SMALLINT)
   AND ('' = '' OR n.sigla = '')
 ORDER BY n.ano, n.nota_coligacoes;
- ano  |     sigla     | coligacoes | nota_especialistas | nota_herdada | nota_coligacoes | diferenca | concordancia 
-------+---------------+------------+--------------------+--------------+-----------------+-----------+--------------
- 2024 | REDE          |        166 |               3.69 | f            |            1.92 |     -1.77 |         0.75
- 2024 | PSOL          |        166 |               1.41 | f            |            1.92 |      0.51 |         0.75
- 2024 | PV            |        689 |               4.12 | f            |            2.16 |     -1.96 |         0.75
- 2024 | PT            |        689 |               2.68 | f            |            2.16 |     -0.52 |         0.75
- 2024 | PC DO B       |        689 |               1.78 | f            |            2.16 |      0.38 |         0.75
- 2024 | PSB           |        539 |               3.59 | f            |            5.60 |      2.01 |         0.75
- 2024 | PDT           |        474 |               3.86 | f            |            5.89 |      2.03 |         0.75
- 2024 | MDB           |        773 |               6.50 | f            |            6.52 |      0.02 |         0.75
- 2024 | SOLIDARIEDADE |        343 |               6.01 | f            |            6.60 |      0.59 |         0.75
- 2024 | PSD           |        809 |               6.94 | f            |            6.70 |     -0.24 |         0.75
- 2024 | PP            |        744 |               8.15 | f            |            6.97 |     -1.18 |         0.75
- 2024 | REPUBLICANOS  |        727 |               8.33 | f            |            7.02 |     -1.31 |         0.75
- 2024 | UNIÃO         |        716 |               8.49 | f            |            7.12 |     -1.37 |         0.75
- 2024 | MOBILIZA      |        243 |               6.74 | f            |            7.13 |      0.39 |         0.75
- 2024 | DC            |         83 |               8.21 | f            |            7.22 |     -0.99 |         0.75
- 2024 | PRD           |        398 |               8.16 | f            |            7.30 |     -0.86 |         0.75
- 2024 | AVANTE        |        462 |               6.47 | f            |            7.33 |      0.86 |         0.75
- 2024 | PODE          |        425 |               7.44 | f            |            7.34 |     -0.10 |         0.75
- 2024 | CIDADANIA     |        662 |               6.17 | f            |            7.59 |      1.42 |         0.75
- 2024 | PSDB          |        662 |               6.76 | f            |            7.59 |      0.83 |         0.75
- 2024 | AGIR          |        141 |               7.55 | f            |            7.59 |      0.04 |         0.75
- 2024 | PMB           |         51 |               7.29 | f            |            7.77 |      0.48 |         0.75
- 2024 | PRTB          |         67 |               7.49 | f            |            8.28 |      0.79 |         0.75
- 2024 | PL            |        607 |               8.80 | f            |            8.38 |     -0.42 |         0.75
- 2024 | NOVO          |        107 |               8.67 | f            |            9.05 |      0.38 |         0.75
+ ano  |     sigla     | coligacoes | nota_especialistas | nota_herdada | nota_coligacoes | diferenca | espectro_camara | concordancia 
+------+---------------+------------+--------------------+--------------+-----------------+-----------+-----------------+--------------
+ 2024 | REDE          |        166 |               3.69 | f            |            1.92 |     -1.77 |            -5.8 |         0.75
+ 2024 | PSOL          |        166 |               1.41 | f            |            1.92 |      0.51 |           -37.0 |         0.75
+ 2024 | PV            |        689 |               4.12 | f            |            2.16 |     -1.96 |           -51.7 |         0.75
+ 2024 | PT            |        689 |               2.68 | f            |            2.16 |     -0.52 |           -68.0 |         0.75
+ 2024 | PC DO B       |        689 |               1.78 | f            |            2.16 |      0.38 |           -61.1 |         0.75
+ 2024 | PSB           |        539 |               3.59 | f            |            5.60 |      2.01 |           -58.4 |         0.75
+ 2024 | PDT           |        474 |               3.86 | f            |            5.89 |      2.03 |           -49.9 |         0.75
+ 2024 | MDB           |        773 |               6.50 | f            |            6.52 |      0.02 |           -29.5 |         0.75
+ 2024 | SOLIDARIEDADE |        343 |               6.01 | f            |            6.60 |      0.59 |            -3.8 |         0.75
+ 2024 | PSD           |        809 |               6.94 | f            |            6.70 |     -0.24 |           -29.2 |         0.75
+ 2024 | PP            |        744 |               8.15 | f            |            6.97 |     -1.18 |           -20.4 |         0.75
+ 2024 | REPUBLICANOS  |        727 |               8.33 | f            |            7.02 |     -1.31 |           -28.0 |         0.75
+ 2024 | UNIÃO         |        716 |               8.49 | f            |            7.12 |     -1.37 |           -31.8 |         0.75
+ 2024 | MOBILIZA      |        243 |               6.74 | f            |            7.13 |      0.39 |                 |         0.75
+ 2024 | DC            |         83 |               8.21 | f            |            7.22 |     -0.99 |                 |         0.75
+ 2024 | PRD           |        398 |               8.16 | f            |            7.30 |     -0.86 |             3.5 |         0.75
+ 2024 | AVANTE        |        462 |               6.47 | f            |            7.33 |      0.86 |           -55.0 |         0.75
+ 2024 | PODE          |        425 |               7.44 | f            |            7.34 |     -0.10 |           -18.4 |         0.75
+ 2024 | CIDADANIA     |        662 |               6.17 | f            |            7.59 |      1.42 |           -10.6 |         0.75
+ 2024 | PSDB          |        662 |               6.76 | f            |            7.59 |      0.83 |           -32.1 |         0.75
+ 2024 | AGIR          |        141 |               7.55 | f            |            7.59 |      0.04 |                 |         0.75
+ 2024 | PMB           |         51 |               7.29 | f            |            7.77 |      0.48 |                 |         0.75
+ 2024 | PRTB          |         67 |               7.49 | f            |            8.28 |      0.79 |                 |         0.75
+ 2024 | PL            |        607 |               8.80 | f            |            8.38 |     -0.42 |            49.0 |         0.75
+ 2024 | NOVO          |        107 |               8.67 | f            |            9.05 |      0.38 |            87.6 |         0.75
 (25 rows)
 
-Time: 4,317 ms
+Time: 4,854 ms

@@ -48,17 +48,21 @@ LANGUAGE sql IMMUTABLE AS $$
     END::SMALLINT
 $$;
 
--- Nota de cada partido em cada ano de eleição, pelas duas réguas.
+-- Nota de cada partido em cada ano de eleição, pelas três réguas.
 -- Especialistas: a edição do survey mais próxima do ano. Os partidos renomeados
 -- que mantiveram o número (PMDB -> MDB, PFL -> DEM etc.) herdam a nota do nome
 -- atual; nesse caso nota_herdada é verdadeiro. Coligações: a nota do próprio ano,
 -- nas eleições municipais, ou a média das duas municipais vizinhas, nas gerais.
+-- Câmara: a posição média do partido nas votações nominais da Câmara (uma só
+-- medição, de -100 a +100); os nomes antigos de partidos que hoje estão na Câmara
+-- com o mesmo número (PMDB -> MDB, PRB -> REPUBLICANOS etc.) recebem a do nome atual.
 CREATE VIEW vw_ideologia_partido AS
 SELECT pa.id_partido,
        a.ano,
        esp.nota       AS nota_especialistas,
        esp.herdada    AS nota_herdada,
-       col.nota       AS nota_coligacoes
+       col.nota       AS nota_coligacoes,
+       cam.espectro   AS espectro_camara
 FROM partido pa
 CROSS JOIN generate_series(1998, 2024, 2) AS a (ano)
 LEFT JOIN LATERAL (
@@ -76,4 +80,16 @@ LEFT JOIN LATERAL (
     FROM ideologia_coligacao ic
     WHERE ic.id_partido = pa.id_partido
       AND ABS(ic.ano - a.ano) <= 2
-) col ON TRUE;
+) col ON TRUE
+LEFT JOIN LATERAL (
+    SELECT pi.espectro_camara AS espectro
+    FROM partido pi
+    WHERE pi.espectro_camara IS NOT NULL
+      AND (pi.id_partido = pa.id_partido
+           OR (pi.numero = pa.numero
+               AND (pa.sigla, pi.sigla) IN (VALUES ('PMDB', 'MDB'), ('PPB', 'PP'), ('PRB', 'REPUBLICANOS'),
+                                                   ('PR', 'PL'), ('PPS', 'CIDADANIA'), ('PTN', 'PODE'),
+                                                   ('PT DO B', 'AVANTE'), ('SD', 'SOLIDARIEDADE'))))
+    ORDER BY pi.id_partido <> pa.id_partido
+    LIMIT 1
+) cam ON TRUE;

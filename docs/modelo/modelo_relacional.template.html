@@ -295,7 +295,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
     <header>
       <span class="rotulo">Atributos derivados</span>
       <h2 id="t-visoes">Visões e função de apoio</h2>
-      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. A visão vw_ideologia_partido reúne as duas notas de ideologia de cada partido por ano. As definições abaixo são as que o banco guarda.</p>
+      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. A visão vw_ideologia_partido reúne as três medidas de ideologia de cada partido por ano. As definições abaixo são as que o banco guarda.</p>
     </header>
     <div class="visoes" id="visoes"></div>
     <p class="fonte" id="fonte"></p>
@@ -317,7 +317,7 @@ const META = {
   eleicao: { area: 'nucleo', papel: 'Cada eleição ordinária; o TSE usa um código por turno.', der: ['Entidade forte', 'ELEIÇÃO'] },
   vaga: { area: 'nucleo', papel: 'Cadeiras em disputa por cargo e unidade eleitoral.', der: ['Atributo multivalorado composto', 'Vagas, de ELEIÇÃO'] },
   politico: { area: 'nucleo', papel: 'A pessoa, identificada pelo título eleitoral entre eleições.', der: ['Entidade forte', 'POLÍTICO'] },
-  partido: { area: 'nucleo', papel: 'Partido com código próprio, porque número e sigla mudam em fusões.', der: ['Entidade forte', 'PARTIDO'] },
+  partido: { area: 'nucleo', papel: 'Partido com código próprio, porque número e sigla mudam em fusões; guarda também a posição do partido nas votações da Câmara.', der: ['Entidade forte', 'PARTIDO'] },
   ideologia_partido: { area: 'nucleo', papel: 'Nota de 0 (esquerda) a 10 (direita) por edição do survey de especialistas.', der: ['Atributo multivalorado composto', 'Ideologia, de PARTIDO'] },
   ideologia_coligacao: { area: 'nucleo', papel: 'Posição revelada pelas coligações para prefeito, na escala do survey, por eleição municipal.', der: ['Atributo multivalorado composto', 'Posição_coligações, de PARTIDO'] },
   candidatura: { area: 'nucleo', papel: 'Participação de um político numa eleição, para um cargo e unidade eleitoral.', der: ['Entidade forte', 'CANDIDATURA; guarda as FKs de REGISTRA, DISPUTA e LANÇA'] },
@@ -340,6 +340,7 @@ const AJUSTE_COL = {
   'candidatura.reeleicao': 'ST_REELEICAO = "S" ou eleito para o mesmo cargo e unidade eleitoral no pleito anterior.',
   'receita.sq_receita': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
   'despesa.sq_despesa': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
+  'partido.espectro_camara': 'Posição média do partido nas votações nominais da Câmara, de -100 a +100, de um painel externo (banco/fontes/espectro_camara.json).',
   'ideologia_coligacao.nota': 'Segundo autovetor da matriz de coligações entre partidos, orientado e reescalado pelas notas do survey.',
   'ideologia_coligacao.coligacoes': 'Coligações para prefeito com outros partidos no ano; só entram partidos com pelo menos 50.',
   'apuracao.validos': 'Coluna nova: válidos oficiais do TSE, que excluem os votos anulados e entram no quociente eleitoral.',
@@ -579,7 +580,7 @@ const DER = [
           ['ELEICAO', 'UE', 'comp:Vagas', 'vaga'], ['ELEICAO', 'Cargo', 'comp:Vagas', 'vaga'], ['ELEICAO', 'Qt_vagas', 'comp:Vagas', 'vaga'],
           ['CANDIDATURA', 'Sq_candidato', 'chave', null, true], ['CANDIDATURA', 'UE'], ['CANDIDATURA', 'Cargo'], ['CANDIDATURA', 'Coligação'], ['CANDIDATURA', 'Escolaridade'],
           ['CANDIDATURA', 'Idade_posse', '', null, true], ['CANDIDATURA', 'Reeleição', '', null, true], ['CANDIDATURA', 'Situação_final', '', null, true], ['CANDIDATURA', 'Patrimônio_total', 'derivado'],
-          ['PARTIDO', 'Id_partido', 'chave'], ['PARTIDO', 'Número'], ['PARTIDO', 'Sigla'], ['PARTIDO', 'Nome'], ['PARTIDO', 'Ideologia', 'multi', 'ideologia_partido'],
+          ['PARTIDO', 'Id_partido', 'chave'], ['PARTIDO', 'Número'], ['PARTIDO', 'Sigla'], ['PARTIDO', 'Nome'], ['PARTIDO', 'Espectro_câmara', '', null, true], ['PARTIDO', 'Ideologia', 'multi', 'ideologia_partido'],
           ['PARTIDO', 'Ano_survey', 'comp:Ideologia', 'ideologia_partido'], ['PARTIDO', 'Nota', 'comp:Ideologia', 'ideologia_partido'],
           ['PARTIDO', 'Posição_coligações', 'multi', 'ideologia_coligacao', true], ['PARTIDO', 'Ano', 'comp:Posição_coligações', 'ideologia_coligacao', true],
           ['PARTIDO', 'Nota', 'comp:Posição_coligações', 'ideologia_coligacao', true], ['PARTIDO', 'Coligações', 'comp:Posição_coligações', 'ideologia_coligacao', true]] },

@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: político = ANDERSON ADAUTO PEREIRA
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:52
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:45
 (1 row)
 
 Timing is on.
@@ -12,7 +12,8 @@ WITH trajetoria AS (
            v.cargo,
            pa.sigla,
            vi.nota_especialistas,
-           vi.nota_herdada
+           vi.nota_herdada,
+           vi.espectro_camara
     FROM vw_candidatura v
     JOIN partido pa               ON pa.id_partido = v.id_partido
     LEFT JOIN vw_ideologia_partido vi ON vi.id_partido = v.id_partido AND vi.ano = v.ano
@@ -25,22 +26,23 @@ SELECT ano,
        nota_especialistas,
        nota_herdada,
        nota_especialistas - LAG(nota_especialistas) OVER w                       AS deslocamento,
+       espectro_camara,
        ROUND(AVG(nota_especialistas) OVER (), 2)                                 AS media_carreira,
        MAX(nota_especialistas) OVER () - MIN(nota_especialistas) OVER ()         AS amplitude_carreira
 FROM trajetoria
 WINDOW w AS (ORDER BY ano, cargo)
 ORDER BY ano, cargo;
- ano  |       cargo       |  sigla  | trocou_partido | nota_especialistas | nota_herdada | deslocamento | media_carreira | amplitude_carreira 
-------+-------------------+---------+----------------+--------------------+--------------+--------------+----------------+--------------------
- 1998 | DEPUTADO ESTADUAL | PMDB    | f              |               7.02 | t            |              |           6.73 |               7.02
- 2000 | PREFEITO          | PMDB    | f              |               7.02 | t            |         0.00 |           6.73 |               7.02
- 2002 | DEPUTADO FEDERAL  | PL      | t              |               8.80 | f            |         1.78 |           6.73 |               7.02
- 2004 | PREFEITO          | PL      | f              |               8.80 | f            |         0.00 |           6.73 |               7.02
- 2008 | PREFEITO          | PMDB    | t              |               7.02 | t            |        -1.78 |           6.73 |               7.02
- 2014 | DEPUTADO FEDERAL  | PRB     | t              |               7.78 | f            |         0.76 |           6.73 |               7.02
- 2016 | VICE-PREFEITO     | PP      | t              |               8.20 | f            |         0.42 |           6.73 |               7.02
- 2022 | DEPUTADO FEDERAL  | PC DO B | t              |               1.78 | f            |        -6.42 |           6.73 |               7.02
- 2024 | PREFEITO          | PV      | t              |               4.12 | f            |         2.34 |           6.73 |               7.02
+ ano  |       cargo       |  sigla  | trocou_partido | nota_especialistas | nota_herdada | deslocamento | espectro_camara | media_carreira | amplitude_carreira 
+------+-------------------+---------+----------------+--------------------+--------------+--------------+-----------------+----------------+--------------------
+ 1998 | DEPUTADO ESTADUAL | PMDB    | f              |               7.02 | t            |              |           -29.5 |           6.73 |               7.02
+ 2000 | PREFEITO          | PMDB    | f              |               7.02 | t            |         0.00 |           -29.5 |           6.73 |               7.02
+ 2002 | DEPUTADO FEDERAL  | PL      | t              |               8.80 | f            |         1.78 |            49.0 |           6.73 |               7.02
+ 2004 | PREFEITO          | PL      | f              |               8.80 | f            |         0.00 |            49.0 |           6.73 |               7.02
+ 2008 | PREFEITO          | PMDB    | t              |               7.02 | t            |        -1.78 |           -29.5 |           6.73 |               7.02
+ 2014 | DEPUTADO FEDERAL  | PRB     | t              |               7.78 | f            |         0.76 |           -28.0 |           6.73 |               7.02
+ 2016 | VICE-PREFEITO     | PP      | t              |               8.20 | f            |         0.42 |           -20.4 |           6.73 |               7.02
+ 2022 | DEPUTADO FEDERAL  | PC DO B | t              |               1.78 | f            |        -6.42 |           -61.1 |           6.73 |               7.02
+ 2024 | PREFEITO          | PV      | t              |               4.12 | f            |         2.34 |           -51.7 |           6.73 |               7.02
 (9 rows)
 
-Time: 3,513 ms
+Time: 4,499 ms

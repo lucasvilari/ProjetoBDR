@@ -21,6 +21,7 @@ Uso:
 """
 import argparse
 import csv
+import json
 import os
 import re
 import sys
@@ -576,6 +577,33 @@ def etapa_ideologia(c):
     c.registra('ideologia_partido', 'média dos especialistas por partido e edição', len(linhas))
 
 
+# Siglas do painel da Câmara que diferem das do TSE; None = sem correspondente.
+SIGLAS_CAMARA = {'PCdoB': 'PC DO B', 'S.PART.': None}
+
+
+def etapa_espectro_camara(c):
+    """Posição média de cada partido nas votações nominais da Câmara dos Deputados,
+    de -100 (esquerda) a +100 (direita), lida da cópia em fontes/espectro_camara.json.
+    Vai para os partidos atuais: os que têm candidatura de 2022 em diante."""
+    log('== espectro da Câmara')
+    # bancos carregados antes desta coluna existir
+    c.sql('ALTER TABLE partido ADD COLUMN IF NOT EXISTS espectro_camara NUMERIC(4,1) '
+          'CHECK (espectro_camara BETWEEN -100 AND 100)')
+    c.sql('UPDATE partido SET espectro_camara = NULL')
+    dados = json.loads((RAIZ / 'fontes' / 'espectro_camara.json').read_text(encoding='utf-8'))
+    for item in dados['partidos']:
+        sigla = SIGLAS_CAMARA.get(item['partido'], item['partido'])
+        n = 0 if sigla is None else c.sql("""
+            UPDATE partido SET espectro_camara = %s
+            WHERE upper(sigla) = upper(%s)
+              AND id_partido IN (SELECT c.id_partido FROM candidatura c JOIN eleicao e USING (cod_eleicao)
+                                 WHERE e.ano >= 2022)""", (item['scoreMedio'], sigla))
+        if not n:
+            c.registra('espectro_camara aviso', f"{item['partido']}: sem partido correspondente no banco", 0)
+    total = c.um('SELECT count(*) FROM partido WHERE espectro_camara IS NOT NULL')[0]
+    c.registra('espectro_camara', f"{dados['fonte']} (cópia de {dados['baixado_em']})", total)
+
+
 def etapa_apuracao(c):
     log('== apuração')
     c.sql('TRUNCATE apuracao')
@@ -888,6 +916,7 @@ ETAPAS = {
     'territorio': etapa_territorio,
     'preparo': etapa_preparo,
     'nucleo': etapa_nucleo,
+    'espectro_camara': etapa_espectro_camara,
     'apuracao': etapa_apuracao,
     'votos_part': etapa_votos_part,
     'bem': etapa_bem,

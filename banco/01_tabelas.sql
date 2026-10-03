@@ -32,11 +32,15 @@ CREATE TABLE politico (
     genero            VARCHAR(20)
 );
 
+-- espectro_camara: posição média do partido nas votações nominais da Câmara dos
+-- Deputados, de -100 (esquerda) a +100 (direita), do painel em banco/fontes/
+-- espectro_camara.json; NULL para partido sem deputados nas votações analisadas.
 CREATE TABLE partido (
-    id_partido    INTEGER      PRIMARY KEY,
-    numero        SMALLINT     NOT NULL,
-    sigla         VARCHAR(20)  NOT NULL,
-    nome          VARCHAR(120) NOT NULL,
+    id_partido      INTEGER      PRIMARY KEY,
+    numero          SMALLINT     NOT NULL,
+    sigla           VARCHAR(20)  NOT NULL,
+    nome            VARCHAR(120) NOT NULL,
+    espectro_camara NUMERIC(4,1) CHECK (espectro_camara BETWEEN -100 AND 100),
     UNIQUE (numero, sigla)
 );
 

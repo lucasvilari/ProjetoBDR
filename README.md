@@ -103,6 +103,10 @@ em `banco/evidencias/`:
 cd banco && ./evidencias.sh
 ```
 
+As perguntas sobre ideologia usam três medidas por partido (especialistas,
+coligações e votações na Câmara), explicadas em
+[`banco/README.md`](banco/README.md#ideologia-dos-partidos-três-medidas).
+
 ## Fontes
 
 - **TSE**, Portal de Dados Abertos: candidaturas, bens, vagas, votação, prestação de
@@ -112,3 +116,6 @@ cd banco && ./evidencias.sh
   escolaridade e envelhecimento.
 - **Harvard Dataverse**, doi:10.7910/DVN/MFIXKW: classificação ideológica dos partidos
   por especialistas (Bolognesi, Codato, Ribeiro e Silva).
+- **Painel Análise da Câmara dos Deputados** (dados-camara-dashboard-alpha.vercel.app):
+  posição média dos partidos nas votações nominais da Câmara, copiada em
+  `banco/fontes/espectro_camara.json`.

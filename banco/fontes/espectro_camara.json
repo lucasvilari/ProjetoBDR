@@ -1,0 +1,237 @@
+{
+ "fonte": "https://dados-camara-dashboard-alpha.vercel.app/data/questao-9.json",
+ "painel": "https://dados-camara-dashboard-alpha.vercel.app/ (aba Partidos, 'Mapa ideológico das votações')",
+ "baixado_em": "2026-10-02",
+ "descricao": "Posição média de cada partido num eixo de -100 (esquerda) a +100 (direita), obtido por SVD de uma dimensão da matriz deputado x votação nominal da Câmara dos Deputados.",
+ "meta": {
+  "totalRegistros": 455333,
+  "totalDeputados": 637,
+  "totalVotacoes": 1549,
+  "varianciaExplicadaPct": 25.38,
+  "escalaMinima": -100,
+  "escalaMaxima": 100,
+  "metodo": "Truncated SVD — 1 dimensão"
+ },
+ "partidos": [
+  {
+   "partido": "PT",
+   "totalDeputados": 75,
+   "scoreMedio": -68,
+   "scoreMinimo": -100,
+   "scoreMaximo": 25.5,
+   "dispersao": 31.2,
+   "alinhamentoMedioPct": 89.2,
+   "classificacao": "Esquerda"
+  },
+  {
+   "partido": "PCdoB",
+   "totalDeputados": 11,
+   "scoreMedio": -61.1,
+   "scoreMinimo": -92.1,
+   "scoreMaximo": 26,
+   "dispersao": 39.5,
+   "alinhamentoMedioPct": 83.4,
+   "classificacao": "Esquerda"
+  },
+  {
+   "partido": "PSB",
+   "totalDeputados": 18,
+   "scoreMedio": -58.4,
+   "scoreMinimo": -89.5,
+   "scoreMaximo": 5.9,
+   "dispersao": 28.4,
+   "alinhamentoMedioPct": 88.7,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "AVANTE",
+   "totalDeputados": 6,
+   "scoreMedio": -55,
+   "scoreMinimo": -96.1,
+   "scoreMaximo": 25.1,
+   "dispersao": 42.1,
+   "alinhamentoMedioPct": 82.1,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PV",
+   "totalDeputados": 7,
+   "scoreMedio": -51.7,
+   "scoreMinimo": -89.8,
+   "scoreMaximo": 28.1,
+   "dispersao": 39.8,
+   "alinhamentoMedioPct": 82.7,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PDT",
+   "totalDeputados": 13,
+   "scoreMedio": -49.9,
+   "scoreMinimo": -94,
+   "scoreMaximo": 23.1,
+   "dispersao": 39.6,
+   "alinhamentoMedioPct": 83.4,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PSOL",
+   "totalDeputados": 15,
+   "scoreMedio": -37,
+   "scoreMinimo": -56.8,
+   "scoreMaximo": 25.3,
+   "dispersao": 19.9,
+   "alinhamentoMedioPct": 93.1,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PSDB",
+   "totalDeputados": 17,
+   "scoreMedio": -32.1,
+   "scoreMinimo": -80.6,
+   "scoreMaximo": 60.3,
+   "dispersao": 42.1,
+   "alinhamentoMedioPct": 82.5,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "UNIÃO",
+   "totalDeputados": 64,
+   "scoreMedio": -31.8,
+   "scoreMinimo": -91,
+   "scoreMaximo": 71.1,
+   "dispersao": 41.3,
+   "alinhamentoMedioPct": 82.4,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "MDB",
+   "totalDeputados": 48,
+   "scoreMedio": -29.5,
+   "scoreMinimo": -83.2,
+   "scoreMaximo": 78,
+   "dispersao": 37.4,
+   "alinhamentoMedioPct": 84.5,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PSD",
+   "totalDeputados": 63,
+   "scoreMedio": -29.2,
+   "scoreMinimo": -96,
+   "scoreMaximo": 38.3,
+   "dispersao": 36.5,
+   "alinhamentoMedioPct": 84.3,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "REPUBLICANOS",
+   "totalDeputados": 58,
+   "scoreMedio": -28,
+   "scoreMinimo": -90.8,
+   "scoreMaximo": 86.5,
+   "dispersao": 41.8,
+   "alinhamentoMedioPct": 82.2,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PP",
+   "totalDeputados": 62,
+   "scoreMedio": -20.4,
+   "scoreMinimo": -92.7,
+   "scoreMaximo": 67,
+   "dispersao": 44.7,
+   "alinhamentoMedioPct": 79.7,
+   "classificacao": "Centro-Esquerda"
+  },
+  {
+   "partido": "PODE",
+   "totalDeputados": 34,
+   "scoreMedio": -18.4,
+   "scoreMinimo": -89.3,
+   "scoreMaximo": 87.2,
+   "dispersao": 41.4,
+   "alinhamentoMedioPct": 82.2,
+   "classificacao": "Centro"
+  },
+  {
+   "partido": "CIDADANIA",
+   "totalDeputados": 3,
+   "scoreMedio": -10.6,
+   "scoreMinimo": -41.9,
+   "scoreMaximo": 23.6,
+   "dispersao": 26.8,
+   "alinhamentoMedioPct": 88.6,
+   "classificacao": "Centro"
+  },
+  {
+   "partido": "REDE",
+   "totalDeputados": 7,
+   "scoreMedio": -5.8,
+   "scoreMinimo": -74.8,
+   "scoreMaximo": 26.2,
+   "dispersao": 43.5,
+   "alinhamentoMedioPct": 80.4,
+   "classificacao": "Centro"
+  },
+  {
+   "partido": "SOLIDARIEDADE",
+   "totalDeputados": 8,
+   "scoreMedio": -3.8,
+   "scoreMinimo": -64.2,
+   "scoreMaximo": 24.5,
+   "dispersao": 33.4,
+   "alinhamentoMedioPct": 85.9,
+   "classificacao": "Centro"
+  },
+  {
+   "partido": "PRD",
+   "totalDeputados": 5,
+   "scoreMedio": 3.5,
+   "scoreMinimo": -40.1,
+   "scoreMaximo": 29.1,
+   "dispersao": 28.8,
+   "alinhamentoMedioPct": 86.2,
+   "classificacao": "Centro"
+  },
+  {
+   "partido": "S.PART.",
+   "totalDeputados": 1,
+   "scoreMedio": 11.8,
+   "scoreMinimo": 11.8,
+   "scoreMaximo": 11.8,
+   "dispersao": 0,
+   "alinhamentoMedioPct": 100,
+   "classificacao": "Centro"
+  },
+  {
+   "partido": "PL",
+   "totalDeputados": 116,
+   "scoreMedio": 49,
+   "scoreMinimo": -66.6,
+   "scoreMaximo": 100,
+   "dispersao": 30.7,
+   "alinhamentoMedioPct": 88.4,
+   "classificacao": "Centro-Direita"
+  },
+  {
+   "partido": "MISSÃO",
+   "totalDeputados": 1,
+   "scoreMedio": 78.3,
+   "scoreMinimo": 78.3,
+   "scoreMaximo": 78.3,
+   "dispersao": 0,
+   "alinhamentoMedioPct": 100,
+   "classificacao": "Direita"
+  },
+  {
+   "partido": "NOVO",
+   "totalDeputados": 5,
+   "scoreMedio": 87.6,
+   "scoreMinimo": 77.2,
+   "scoreMaximo": 96.2,
+   "dispersao": 7.4,
+   "alinhamentoMedioPct": 96.7,
+   "classificacao": "Direita"
+  }
+ ]
+}

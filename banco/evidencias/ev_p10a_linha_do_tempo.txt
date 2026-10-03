@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: político = RICARDO VIEIRA COUTINHO
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:52
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:44
 (1 row)
 
 Timing is on.
@@ -35,4 +35,4 @@ ORDER BY v.ano;
  2022 | SENADOR           | PB    | PT    | NÃO ELEITO     | f         | Derrota
 (8 rows)
 
-Time: 1,325 ms
+Time: 1,540 ms
