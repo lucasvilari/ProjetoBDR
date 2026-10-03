@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Carga dos arquivos do crawler no banco do projeto (dossiê, seção 4.3).
+"""Carga dos arquivos do crawler no banco do projeto.
 
 Cada arquivo é copiado sem transformação (COPY) para uma tabela de preparo no
 esquema stg, com todas as colunas como texto. A limpeza, a consolidação e a
@@ -8,9 +8,15 @@ arquivos grandes são preparados um ano por vez e descartados logo depois.
 
 Cada etapa registra em carga.log quantas linhas leu, gravou e descartou.
 
+Escopo geográfico: os arquivos do TSE são nacionais, e a carga grava só as UFs do
+projeto (por padrão AP, MG, MS, PB, RO e RR) e as candidaturas a presidente (UF "BR"),
+que recebem votos nesses municípios. Cada arquivo é recortado pela coluna SG_UF logo
+depois de copiado. As UFs usadas ficam na tabela carga.escopo.
+
 Uso:
     python carga.py                      # carga completa, recriando as tabelas
-    python carga.py --etapas despesa     # refaz só uma etapa
+    python carga.py --etapas despesa     # refaz só uma etapa (no escopo já gravado)
+    python carga.py --ufs PI,CE          # outro conjunto de UFs
     DATABASE_URL="dbname=eleicoes" python carga.py
 """
 import argparse
@@ -34,6 +40,11 @@ DSN = os.environ.get('DATABASE_URL', 'dbname=eleicoes')
 ANOS_EP = (2018, 2020, 2022, 2024)
 ANOS_CAND = tuple(range(1994, 2025, 2))
 ELEITO = "('ELEITO', 'ELEITO POR QP', 'ELEITO POR MÉDIA')"
+# UFs do projeto.
+UFS_PADRAO = ('AP', 'MG', 'MS', 'PB', 'RO', 'RR')
+TODAS_UFS = ('AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA',
+             'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO')
+NO_ESCOPO = "upper(btrim({})) IN (SELECT uf FROM carga.escopo)"
 
 
 # --------------------------------------------------------------------------- utilidades
@@ -100,6 +111,26 @@ class Carga:
         self.registra('preparo', f'{arquivo.relative_to(DADOS)}', n, time.time() - t0)
         return set(cols)
 
+    def recorta(self, tabela, etapa, detalhe):
+        """Apaga de stg.<tabela> as linhas de UFs fora do escopo (o exterior, ZZ, é
+        contado à parte por cada etapa) e registra quantas foram descartadas."""
+        n = self.sql(f"DELETE FROM stg.{tabela} WHERE sg_uf <> 'ZZ' AND NOT {NO_ESCOPO.format('sg_uf')}")
+        self.registra(etapa, f'{detalhe}: fora do escopo geográfico', n)
+
+    def total_csv(self, tabela, ano, coluna):
+        """Guarda o total da coluna de valor de stg.bruto, já recortado, em carga.total_csv."""
+        self.sql(f"""INSERT INTO carga.total_csv (tabela, ano, valor)
+                     SELECT %s, %s, COALESCE(sum(stg.num({coluna})), 0) FROM stg.bruto
+                     ON CONFLICT (tabela, ano) DO UPDATE SET valor = EXCLUDED.valor""", (tabela, ano))
+
+    def define_escopo(self, ufs):
+        """Grava em carga.escopo as UFs carregadas, mais BR (candidaturas a presidente)."""
+        self.sql('CREATE TABLE IF NOT EXISTS carga.escopo (uf CHAR(2) PRIMARY KEY)')
+        self.sql('TRUNCATE carga.escopo')
+        with self.conn.cursor() as cur:
+            cur.executemany('INSERT INTO carga.escopo VALUES (%s)', [(u,) for u in sorted(set(ufs) | {'BR'})])
+        self.registra('escopo', 'UFs: ' + ', '.join(sorted(ufs)) + ' e BR (presidente)', len(ufs))
+
     def unifica(self, destino, arquivos, mapa):
         """Prepara vários arquivos de layouts diferentes numa só tabela stg,
         com as colunas de `mapa` (destino -> coluna de origem; ausente vira NULL)."""
@@ -107,6 +138,8 @@ class Carga:
         self.sql(f'CREATE UNLOGGED TABLE stg.{destino} ({", ".join(f"{c} text" for c in mapa)})')
         for arquivo in arquivos:
             cols = self.prepara('bruto', arquivo)
+            if 'sg_uf' in cols:
+                self.recorta('bruto', 'preparo descarte', f'{arquivo.relative_to(DADOS)}')
             sel = ', '.join(o if o in cols else 'NULL' for o in mapa.values())
             self.sql(f'INSERT INTO stg.{destino} ({", ".join(mapa)}) SELECT {sel} FROM stg.bruto')
         self.sql('DROP TABLE IF EXISTS stg.bruto')
@@ -117,6 +150,15 @@ class Carga:
 FUNCOES_STG = r"""
 CREATE SCHEMA IF NOT EXISTS stg;
 CREATE SCHEMA IF NOT EXISTS carga;
+-- UFs carregadas, mais BR (candidaturas a presidente). Preenchida por define_escopo().
+CREATE TABLE IF NOT EXISTS carga.escopo (uf CHAR(2) PRIMARY KEY);
+-- Total em reais dos CSVs de receitas e despesas dentro do escopo, para 03_validacao.sql.
+CREATE TABLE IF NOT EXISTS carga.total_csv (
+    tabela  TEXT     NOT NULL,
+    ano     SMALLINT NOT NULL,
+    valor   NUMERIC  NOT NULL,
+    PRIMARY KEY (tabela, ano)
+);
 CREATE TABLE IF NOT EXISTS carga.log (
     id        SERIAL PRIMARY KEY,
     quando    TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -126,7 +168,7 @@ CREATE TABLE IF NOT EXISTS carga.log (
     segundos  NUMERIC(10,1)
 );
 
--- Seção 4.3: #NULO#, #NE, -1, -3 e -4 são dado ausente ou mascarado.
+-- #NULO#, #NE, -1, -3 e -4 são dado ausente ou mascarado.
 CREATE OR REPLACE FUNCTION stg.nulo(t TEXT) RETURNS TEXT
 LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     SELECT CASE WHEN btrim(t) IN ('', '#NULO#', '#NULO', '#NE#', '#NE', '-1', '-3', '-4')
@@ -221,15 +263,17 @@ $$;
 # --------------------------------------------------------------------------- etapas
 
 def etapa_esquema(c):
-    """Recria o modelo do dossiê do zero."""
+    """Recria o modelo do zero (mantém o escopo geográfico definido em main)."""
     log('== esquema')
     c.sql("""DROP TABLE IF EXISTS votos_part, votos_cand, perfil_comparecimento, apuracao,
              indicador_anual, idhm_municipio, municipio, despesa, receita, bem, candidatura,
              ideologia_coligacao, ideologia_partido, partido, politico, vaga, eleicao CASCADE""")
     c.sql('DROP FUNCTION IF EXISTS nivel_escolaridade(VARCHAR)')
+    ufs = [u for (u,) in c.sql("SELECT uf FROM carga.escopo WHERE uf <> 'BR'")]
     c.sql('DROP SCHEMA IF EXISTS stg CASCADE')
     c.sql('DROP SCHEMA IF EXISTS carga CASCADE')
     c.sql(FUNCOES_STG)
+    c.define_escopo(ufs)
     c.sql((RAIZ / '01_tabelas.sql').read_text())
     c.registra('esquema', '01_tabelas.sql aplicado', 17)
 
@@ -259,7 +303,8 @@ def etapa_territorio(c):
                    FROM stg.censo9515 GROUP BY municipio_codigo) c
                ON c.municipio_codigo = btrim(t.cd_municipio_ibge)
         WHERE stg.mun(t.cd_municipio_tse) IS NOT NULL AND btrim(t.cd_municipio_ibge) ~ '^[0-9]{7}$'
-    """, etapa='municipio', detalhe='municipio_tse_ibge + IBGE Localidades + SIDRA 9515')
+          AND upper(btrim(t.sg_uf)) IN (SELECT uf FROM carga.escopo)
+    """, etapa='municipio', detalhe='municipio_tse_ibge + IBGE Localidades + SIDRA 9515, UFs do escopo')
 
     c.prepara('idhm', DADOS / 'ipea_atlas' / 'idhm_municipios.csv', 'UTF8')
     c.sql("""
@@ -294,7 +339,7 @@ def etapa_territorio(c):
 
 MAPA_CAND = {
     'ano': 'ano_eleicao', 'nr_turno': 'nr_turno', 'cd_eleicao': 'cd_eleicao',
-    'nm_tipo_eleicao': 'nm_tipo_eleicao', 'tp_abrangencia': 'tp_abrangencia', 'sg_ue': 'sg_ue',
+    'nm_tipo_eleicao': 'nm_tipo_eleicao', 'tp_abrangencia': 'tp_abrangencia', 'sg_uf': 'sg_uf', 'sg_ue': 'sg_ue',
     'ds_cargo': 'ds_cargo', 'sq_candidato': 'sq_candidato', 'nm_candidato': 'nm_candidato',
     'nr_cpf': 'nr_cpf_candidato', 'nr_titulo': 'nr_titulo_eleitoral_candidato',
     'dt_nascimento': 'dt_nascimento', 'ds_genero': 'ds_genero', 'ds_grau_instrucao': 'ds_grau_instrucao',
@@ -303,7 +348,7 @@ MAPA_CAND = {
     'nr_idade_posse': 'nr_idade_data_posse', 'st_reeleicao': 'st_reeleicao',
     'ds_sit_tot_turno': 'ds_sit_tot_turno',
 }
-MAPA_VAGAS = {c: c for c in ('ano_eleicao', 'cd_eleicao', 'nm_tipo_eleicao', 'sg_ue', 'ds_cargo', 'qt_vaga')}
+MAPA_VAGAS = {c: c for c in ('ano_eleicao', 'cd_eleicao', 'nm_tipo_eleicao', 'sg_uf', 'sg_ue', 'ds_cargo', 'qt_vaga')}
 MAPA_DETALHE = {c: c for c in ('ano_eleicao', 'nr_turno', 'cd_eleicao', 'nm_tipo_eleicao', 'tp_abrangencia',
                                'sg_uf', 'cd_municipio', 'nr_zona', 'ds_cargo', 'qt_aptos', 'qt_abstencoes',
                                'qt_votos_brancos', 'qt_total_votos_nulos', 'qt_total_votos_validos')}
@@ -498,7 +543,7 @@ SIGLAS_SURVEY = {
     'rede': ['REDE'], 'pmb': ['PMB'], 'uniao': ['UNIÃO', 'UNIAO'], 'agir': ['AGIR'], 'cdd': ['CIDADANIA'],
     'rep': ['REPUBLICANOS'], 'pl': ['PL'], 'up': ['UP'],
 }
-# Partidos criados ou renomeados depois do survey de 2022 (seção 2.7): média dos antecessores.
+# Partidos criados ou renomeados depois do survey de 2022: média dos antecessores.
 MANUAL_2022 = {'PRD': ['ptb', 'patri'], 'MOBILIZA': ['pmn']}
 
 
@@ -582,6 +627,7 @@ def etapa_bem(c):
     c.sql('TRUNCATE bem')
     for ano in ANOS_EP:
         c.prepara('bruto', TSE / 'bens_candidatos' / str(ano) / f'bem_candidato_{ano}_BRASIL.csv')
+        c.recorta('bruto', 'bem descarte', f'{ano}')
         sem = c.um('SELECT count(*) FROM stg.bruto b WHERE NOT EXISTS '
                    '(SELECT 1 FROM candidatura c WHERE c.sq_candidato = stg.int(b.sq_candidato))')[0]
         c.registra('bem descarte', f'{ano}: candidatura não carregada', sem)
@@ -606,6 +652,9 @@ def etapa_receita(c):
         pasta = TSE / 'receitas_candidatos' / str(ano)
         c.prepara('bruto', pasta / f'receitas_candidatos_{ano}_BRASIL.csv')
         c.prepara('originario', pasta / f'receitas_candidatos_doador_originario_{ano}_BRASIL.csv')
+        c.recorta('bruto', 'receita descarte', f'{ano}')
+        c.recorta('originario', 'receita descarte', f'{ano} (doador originário)')
+        c.total_csv('receita', ano, 'vr_receita')
         sem_id, sem_cand = c.um("""
             SELECT count(*) FILTER (WHERE stg.int(sq_receita) IS NULL),
                    count(*) FILTER (WHERE stg.int(sq_receita) IS NOT NULL AND NOT EXISTS
@@ -638,6 +687,8 @@ def etapa_despesa(c):
     for ano in ANOS_EP:
         c.prepara('bruto', TSE / 'despesas_contratadas_candidatos' / str(ano)
                   / f'despesas_contratadas_candidatos_{ano}_BRASIL.csv')
+        c.recorta('bruto', 'despesa descarte', f'{ano}')
+        c.total_csv('despesa', ano, 'vr_despesa_contratada')
         sem_id, sem_cand = c.um("""
             SELECT count(*) FILTER (WHERE stg.int(sq_despesa) IS NULL),
                    count(*) FILTER (WHERE stg.int(sq_despesa) IS NOT NULL AND NOT EXISTS
@@ -665,6 +716,7 @@ def etapa_votos_cand(c):
     for ano in ANOS_EP:
         c.prepara('bruto', TSE / 'votacao_candidato_munzona' / str(ano)
                   / f'votacao_candidato_munzona_{ano}_BRASIL.csv')
+        c.recorta('bruto', 'votos_cand descarte', f'{ano}')
         zz, sem_cand = c.um("""
             SELECT count(*) FILTER (WHERE sg_uf = 'ZZ'),
                    count(*) FILTER (WHERE sg_uf <> 'ZZ' AND NOT EXISTS
@@ -695,6 +747,7 @@ def etapa_perfil(c):
     for ano in ANOS_EP:
         c.prepara('bruto', TSE / 'comparecimento_abstencao' / str(ano)
                   / f'perfil_comparecimento_abstencao_{ano}_BRASIL.csv')
+        c.recorta('bruto', 'perfil descarte', f'{ano}')
         c.registra('perfil descarte', f'{ano}: exterior (UF ZZ)',
                    c.um("SELECT count(*) FROM stg.bruto WHERE sg_uf = 'ZZ'")[0])
         c.sql("""
@@ -746,7 +799,7 @@ def siglas_coligacao(texto):
 
 
 def etapa_ideologia_coligacao(c):
-    """Posição de cada partido pelas coligações para prefeito (acréscimo ao dossiê).
+    """Posição de cada partido pelas coligações para prefeito.
 
     Em cada eleição municipal, monta a matriz partido x partido com o número de
     coligações em que os dois estiveram juntos. O segundo autovetor da matriz
@@ -851,7 +904,14 @@ ETAPAS = {
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--etapas', help='lista separada por vírgula; padrão: todas, na ordem: ' + ', '.join(ETAPAS))
+    ap.add_argument('--ufs', help='UFs a carregar, separadas por vírgula, ou "todas"; padrão: '
+                    + ','.join(UFS_PADRAO) + ' (ou o escopo já gravado, ao refazer uma etapa)')
     args = ap.parse_args()
+    ufs = None
+    if args.ufs:
+        ufs = TODAS_UFS if args.ufs.lower() == 'todas' else tuple(u.strip().upper() for u in args.ufs.split(','))
+        if set(ufs) - set(TODAS_UFS):
+            sys.exit(f'UFs desconhecidas: {sorted(set(ufs) - set(TODAS_UFS))}')
     etapas = args.etapas.split(',') if args.etapas else list(ETAPAS)
     desconhecidas = [e for e in etapas if e not in ETAPAS]
     if desconhecidas:
@@ -862,6 +922,11 @@ def main():
         c = Carga(conn)
         c.sql("SET synchronous_commit = off; SET work_mem = '256MB'; SET maintenance_work_mem = '1GB'")
         c.sql(FUNCOES_STG)  # idempotente: permite refazer uma etapa depois da limpeza
+        gravado = [u for (u,) in c.sql("SELECT uf FROM carga.escopo WHERE uf <> 'BR'")]
+        if ufs or not gravado:
+            c.define_escopo(ufs or UFS_PADRAO)
+        elif 'esquema' in etapas or 'territorio' in etapas or 'nucleo' in etapas:
+            log(f'escopo já gravado: {", ".join(gravado)} (use --ufs para mudar)')
         for nome in etapas:
             ETAPAS[nome](c)
     log(f'carga concluída em {(time.time() - t0) / 60:.1f} min')

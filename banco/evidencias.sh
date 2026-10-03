@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Executa as 18 consultas da seção 6 e grava as evidências da seção 6.11:
+# Executa as 18 consultas de sql/ e grava as evidências de execução:
 #   evidencias/ev_<consulta>.txt  sessão do psql (ambiente, comando, resultado, tempo)
 #   evidencias/ev_<consulta>.csv  resultado completo
 #   evidencias/ev_<consulta>.png  print da sessão (gerado por print_sessao.py)
-#   evidencias/quadro.csv         linhas e tempo de cada consulta, para o quadro 6.11.3
+#   evidencias/quadro.csv         linhas e tempo de cada consulta
 # Uso: ./evidencias.sh   (a partir da pasta banco, com o banco já carregado)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -11,19 +11,19 @@ BANCO="${BANCO:-eleicoes}"
 mkdir -p evidencias
 
 # Político da pergunta 10: identificado pelo título, escolhido pelo nome.
-POLITICO="LUIZ INÁCIO LULA DA SILVA"
+POLITICO="RICARDO VIEIRA COUTINHO"
 titulo() { echo "SELECT titulo_eleitoral FROM politico WHERE nome = :'nome';" | psql -X -At -d "$BANCO" -v nome="$1"; }
 TITULO=$(titulo "$POLITICO")
-# Trajetória ideológica (acréscimo): uma carreira com trocas de partido.
-POLITICO2="MARIA OSMARINA MARINA DA SILVA VAZ DE LIMA"
+# Trajetória ideológica: uma carreira com trocas de partido.
+POLITICO2="ANDERSON ADAUTO PEREIRA"
 TITULO2=$(titulo "$POLITICO2")
 
 # consulta | parâmetros nome=valor separados por ';' (sem aspas: o SQL usa :'var') | anotação
 CONSULTAS=(
   "p01_custo_cadeira||"
   "p02_taxa_por_patrimonio|cargo=DEPUTADO FEDERAL|cargo = DEPUTADO FEDERAL"
-  "p03a_indices_municipio|cod_tse=12190|município = Teresina (12190)"
-  "p03b_partidos_municipio|cod_tse=12190|município = Teresina (12190)"
+  "p03a_indices_municipio|cod_tse=20516|município = João Pessoa (20516)"
+  "p03b_partidos_municipio|cod_tse=20516|município = João Pessoa (20516)"
   "p03c_indices_por_partido|ano=2024|ano = 2024"
   "p04a_escolaridade_sucesso||"
   "p04b_escolaridade_municipio|ano=2024;cargo=VEREADOR|ano = 2024, cargo = VEREADOR"

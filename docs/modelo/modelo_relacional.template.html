@@ -205,7 +205,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
   <header class="topo">
     <span class="rotulo">Bancos de Dados Relacionais · UFPI · Eleições brasileiras</span>
     <h1>Modelo de dados das eleições</h1>
-    <p>Os três diagramas do D.E.R. (núcleo eleitoral, patrimônio e finanças, território e votação) e a redução deles a tabelas do PostgreSQL 16. As tabelas são lidas diretamente do catálogo do banco <code>eleicoes</code>, depois da carga dos dados do TSE, do IBGE, do Atlas do Desenvolvimento Humano e do survey de ideologia partidária.</p>
+    <p>Os três diagramas do D.E.R. (núcleo eleitoral, patrimônio e finanças, território e votação) e a redução deles a tabelas do PostgreSQL 16. As tabelas são lidas diretamente do catálogo do banco <code>eleicoes</code>, depois da carga dos dados do TSE, do IBGE, do Atlas do Desenvolvimento Humano e do survey de ideologia partidária. O banco cobre seis estados (AP, MG, MS, PB, RO e RR) e as candidaturas a presidente.</p>
     <nav class="indice" aria-label="Seções da página">
       <a href="#der">D.E.R.</a><a href="#mapeamento">Do D.E.R. às tabelas</a><a href="#chaves">Chaves estrangeiras</a><a href="#tabelas">Tabelas</a><a href="#visoes-sec">Visões</a>
     </nav>
@@ -217,7 +217,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
     <header>
       <span class="rotulo">Modelo conceitual</span>
       <h2 id="t-der">Diagrama entidade-relacionamento</h2>
-      <p>Notação de Chen, dividida em três diagramas como no dossiê. CANDIDATURA, ELEIÇÃO e PARTIDO aparecem em mais de um diagrama e são, em todos, a mesma entidade. Arraste para mover e use os botões, Ctrl + roda do mouse ou pinça para o zoom; clique num elemento para ver a tabela em que ele se transformou.</p>
+      <p>Notação de Chen, dividida em três diagramas. CANDIDATURA, ELEIÇÃO e PARTIDO aparecem em mais de um diagrama e são, em todos, a mesma entidade. Arraste para mover e use os botões, Ctrl + roda do mouse ou pinça para o zoom; clique num elemento para ver a tabela em que ele se transformou.</p>
     </header>
     <div class="der-legenda" aria-label="Legenda da notação">
       <span><svg width="34" height="20" aria-hidden="true"><rect x="2" y="3" width="30" height="14" class="lg"/></svg>Entidade</span>
@@ -228,18 +228,18 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
       <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg" stroke-dasharray="3 2"/></svg>Derivado</span>
       <span><svg width="34" height="20" aria-hidden="true"><ellipse cx="17" cy="10" rx="15" ry="8" class="lg"/><ellipse cx="17" cy="10" rx="11" ry="5" class="lg"/></svg>Multivalorado</span>
       <span><svg width="34" height="20" aria-hidden="true"><line x1="1" y1="8" x2="33" y2="8" class="lg"/><line x1="1" y1="12" x2="33" y2="12" class="lg"/></svg>Participação total</span>
-      <span class="aj-leg">Em ocre: ajuste ou acréscimo feito na carga</span>
+      <span class="aj-leg">Em ocre: decidido na carga, a partir dos dados reais</span>
     </div>
     <div class="der-diagramas" id="der-diagramas"></div>
     <details class="visao">
-      <summary><b>Decisões de modelagem</b><span>O que os diagramas registram e por quê (dossiê, seção 3.4).</span></summary>
+      <summary><b>Decisões de modelagem</b><span>O que os diagramas registram e por quê.</span></summary>
       <ul class="decisoes">
         <li>APURAÇÃO, COMPARECIMENTO, VOTOS_CAND e VOTOS_PART são relacionamentos M:N cujos atributos zona e turno se repetem para o mesmo par de entidades; funcionam como discriminadores e compõem a chave das tabelas.</li>
         <li>VOTOS_PART é ternário (ELEIÇÃO, PARTIDO, MUNICÍPIO): sem a ELEIÇÃO não se saberia a que pleito pertencem os votos de um partido.</li>
         <li>Em APURAÇÃO, brancos e nulos variam por cargo, então o cargo também é discriminador.</li>
         <li>CANDIDATURA guarda a unidade eleitoral (UE): o município nos cargos municipais, a UF nos demais. É o que a liga às vagas e ao município.</li>
         <li>IDHM é multivalorado e composto, porque há edições censitárias distintas (1991, 2000 e 2010).</li>
-        <li>Posição_coligações (acréscimo) é multivalorada e composta como Ideologia: uma nota por eleição municipal, calculada pela carga a partir das coligações para prefeito.</li>
+        <li>Posição_coligações é multivalorada e composta como Ideologia: uma nota por eleição municipal, calculada pela carga a partir das coligações para prefeito.</li>
         <li>Isentos e PIB_per_capita são colunas geradas pelo banco; Patrimônio_total e Qt_mandatos, visões.</li>
       </ul>
     </details>
@@ -281,7 +281,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
     <header>
       <span class="rotulo">Tabelas</span>
       <h2 id="t-fichas">As 17 tabelas</h2>
-      <p>Colunas na ordem do banco, com tipo, chave primária (PK), chave estrangeira (FK), obrigatoriedade (NN) e colunas geradas. Em ocre, os ajustes que os dados reais exigiram em relação ao dossiê.</p>
+      <p>Colunas na ordem do banco, com tipo, chave primária (PK), chave estrangeira (FK), obrigatoriedade (NN) e colunas geradas. Em ocre, as colunas em que os dados reais exigiram uma decisão própria na carga.</p>
     </header>
     <div class="filtro">
       <label for="busca">Procurar coluna ou tabela</label>
@@ -295,7 +295,7 @@ details.visao pre { margin: 0; padding: 14px 16px; border-top: 1px solid var(--l
     <header>
       <span class="rotulo">Atributos derivados</span>
       <h2 id="t-visoes">Visões e função de apoio</h2>
-      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. A visão vw_ideologia_partido (acréscimo) reúne as duas notas de ideologia de cada partido por ano. As definições abaixo são as que o banco guarda.</p>
+      <p>Patrimônio_total e Qt_mandatos, atributos derivados do D.E.R., são calculados por visões em vez de guardados, o que evita redundância. A visão vw_ideologia_partido reúne as duas notas de ideologia de cada partido por ano. As definições abaixo são as que o banco guarda.</p>
     </header>
     <div class="visoes" id="visoes"></div>
     <p class="fonte" id="fonte"></p>
@@ -319,7 +319,7 @@ const META = {
   politico: { area: 'nucleo', papel: 'A pessoa, identificada pelo título eleitoral entre eleições.', der: ['Entidade forte', 'POLÍTICO'] },
   partido: { area: 'nucleo', papel: 'Partido com código próprio, porque número e sigla mudam em fusões.', der: ['Entidade forte', 'PARTIDO'] },
   ideologia_partido: { area: 'nucleo', papel: 'Nota de 0 (esquerda) a 10 (direita) por edição do survey de especialistas.', der: ['Atributo multivalorado composto', 'Ideologia, de PARTIDO'] },
-  ideologia_coligacao: { area: 'nucleo', papel: 'Acréscimo: posição revelada pelas coligações para prefeito, na escala do survey, por eleição municipal.', der: ['Atributo multivalorado composto', 'Posição_coligações, de PARTIDO'] },
+  ideologia_coligacao: { area: 'nucleo', papel: 'Posição revelada pelas coligações para prefeito, na escala do survey, por eleição municipal.', der: ['Atributo multivalorado composto', 'Posição_coligações, de PARTIDO'] },
   candidatura: { area: 'nucleo', papel: 'Participação de um político numa eleição, para um cargo e unidade eleitoral.', der: ['Entidade forte', 'CANDIDATURA; guarda as FKs de REGISTRA, DISPUTA e LANÇA'] },
   bem: { area: 'fin', papel: 'Bem declarado no registro da candidatura.', der: ['Entidade fraca', 'BEM, pelo relacionamento identificador DECLARA'] },
   receita: { area: 'fin', papel: 'Documento de receita do TSE, com os itens somados.', der: ['Entidade forte', 'RECEITA, lado N de ARRECADA'] },
@@ -340,8 +340,8 @@ const AJUSTE_COL = {
   'candidatura.reeleicao': 'ST_REELEICAO = "S" ou eleito para o mesmo cargo e unidade eleitoral no pleito anterior.',
   'receita.sq_receita': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
   'despesa.sq_despesa': 'Identifica o documento; as linhas do arquivo com o mesmo sequencial são itens, somados.',
-  'ideologia_coligacao.nota': 'Acréscimo: segundo autovetor da matriz de coligações entre partidos, orientado e reescalado pelas notas do survey.',
-  'ideologia_coligacao.coligacoes': 'Acréscimo: coligações para prefeito com outros partidos no ano; só entram partidos com pelo menos 50.',
+  'ideologia_coligacao.nota': 'Segundo autovetor da matriz de coligações entre partidos, orientado e reescalado pelas notas do survey.',
+  'ideologia_coligacao.coligacoes': 'Coligações para prefeito com outros partidos no ano; só entram partidos com pelo menos 50.',
   'apuracao.validos': 'Coluna nova: válidos oficiais do TSE, que excluem os votos anulados e entram no quociente eleitoral.',
   'perfil_comparecimento.cod_eleicao': 'O arquivo não traz a eleição: o perfil é ligado a toda eleição apurada no município e turno.',
 };
@@ -559,11 +559,11 @@ document.getElementById('visoes').append(
     el('summary', {}, el('b', {}, v), el('span', {}, VIS_TXT[v] || '')), el('pre', {}, 'CREATE VIEW ' + v + ' AS\n' + def.trim()))),
   el('details', { class: 'visao' }, el('summary', {}, el('b', {}, 'nivel_escolaridade(texto)'), el('span', {}, 'Converte o grau de instrução numa escala de 0 (analfabeto) a 7 (superior completo).')),
     el('pre', {}, "CASE UPPER(texto)\n    WHEN 'ANALFABETO'                    THEN 0\n    WHEN 'LÊ E ESCREVE'                  THEN 1\n    WHEN 'ENSINO FUNDAMENTAL INCOMPLETO' THEN 2\n    WHEN 'ENSINO FUNDAMENTAL COMPLETO'   THEN 3\n    WHEN 'ENSINO MÉDIO INCOMPLETO'       THEN 4\n    WHEN 'ENSINO MÉDIO COMPLETO'         THEN 5\n    WHEN 'SUPERIOR INCOMPLETO'           THEN 6\n    WHEN 'SUPERIOR COMPLETO'             THEN 7\nEND")),
-  el('details', { class: 'visao' }, el('summary', {}, el('b', {}, 'Índices secundários'), el('span', {}, 'Criados depois da carga para as junções das consultas da seção 6.')),
+  el('details', { class: 'visao' }, el('summary', {}, el('b', {}, 'Índices secundários'), el('span', {}, 'Criados depois da carga para as junções das consultas.')),
     el('pre', {}, DADOS.indices.map(i => i.def.replace(' USING btree', '').replace('public.', '')).join(';\n') + ';')));
 
 document.getElementById('fonte').textContent =
-  'Estrutura, contagens e tamanho lidos do catálogo do PostgreSQL (information_schema e pg_catalog) após a carga de 25/09/2026.';
+  'Estrutura, contagens e tamanho lidos do catálogo do PostgreSQL (information_schema e pg_catalog) após a carga de 02/10/2026 (AP, MG, MS, PB, RO e RR).';
 
 // ---- D.E.R. (notação de Chen), desenhado pelo Graphviz a partir destas descrições
 // entidade: [id, rótulo, tabela, fraca?]   relacionamento: [id, rótulo, tabela, identificador?, [[entidade, cardinalidade, total?], ...]]
@@ -642,7 +642,7 @@ function dotDER(d, c) {
     const cor = ajuste ? c.aj : c.linha, fonte = ajuste ? c.aj : c.ink;
     const rotulo = tipo === 'chave' ? `<<U>${rot}</U>>` : q(rot);
     const extra = (tipo === 'derivado' ? ', style="filled,dashed"' : '') + (tipo === 'multi' ? ', peripheries=2' : '') + (ajuste ? ', penwidth=1.8' : '');
-    L.push(`${q(id)} [shape=ellipse, label=${rotulo}, color=${q(cor)}, fontcolor=${q(fonte)}, margin="0.06,0.02"${extra}, tooltip=${q('Tabela ' + tabela[id] + (ajuste ? ' (ajuste ou acréscimo na carga)' : ''))}];`);
+    L.push(`${q(id)} [shape=ellipse, label=${rotulo}, color=${q(cor)}, fontcolor=${q(fonte)}, margin="0.06,0.02"${extra}, tooltip=${q('Tabela ' + tabela[id] + (ajuste ? ' (decidido na carga)' : ''))}];`);
     const pai = tipo.startsWith('comp:') ? d.atr.findIndex(a => a[0] === dono && a[1] === tipo.slice(5)) : -1;
     L.push(`${q(id)} -- ${q(pai >= 0 ? `${dono}.${tipo.slice(5)}.${pai}` : dono)} [len=${pai >= 0 ? 0.75 : 1.0}];`);
   });

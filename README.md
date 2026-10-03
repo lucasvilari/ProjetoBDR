@@ -4,7 +4,8 @@ Projeto da disciplina de Bancos de Dados Relacionais.
 Reúne dados abertos do TSE sobre candidaturas, votação, patrimônio e prestação de
 contas de 1998 a 2024, cruzados com indicadores municipais do IBGE e do Atlas do
 Desenvolvimento Humano e com uma classificação ideológica dos partidos, num banco
-PostgreSQL que responde a dez perguntas.
+PostgreSQL que responde a dez perguntas sobre seis estados: Amapá, Mato Grosso do Sul,
+Minas Gerais, Paraíba, Rondônia e Roraima.
 
 Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 
@@ -20,6 +21,10 @@ Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 ```
 
 ## Como usar
+
+Para só montar o banco e rodar as consultas, siga o [TUTORIAL.md](TUTORIAL.md), que
+explica passo a passo como baixar o dump da página de Releases e executar cada
+consulta. As seções abaixo detalham cada parte.
 
 ### Ver o modelo
 
@@ -55,8 +60,8 @@ comando que resolve.
 ### Montar o banco a partir do dump
 
 É o caminho rápido: não precisa do crawler nem dos 31 GB de CSV. Requer PostgreSQL 16.
-Baixe o `eleicoes.dump` (762 MB) da página de Releases do repositório e restaure; leva
-menos de um minuto:
+Baixe o `eleicoes.dump` da página de Releases do repositório e restaure; leva menos
+de um minuto:
 
 ```bash
 scripts/restaura_dump.sh eleicoes.dump
@@ -66,7 +71,7 @@ Para gerar um dump novo depois de refazer a carga: `scripts/gera_dump.sh`.
 
 ### Montar o banco do zero
 
-Requer Python 3.10+, PostgreSQL 16 e cerca de 45 GB livres (33 GB de arquivos e 7,5 GB
+Requer Python 3.10+, PostgreSQL 16 e cerca de 40 GB livres (33 GB de arquivos e 1,7 GB
 de banco). O download é de uns 6 GB.
 
 ```bash
@@ -83,9 +88,10 @@ createdb eleicoes
 psql -d eleicoes -f 03_validacao.sql
 ```
 
-A carga leva cerca de 45 minutos. O que cada etapa gravou e descartou fica na tabela
-`carga.log`, e os ajustes feitos em relação ao modelo original estão em
-`banco/README.md`.
+A carga leva cerca de 15 minutos. Os arquivos do TSE são nacionais, e a carga grava
+só as UFs do projeto; outro conjunto pode ser escolhido com `--ufs` (veja
+`banco/README.md`). O que cada etapa gravou e descartou fica na tabela
+`carga.log`, e as decisões que os dados reais exigiram estão em `banco/README.md`.
 
 ### Responder às perguntas
 

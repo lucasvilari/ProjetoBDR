@@ -1,4 +1,4 @@
-// Gera as figuras do D.E.R. para o dossiê (SVG), com a mesma descrição e o mesmo
+// Gera as figuras do D.E.R. para impressão (SVG), com a mesma descrição e o mesmo
 // Graphviz da página modelo_relacional.html. Uso: node gera_figuras.mjs <viz-global.js> [len_rel len_atr]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,7 +30,7 @@ ctx.DER.forEach((d, i) => {
   dot = dot.replace(/len=2\.0/g, `len=${lenRel}`).replace(/len=1\.0\]/g, `len=${lenAtr}]`)
            .replace('graph [layout=neato', 'graph [layout=neato, dpi=72')
            .replace(/fontsize=([\d.]+)/g, (_, n) => `fontsize=${(parseFloat(n) * F).toFixed(1)}`)
-           .replace(/, penwidth=1\.8/g, '')          // no dossiê os ajustes já fazem parte do modelo: sem destaque
+           .replace(/, penwidth=1\.8/g, '')          // no papel, as decisões da carga não têm destaque
            .replace(/, tooltip="[^"]*"/g, '')
            .replace(/fontcolor="#4B5563"/g, 'fontcolor="#18202B"');   // todo texto na cor de tinta
   const svg = viz.renderString(dot, { format: 'svg' });

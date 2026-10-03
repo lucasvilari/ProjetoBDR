@@ -21,7 +21,7 @@ cardinalidades) fica no próprio template, na constante `DER`.
 
 ## `modelo/der/`
 
-As figuras 1 a 3 do dossiê, em SVG e PNG, geradas com a mesma descrição e o mesmo
+Os três diagramas do D.E.R. em SVG e PNG, para documentos e impressão, gerados com a mesma descrição e o mesmo
 Graphviz da página, para que os dois nunca divirjam:
 
 ```bash

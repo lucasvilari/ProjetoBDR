@@ -1,9 +1,9 @@
 Pager usage is off.
 -- consulta: sql/p03a_indices_municipio.sql
--- parâmetros: município = Teresina (12190)
+-- parâmetros: município = João Pessoa (20516)
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:08:43
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:38
 (1 row)
 
 Timing is on.
@@ -51,15 +51,15 @@ LEFT JOIN LATERAL (
     ORDER BY h.ano DESC
     LIMIT 1
 ) idh ON TRUE
-WHERE m.cod_tse = '12190'
+WHERE m.cod_tse = '20516'
   AND e.ano IN (2018, 2020, 2022, 2024)
 ORDER BY e.ano;
-   nome   | uf | ano  | ano_pib | pib_per_capita | idhm  | populacao | aptos  | eleitores_por_populacao | isentos | isentos_pct 
-----------+----+------+---------+----------------+-------+-----------+--------+-------------------------+---------+-------------
- Teresina | PI | 2018 |    2018 |       24340.67 | 0.751 |    861442 | 556210 |                  0.6457 |  116981 |       21.03
- Teresina | PI | 2020 |    2020 |       24892.85 | 0.751 |    868075 | 558661 |                  0.6436 |  145139 |       25.98
- Teresina | PI | 2022 |    2022 |       29947.69 | 0.751 |    866300 | 589508 |                  0.6805 |  106372 |       18.04
- Teresina | PI | 2024 |    2022 |       29947.69 | 0.751 |    902644 | 587098 |                  0.6504 |  127554 |       21.73
+    nome     | uf | ano  | ano_pib | pib_per_capita | idhm  | populacao | aptos  | eleitores_por_populacao | isentos | isentos_pct 
+-------------+----+------+---------+----------------+-------+-----------+--------+-------------------------+---------+-------------
+ João Pessoa | PB | 2018 |    2018 |       24752.78 | 0.763 |    800323 | 518131 |                  0.6474 |  108183 |       20.88
+ João Pessoa | PB | 2020 |    2020 |       25355.29 | 0.763 |    817511 | 522269 |                  0.6389 |  157418 |       30.14
+ João Pessoa | PB | 2022 |    2022 |       29582.65 | 0.763 |    833932 | 564278 |                  0.6766 |  105760 |       18.74
+ João Pessoa | PB | 2024 |    2022 |       29582.65 | 0.763 |    888679 | 566290 |                  0.6372 |  149056 |       26.32
 (4 rows)
 
-Time: 5,344 ms
+Time: 2,017 ms

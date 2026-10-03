@@ -1,5 +1,6 @@
--- Perfil etário do município x alternância de poder e idade dos prefeitos eleitos
-WITH mediana_nacional AS (
+-- Perfil etário do município x alternância de poder e idade dos prefeitos eleitos.
+-- A mediana de referência é a dos municípios carregados (as UFs do escopo).
+WITH mediana_escopo AS (
     SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY idade_mediana) AS valor
     FROM municipio
 ),
@@ -7,7 +8,7 @@ perfil AS (
     SELECT m.cod_tse,
            CASE WHEN m.idade_mediana >= mn.valor THEN 'Mais velho'
                 ELSE 'Mais jovem' END AS perfil_etario
-    FROM municipio m CROSS JOIN mediana_nacional mn
+    FROM municipio m CROSS JOIN mediana_escopo mn
     WHERE m.idade_mediana IS NOT NULL
 ),
 prefeitos AS (

@@ -1,19 +1,19 @@
 consulta,arquivo_sql,parametros,linhas,tempo_s,executado_em
-p01_custo_cadeira,p01_custo_cadeira.sql,"",26,3.39,2026-09-26 13:08:32
-p02_taxa_por_patrimonio,p02_taxa_por_patrimonio.sql,"cargo = DEPUTADO FEDERAL",12,2.34,2026-09-26 13:08:39
-p03a_indices_municipio,p03a_indices_municipio.sql,"município = Teresina (12190)",4,0.01,2026-09-26 13:08:43
-p03b_partidos_municipio,p03b_partidos_municipio.sql,"município = Teresina (12190)",117,0.02,2026-09-26 13:08:43
-p03c_indices_por_partido,p03c_indices_por_partido.sql,"ano = 2024",24,0.11,2026-09-26 13:08:43
-p04a_escolaridade_sucesso,p04a_escolaridade_sucesso.sql,"",15,0.39,2026-09-26 13:08:43
-p04b_escolaridade_municipio,p04b_escolaridade_municipio.sql,"ano = 2024, cargo = VEREADOR",6,7.73,2026-09-26 13:08:44
-p05_eleitos_legenda,p05_eleitos_legenda.sql,"partido = PT",8,2.86,2026-09-26 13:08:59
-p06a_alternancia,p06a_alternancia.sql,"",2,0.15,2026-09-26 13:09:05
-p06b_jovem_vota_jovem,p06b_jovem_vota_jovem.sql,"ano = 2024, cargo = VEREADOR",5547,2.55,2026-09-26 13:09:05
-p07_vies_ideologico,p07_vies_ideologico.sql,"nível = UF",106,0.11,2026-09-26 13:09:10
-p07b_ideologia_coligacoes,p07b_ideologia_coligacoes.sql,"ano = 2024, todos os partidos",25,0.00,2026-09-26 13:09:11
-p08_dependencia_publica,p08_dependencia_publica.sql,"",70,4.92,2026-09-26 13:09:11
-p09a_gasto_por_tipo,p09a_gasto_por_tipo.sql,"ano = 2024, todos os candidatos",41,0.75,2026-09-26 13:09:21
-p09b_nuvem_palavras,p09b_nuvem_palavras.sql,"ano = 2024, todos os candidatos",100,6.53,2026-09-26 13:09:22
-p10a_linha_do_tempo,p10a_linha_do_tempo.sql,"político = LUIZ INÁCIO LULA DA SILVA",5,0.00,2026-09-26 13:09:35
-p10b_resumo_carreira,p10b_resumo_carreira.sql,"político = LUIZ INÁCIO LULA DA SILVA",1,0.00,2026-09-26 13:09:35
-p10c_trajetoria_ideologica,p10c_trajetoria_ideologica.sql,"político = MARIA OSMARINA MARINA DA SILVA VAZ DE LIMA",6,0.00,2026-09-26 13:09:35
+p01_custo_cadeira,p01_custo_cadeira.sql,"",24,0.55,2026-10-02 22:15:36
+p02_taxa_por_patrimonio,p02_taxa_por_patrimonio.sql,"cargo = DEPUTADO FEDERAL",12,0.36,2026-10-02 22:15:38
+p03a_indices_municipio,p03a_indices_municipio.sql,"município = João Pessoa (20516)",4,0.00,2026-10-02 22:15:38
+p03b_partidos_municipio,p03b_partidos_municipio.sql,"município = João Pessoa (20516)",112,0.01,2026-10-02 22:15:38
+p03c_indices_por_partido,p03c_indices_por_partido.sql,"ano = 2024",24,0.02,2026-10-02 22:15:38
+p04a_escolaridade_sucesso,p04a_escolaridade_sucesso.sql,"",15,0.09,2026-10-02 22:15:38
+p04b_escolaridade_municipio,p04b_escolaridade_municipio.sql,"ano = 2024, cargo = VEREADOR",6,1.61,2026-10-02 22:15:39
+p05_eleitos_legenda,p05_eleitos_legenda.sql,"partido = PT",6,0.41,2026-10-02 22:15:42
+p06a_alternancia,p06a_alternancia.sql,"",2,0.03,2026-10-02 22:15:43
+p06b_jovem_vota_jovem,p06b_jovem_vota_jovem.sql,"ano = 2024, cargo = VEREADOR",1238,0.54,2026-10-02 22:15:43
+p07_vies_ideologico,p07_vies_ideologico.sql,"nível = UF",24,0.04,2026-10-02 22:15:44
+p07b_ideologia_coligacoes,p07b_ideologia_coligacoes.sql,"ano = 2024, todos os partidos",25,0.00,2026-10-02 22:15:44
+p08_dependencia_publica,p08_dependencia_publica.sql,"",58,0.97,2026-10-02 22:15:44
+p09a_gasto_por_tipo,p09a_gasto_por_tipo.sql,"ano = 2024, todos os candidatos",41,0.12,2026-10-02 22:15:46
+p09b_nuvem_palavras,p09b_nuvem_palavras.sql,"ano = 2024, todos os candidatos",100,2.56,2026-10-02 22:15:47
+p10a_linha_do_tempo,p10a_linha_do_tempo.sql,"político = RICARDO VIEIRA COUTINHO",8,0.00,2026-10-02 22:15:52
+p10b_resumo_carreira,p10b_resumo_carreira.sql,"político = RICARDO VIEIRA COUTINHO",1,0.00,2026-10-02 22:15:52
+p10c_trajetoria_ideologica,p10c_trajetoria_ideologica.sql,"político = ANDERSON ADAUTO PEREIRA",9,0.00,2026-10-02 22:15:52

@@ -3,11 +3,11 @@ Pager usage is off.
 -- parâmetros: nenhum
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:09:05
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:43
 (1 row)
 
 Timing is on.
-WITH mediana_nacional AS (
+WITH mediana_escopo AS (
     SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY idade_mediana) AS valor
     FROM municipio
 ),
@@ -15,7 +15,7 @@ perfil AS (
     SELECT m.cod_tse,
            CASE WHEN m.idade_mediana >= mn.valor THEN 'Mais velho'
                 ELSE 'Mais jovem' END AS perfil_etario
-    FROM municipio m CROSS JOIN mediana_nacional mn
+    FROM municipio m CROSS JOIN mediana_escopo mn
     WHERE m.idade_mediana IS NOT NULL
 ),
 prefeitos AS (
@@ -39,8 +39,8 @@ WHERE pr.ano IN (2020, 2024)
 GROUP BY pf.perfil_etario;
  perfil_etario | municipios | idade_media_eleitos | alternancia_partido_pct | alternancia_pessoa_pct 
 ---------------+------------+---------------------+-------------------------+------------------------
- Mais jovem    |       2752 |                48.9 |                   74.16 |                  59.10
- Mais velho    |       2814 |                50.3 |                   72.51 |                  61.45
+ Mais jovem    |        522 |                48.9 |                   74.20 |                  58.36
+ Mais velho    |        715 |                50.2 |                   73.03 |                  59.30
 (2 rows)
 
-Time: 146,823 ms
+Time: 34,711 ms

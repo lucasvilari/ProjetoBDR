@@ -1,10 +1,9 @@
 -- =============================================================================
--- Redução do D.E.R. a tabelas: esquema relacional do dossiê (seções 4.1 e 4.4)
+-- Redução do D.E.R. a tabelas: esquema relacional do projeto
 -- PostgreSQL 16
 --
--- O script segue o dossiê. Os pontos em que os dados reais do TSE obrigaram a
--- um ajuste estão marcados com "AJUSTE", e o que foi acrescentado depois, com
--- "ACRÉSCIMO"; os dois são explicados em banco/README.md.
+-- Os pontos em que os dados reais do TSE obrigaram a uma decisão própria estão
+-- marcados com "AJUSTE" e explicados em banco/README.md.
 -- Índices, visões e a função de apoio ficam em 02_indices_visoes.sql, criados
 -- depois da carga para não pesar nas inserções.
 -- =============================================================================
@@ -48,7 +47,7 @@ CREATE TABLE ideologia_partido (
     PRIMARY KEY (id_partido, ano_survey)
 );
 
--- ACRÉSCIMO: posição de cada partido revelada pelas coligações para prefeito,
+-- Posição de cada partido revelada pelas coligações para prefeito,
 -- na mesma escala de 0 (esquerda) a 10 (direita) do survey. Calculada pela carga
 -- (etapa ideologia_coligacao) a partir de candidatura.coligacao, sem fonte nova.
 CREATE TABLE ideologia_coligacao (

@@ -1,4 +1,4 @@
--- Índices de um município em cada eleição do E.P.
+-- Índices de um município em cada eleição de 2018 a 2024
 SELECT m.nome,
        m.uf,
        e.ano,

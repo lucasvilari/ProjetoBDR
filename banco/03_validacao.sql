@@ -31,10 +31,10 @@ WHERE v.ano >= 2018 AND v.cargo IN ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPU
                                     'DEPUTADO ESTADUAL', 'PREFEITO', 'VEREADOR')
 GROUP BY 1, 2 ORDER BY 1, 2;
 
-\echo '== 3. Receitas e despesas carregadas x total dos CSVs (diferença = candidatura não carregada)'
-WITH csv (ano, receitas_csv, despesas_csv) AS (VALUES
-    (2018, 3339823579, 3160962463), (2020, 6324104417, 3229822855),
-    (2022, 6636139109, 6364168204), (2024, 7042259476, 6401532500)),
+\echo '== 3. Receitas e despesas carregadas x total dos CSVs no escopo (diferença = candidatura não carregada)'
+WITH csv AS (SELECT ano, sum(valor) FILTER (WHERE tabela = 'receita') AS receitas_csv,
+                         sum(valor) FILTER (WHERE tabela = 'despesa') AS despesas_csv
+             FROM carga.total_csv GROUP BY ano),
 rec AS (SELECT v.ano, sum(r.valor) AS total FROM receita r JOIN vw_candidatura v USING (sq_candidato) GROUP BY 1),
 des AS (SELECT v.ano, sum(d.valor) AS total FROM despesa d JOIN vw_candidatura v USING (sq_candidato) GROUP BY 1)
 SELECT c.ano,
@@ -73,5 +73,7 @@ SELECT e.ano, count(*) AS candidaturas,
        round(100.0 * count(*) FILTER (WHERE c.reeleicao) / count(*), 1) AS pct_reeleicao
 FROM candidatura c JOIN eleicao e USING (cod_eleicao) GROUP BY 1 ORDER BY 1;
 
-\echo '== 8. Descartes registrados na carga'
-SELECT etapa, detalhe, linhas FROM carga.log WHERE etapa LIKE '%descarte' AND linhas > 0 ORDER BY id;
+\echo '== 8. Descartes registrados na carga (o registro mais recente de cada etapa refeita)'
+SELECT etapa, detalhe, linhas
+FROM (SELECT DISTINCT ON (etapa, detalhe) * FROM carga.log ORDER BY etapa, detalhe, id DESC) ult
+WHERE etapa LIKE '%descarte' AND linhas > 0 ORDER BY id;

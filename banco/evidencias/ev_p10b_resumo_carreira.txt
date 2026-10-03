@@ -1,9 +1,9 @@
 Pager usage is off.
 -- consulta: sql/p10b_resumo_carreira.sql
--- parâmetros: político = LUIZ INÁCIO LULA DA SILVA
+-- parâmetros: político = RICARDO VIEIRA COUTINHO
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:09:35
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:52
 (1 row)
 
 Timing is on.
@@ -22,9 +22,9 @@ FROM politico p
 JOIN vw_candidatura v ON v.titulo_eleitoral = p.titulo_eleitoral
 WHERE p.titulo_eleitoral = '<título eleitoral omitido>'
 GROUP BY p.nome;
-           nome            | primeira_candidatura | ultima_candidatura | anos_de_carreira | participacoes | vitorias | derrotas | reeleicoes | cargos_diferentes | partidos_diferentes | taxa_vitoria_pct 
----------------------------+----------------------+--------------------+------------------+---------------+----------+----------+------------+-------------------+---------------------+------------------
- LUIZ INÁCIO LULA DA SILVA |                 1998 |               2022 |               24 |             5 |        2 |        1 |          0 |                 1 |                   1 |            40.00
+          nome           | primeira_candidatura | ultima_candidatura | anos_de_carreira | participacoes | vitorias | derrotas | reeleicoes | cargos_diferentes | partidos_diferentes | taxa_vitoria_pct 
+-------------------------+----------------------+--------------------+------------------+---------------+----------+----------+------------+-------------------+---------------------+------------------
+ RICARDO VIEIRA COUTINHO |                 1998 |               2022 |               24 |             8 |        6 |        2 |          3 |                 4 |                   2 |            75.00
 (1 row)
 
-Time: 2,457 ms
+Time: 1,570 ms

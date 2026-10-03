@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: partido = PT
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:08:59
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:42
 (1 row)
 
 Timing is on.
@@ -46,16 +46,14 @@ WHERE c.situacao_final IN ('ELEITO POR QP', 'ELEITO POR MÉDIA')
   AND pa.sigla = 'PT'
 GROUP BY c.ano, c.cargo, pa.sigla
 ORDER BY c.ano, c.cargo;
- ano  |       cargo        | sigla | eleitos_proporcional | eleitos_por_legenda | pct_por_legenda 
-------+--------------------+-------+----------------------+---------------------+-----------------
- 2018 | DEPUTADO DISTRITAL | PT    |                    2 |                   2 |          100.00
- 2018 | DEPUTADO ESTADUAL  | PT    |                   84 |                  84 |          100.00
- 2018 | DEPUTADO FEDERAL   | PT    |                   56 |                  53 |           94.64
- 2020 | VEREADOR           | PT    |                 2668 |                2641 |           98.99
- 2022 | DEPUTADO DISTRITAL | PT    |                    3 |                   3 |          100.00
- 2022 | DEPUTADO ESTADUAL  | PT    |                  114 |                 110 |           96.49
- 2022 | DEPUTADO FEDERAL   | PT    |                   68 |                  66 |           97.06
- 2024 | VEREADOR           | PT    |                 3123 |                3051 |           97.69
-(8 rows)
+ ano  |       cargo       | sigla | eleitos_proporcional | eleitos_por_legenda | pct_por_legenda 
+------+-------------------+-------+----------------------+---------------------+-----------------
+ 2018 | DEPUTADO ESTADUAL | PT    |                   14 |                  14 |          100.00
+ 2018 | DEPUTADO FEDERAL  | PT    |                   10 |                   9 |           90.00
+ 2020 | VEREADOR          | PT    |                  433 |                 432 |           99.77
+ 2022 | DEPUTADO ESTADUAL | PT    |                   19 |                  18 |           94.74
+ 2022 | DEPUTADO FEDERAL  | PT    |                   13 |                  13 |          100.00
+ 2024 | VEREADOR          | PT    |                  459 |                 456 |           99.35
+(6 rows)
 
-Time: 2864,150 ms (00:02,864)
+Time: 414,540 ms

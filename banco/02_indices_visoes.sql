@@ -1,6 +1,6 @@
 -- =============================================================================
--- Índices, visões e função de apoio usados pelas consultas da seção 6.
--- Idêntico ao final da seção 4.4 do dossiê. Executado depois da carga.
+-- Índices, visões e função de apoio usados pelas consultas de sql/.
+-- Executado depois da carga.
 -- =============================================================================
 
 CREATE INDEX idx_candidatura_eleicao  ON candidatura (cod_eleicao, cargo, ue);
@@ -48,7 +48,7 @@ LANGUAGE sql IMMUTABLE AS $$
     END::SMALLINT
 $$;
 
--- ACRÉSCIMO: nota de cada partido em cada ano de eleição, pelas duas réguas.
+-- Nota de cada partido em cada ano de eleição, pelas duas réguas.
 -- Especialistas: a edição do survey mais próxima do ano. Os partidos renomeados
 -- que mantiveram o número (PMDB -> MDB, PFL -> DEM etc.) herdam a nota do nome
 -- atual; nesse caso nota_herdada é verdadeiro. Coligações: a nota do próprio ano,

@@ -55,9 +55,11 @@ sql() {                         # mostra e executa uma consulta no banco
 # ---------------------------------------------------------------------------
 if [ "$INICIO" -le 1 ]; then
 passo 1 "O ponto de partida"
-fala "O crawler baixou os arquivos do TSE, do IBGE, do Atlas e do survey de ideologia. São 31 GB de CSV,"
-fala "organizados por fonte, tipo e ano. A carga transforma isso nas 17 tabelas do modelo relacional."
+fala "O crawler baixou os arquivos do TSE, do IBGE, do Atlas e do survey de ideologia: 31 GB de CSV,"
+fala "organizados por fonte, tipo e ano. A carga grava nas 17 tabelas do modelo os seis estados do projeto"
+fala "(AP, MG, MS, PB, RO e RR) e os candidatos a presidente, que recebem votos neles:"
 roda "du -sh $DADOS/tse/* | sort -h"
+sql "SELECT string_agg(uf, ', ' ORDER BY uf) AS escopo FROM carga.escopo"
 sql "SELECT t.relname AS tabela, to_char(c.linhas, 'FM999G999G999') AS linhas,
             pg_size_pretty(pg_total_relation_size(t.relid)) AS tamanho
      FROM pg_stat_user_tables t,
@@ -81,22 +83,20 @@ fi
 if [ "$INICIO" -le 3 ]; then
 passo 3 "Do arquivo bruto à tabela"
 fala "Primeiro problema encontrado nos dados: no arquivo de despesas, o SQ_DESPESA identifica o documento,"
-fala "não o item. Esta nota fiscal de um candidato a deputado federal em 2022 ocupa três linhas no CSV:"
-roda "command grep -a -F ';46029831;' $DADOS/tse/despesas_contratadas_candidatos/2022/despesas_contratadas_candidatos_2022_BRASIL.csv \\
-  | iconv -f latin1 -t utf8 | cut -d';' -f49,50,52,53"
+fala "não o item. Esta nota fiscal de um candidato a deputado federal por MG em 2022 ocupa três linhas no CSV:"
+roda "command grep -a -F ';42175087;' $DADOS/tse/despesas_contratadas_candidatos/2022/despesas_contratadas_candidatos_2022_BRASIL.csv \\
+  | iconv -f latin1 -t utf8 | cut -d';' -f13,49,50,52,53"
 fala "Tipo e fornecedor nunca variam dentro de um documento, então a carga soma os itens e mantém a"
-fala "chave primária do dossiê. 3.000 + 1.250 + 200 = 4.450:"
-sql "SELECT sq_despesa, tipo, descricao, valor FROM despesa WHERE sq_despesa = 46029831"
+fala "chave primária do modelo. 482,39 + 682,00 + 720,00 = 1.884,39:"
+sql "SELECT sq_despesa, tipo, descricao, valor FROM despesa WHERE sq_despesa = 42175087"
 pausa
 fala "Segundo problema: antes de 2018 o SQ_CANDIDATO não identifica a candidatura (em 2000, 399 mil"
 fala "candidaturas têm só 3.131 valores distintos). Nessas eleições a carga gera um identificador"
-fala "negativo. O político é ligado entre eleições pelo título eleitoral:"
+fala "negativo. O político é ligado entre eleições pelo título eleitoral, como nesta carreira na Paraíba:"
 sql "SELECT e.ano, c.cargo, c.ue, pa.sigla, c.situacao_final, c.reeleicao, c.sq_candidato
      FROM candidatura c JOIN eleicao e USING (cod_eleicao) JOIN partido pa USING (id_partido)
      JOIN politico p USING (titulo_eleitoral)
-     WHERE p.nome = 'LUIZ INÁCIO LULA DA SILVA' ORDER BY e.ano"
-fala "Se perguntarem pelas linhas sem situação: em 2006 o próprio arquivo do TSE não traz o resultado da"
-fala "eleição presidencial; em 2018 a candidatura foi indeferida antes da eleição."
+     WHERE p.nome = 'RICARDO VIEIRA COUTINHO' ORDER BY e.ano"
 pausa
 fi
 
@@ -134,11 +134,11 @@ sql "SELECT v.ano, v.cargo, count(*) FILTER (WHERE v.eleito) AS eleitos,
      WHERE v.ano IN (2018, 2022) AND v.cargo IN ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL')
      GROUP BY 1, 2 ORDER BY 1, 2"
 pausa
-fala "Segundo: receitas e despesas no banco somam quase 100% do total dos CSVs do TSE. O que falta é de"
-fala "candidaturas de eleições suplementares, que o dicionário exclui."
-sql "WITH csv (ano, receitas, despesas) AS (VALUES
-         (2018, 3339823579, 3160962463), (2020, 6324104417, 3229822855),
-         (2022, 6636139109, 6364168204), (2024, 7042259476, 6401532500)),
+fala "Segundo: receitas e despesas no banco somam quase 100% do total dos CSVs do TSE nos seis estados."
+fala "O que falta é de candidaturas de eleições suplementares, que o dicionário exclui."
+sql "WITH csv AS (SELECT ano, sum(valor) FILTER (WHERE tabela = 'receita') AS receitas,
+                         sum(valor) FILTER (WHERE tabela = 'despesa') AS despesas
+              FROM carga.total_csv GROUP BY ano),
      rec AS (SELECT v.ano, sum(r.valor) t FROM receita r JOIN vw_candidatura v USING (sq_candidato) GROUP BY 1),
      des AS (SELECT v.ano, sum(d.valor) t FROM despesa d JOIN vw_candidatura v USING (sq_candidato) GROUP BY 1)
      SELECT c.ano, round(100 * rec.t / c.receitas, 2) AS pct_receitas, round(100 * des.t / c.despesas, 2) AS pct_despesas

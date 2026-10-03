@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: nenhum
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:08:43
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:38
 (1 row)
 
 Timing is on.
@@ -19,21 +19,21 @@ GROUP BY ano, escolaridade
 ORDER BY ano, nivel_escolaridade(escolaridade);
  ano  |         escolaridade          | candidatos | eleitos | taxa_sucesso_pct 
 ------+-------------------------------+------------+---------+------------------
- 2022 | LÊ E ESCREVE                  |        225 |       2 |             0.89
- 2022 | ENSINO FUNDAMENTAL INCOMPLETO |        751 |       9 |             1.20
- 2022 | ENSINO FUNDAMENTAL COMPLETO   |       1371 |      23 |             1.68
- 2022 | ENSINO MÉDIO INCOMPLETO       |        723 |       9 |             1.24
- 2022 | ENSINO MÉDIO COMPLETO         |       7484 |     179 |             2.39
- 2022 | SUPERIOR INCOMPLETO           |       2714 |     132 |             4.86
- 2022 | SUPERIOR COMPLETO             |      15965 |    1355 |             8.49
- 2024 | ANALFABETO                    |         13 |       0 |             0.00
- 2024 | LÊ E ESCREVE                  |       9929 |     714 |             7.19
- 2024 | ENSINO FUNDAMENTAL INCOMPLETO |      48373 |    5633 |            11.64
- 2024 | ENSINO FUNDAMENTAL COMPLETO   |      51084 |    6355 |            12.44
- 2024 | ENSINO MÉDIO INCOMPLETO       |      21123 |    2115 |            10.01
- 2024 | ENSINO MÉDIO COMPLETO         |     180656 |   25253 |            13.98
- 2024 | SUPERIOR INCOMPLETO           |      21110 |    2685 |            12.72
- 2024 | SUPERIOR COMPLETO             |     131060 |   26458 |            20.19
+ 2022 | LÊ E ESCREVE                  |         49 |       1 |             2.04
+ 2022 | ENSINO FUNDAMENTAL INCOMPLETO |        184 |       1 |             0.54
+ 2022 | ENSINO FUNDAMENTAL COMPLETO   |        314 |       5 |             1.59
+ 2022 | ENSINO MÉDIO INCOMPLETO       |        170 |       2 |             1.18
+ 2022 | ENSINO MÉDIO COMPLETO         |       1513 |      28 |             1.85
+ 2022 | SUPERIOR INCOMPLETO           |        517 |      27 |             5.22
+ 2022 | SUPERIOR COMPLETO             |       2972 |     274 |             9.22
+ 2024 | ANALFABETO                    |          2 |       0 |             0.00
+ 2024 | LÊ E ESCREVE                  |       2288 |     181 |             7.91
+ 2024 | ENSINO FUNDAMENTAL INCOMPLETO |      13940 |    1734 |            12.44
+ 2024 | ENSINO FUNDAMENTAL COMPLETO   |      11740 |    1514 |            12.90
+ 2024 | ENSINO MÉDIO INCOMPLETO       |       5136 |     550 |            10.71
+ 2024 | ENSINO MÉDIO COMPLETO         |      37006 |    5314 |            14.36
+ 2024 | SUPERIOR INCOMPLETO           |       4262 |     578 |            13.56
+ 2024 | SUPERIOR COMPLETO             |      24470 |    5033 |            20.57
 (15 rows)
 
-Time: 392,265 ms
+Time: 85,063 ms

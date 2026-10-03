@@ -1,12 +1,13 @@
 # Site das perguntas
 
-Ainda não construído. Esta pasta vai guardar o site descrito na seção 7 do dossiê,
-que responde às dez perguntas sem se organizar por elas: cada resposta aparece dentro
+Ainda não construído. Esta pasta vai guardar o site do projeto, que responde às dez
+perguntas sem se organizar por elas: cada resposta aparece dentro
 de uma tela sobre um município, um político, um partido ou o custo das cadeiras.
 
 ## Telas previstas
 
-- **Página inicial:** mapa do Brasil colorido pelo índice ideológico, com busca única.
+- **Página inicial:** mapa dos seis estados (AP, MG, MS, PB, RO e RR),
+  colorido pelo índice ideológico, com busca única.
 - **Ficha do município:** indicadores, partidos mais votados, sucessão de prefeitos e
   comparação entre eleitorado e eleitos.
 - **Ficha do político:** carreira em linha do tempo, trajetória ideológica,
@@ -23,5 +24,5 @@ parâmetros, o tempo e o número de linhas.
 
 O site lê o banco `eleicoes`, montado a partir do dump (ver o README da raiz). Não
 precisa do crawler nem dos CSVs. As telas consultam visões materializadas,
-recalculadas uma vez depois de cada carga (dossiê, seção 7.6), e não as tabelas de
+recalculadas uma vez depois de cada carga, e não as tabelas de
 votação diretamente.

@@ -1,9 +1,9 @@
 Pager usage is off.
 -- consulta: sql/p10c_trajetoria_ideologica.sql
--- parâmetros: político = MARIA OSMARINA MARINA DA SILVA VAZ DE LIMA
+-- parâmetros: político = ANDERSON ADAUTO PEREIRA
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-09-26 13:09:35
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:15:52
 (1 row)
 
 Timing is on.
@@ -30,14 +30,17 @@ SELECT ano,
 FROM trajetoria
 WINDOW w AS (ORDER BY ano, cargo)
 ORDER BY ano, cargo;
- ano  |      cargo       | sigla | trocou_partido | nota_especialistas | nota_herdada | deslocamento | media_carreira | amplitude_carreira 
-------+------------------+-------+----------------+--------------------+--------------+--------------+----------------+--------------------
- 2002 | SENADOR          | PT    | f              |               2.97 | f            |              |           4.14 |               2.32
- 2010 | PRESIDENTE       | PV    | t              |               5.29 | f            |         2.32 |           4.14 |               2.32
- 2014 | PRESIDENTE       | PSB   | t              |               4.05 | f            |        -1.24 |           4.14 |               2.32
- 2014 | VICE-PRESIDENTE  | PSB   | f              |               4.05 | f            |         0.00 |           4.14 |               2.32
- 2018 | PRESIDENTE       | REDE  | t              |               4.77 | f            |         0.72 |           4.14 |               2.32
- 2022 | DEPUTADO FEDERAL | REDE  | f              |               3.69 | f            |        -1.08 |           4.14 |               2.32
-(6 rows)
+ ano  |       cargo       |  sigla  | trocou_partido | nota_especialistas | nota_herdada | deslocamento | media_carreira | amplitude_carreira 
+------+-------------------+---------+----------------+--------------------+--------------+--------------+----------------+--------------------
+ 1998 | DEPUTADO ESTADUAL | PMDB    | f              |               7.02 | t            |              |           6.73 |               7.02
+ 2000 | PREFEITO          | PMDB    | f              |               7.02 | t            |         0.00 |           6.73 |               7.02
+ 2002 | DEPUTADO FEDERAL  | PL      | t              |               8.80 | f            |         1.78 |           6.73 |               7.02
+ 2004 | PREFEITO          | PL      | f              |               8.80 | f            |         0.00 |           6.73 |               7.02
+ 2008 | PREFEITO          | PMDB    | t              |               7.02 | t            |        -1.78 |           6.73 |               7.02
+ 2014 | DEPUTADO FEDERAL  | PRB     | t              |               7.78 | f            |         0.76 |           6.73 |               7.02
+ 2016 | VICE-PREFEITO     | PP      | t              |               8.20 | f            |         0.42 |           6.73 |               7.02
+ 2022 | DEPUTADO FEDERAL  | PC DO B | t              |               1.78 | f            |        -6.42 |           6.73 |               7.02
+ 2024 | PREFEITO          | PV      | t              |               4.12 | f            |         2.34 |           6.73 |               7.02
+(9 rows)
 
-Time: 3,568 ms
+Time: 3,513 ms
