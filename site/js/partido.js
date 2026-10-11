@@ -24,10 +24,10 @@ function graficoEspectro() {
     x: { domain: [0, 10], ticks: [0, 2.5, 5, 7.5, 10], tickFormat: v => ({ 0: 'esquerda', 5: 'centro', 10: 'direita' })[v] ?? '', grid: true, label: null, axis: 'top' },
     y: { domain: siglas, label: null },
     marks: [
-      Plot.link(pontos.filter(d => d.col != null), { x1: 'esp', x2: 'col', y1: 'sigla', y2: 'sigla', stroke: '#9cc5a9', strokeWidth: 2 }),
-      Plot.dot(pontos.filter(d => d.col != null), { x: 'col', y: 'sigla', r: 5, stroke: '#157a42', strokeWidth: 2, fill: '#e4e6e1',
+      Plot.link(pontos.filter(d => d.col != null), { x1: 'esp', x2: 'col', y1: 'sigla', y2: 'sigla', stroke: '#4fb548', strokeWidth: 2 }),
+      Plot.dot(pontos.filter(d => d.col != null), { x: 'col', y: 'sigla', r: 5, stroke: '#00a651', strokeWidth: 2.5, fill: '#e8dcc4',
                                                     title: d => `${d.sigla}, alianças 2024: ${nota(d.col)}` }),
-      Plot.dot(pontos, { x: 'esp', y: 'sigla', r: 5, fill: '#1f2124', title: d => `${d.sigla}, especialistas 2022: ${nota(d.esp)}` }),
+      Plot.dot(pontos, { x: 'esp', y: 'sigla', r: 5, fill: '#22201c', title: d => `${d.sigla}, especialistas 2022: ${nota(d.esp)}` }),
     ],
   });
 }
@@ -35,14 +35,17 @@ function graficoEspectro() {
 function graficoCamara() {
   const pontos = ordenados.map(p => ({ sigla: p.sigla, camara: p.camara }));
   return Plot.plot({
-    width: 220, height: altura, marginLeft: 10, marginRight: 14, ...MARGENS, style: ESTILO,
-    x: { domain: [-100, 100], ticks: [-100, 0, 100], grid: true, label: 'Câmara', labelAnchor: 'center', axis: 'top' },
+    width: 220, height: altura, marginLeft: 18, marginRight: 18, ...MARGENS, style: ESTILO,
+    x: { domain: [-100, 100], ticks: [-100, 0, 100], tickFormat: v => (v > 0 ? `+${v}` : String(v)), grid: true,
+         label: 'Câmara: ← esquerda | direita →', labelAnchor: 'center', axis: 'top' },
     y: { domain: siglas, axis: null },
+    // degradê: roxo (esquerda) → bege (centro) → dourado (direita); não usa o verde e o laranja de vitória e derrota
+    color: { type: 'linear', domain: [-100, 0, 100], range: ['#5b3f99', '#ddd0b4', '#b8860b'] },
     marks: [
-      Plot.ruleX([0], { stroke: '#8a8f86' }),
-      Plot.barX(pontos.filter(d => d.camara != null), { x: 'camara', y: 'sigla', fill: d => (d.camara < 0 ? '#b3d4bd' : '#f0b89c'),
+      Plot.ruleX([0], { stroke: '#22201c' }),
+      Plot.barX(pontos.filter(d => d.camara != null), { x: 'camara', y: 'sigla', fill: 'camara', stroke: '#22201c', strokeWidth: 0.8,
                                                          title: d => `${d.sigla}, Câmara: ${d.camara}` }),
-      Plot.text(pontos.filter(d => d.camara == null), { x: 0, y: 'sigla', text: () => 'sem deputados', fill: '#8a8f86', fontSize: 11 }),
+      Plot.text(pontos.filter(d => d.camara == null), { x: 0, y: 'sigla', text: () => 'sem deputados', fill: '#7a705e', fontSize: 11 }),
     ],
   });
 }
@@ -90,9 +93,9 @@ function detalhe(sigla) {
       x: { domain: [1999, 2025], ticks: [2000, 2004, 2008, 2012, 2016, 2020, 2024], tickFormat: String, label: null },
       y: { domain: [0, 10], ticks: [0, 5, 10], tickFormat: v => ({ 0: 'esquerda', 5: 'centro', 10: 'direita' })[v], grid: true, label: null },
       marks: [
-        Plot.line(serie, { x: 'ano', y: 'v', stroke: '#157a42', strokeWidth: 2 }),
-        Plot.dot(serie, { x: 'ano', y: 'v', fill: '#157a42', r: 4, title: d => `alianças ${d.ano}: ${nota(d.v)}` }),
-        Plot.dot(esp, { x: 'ano', y: 'v', symbol: 'square', fill: '#1f2124', r: 5, title: d => `especialistas ${d.ano}: ${nota(d.v)}` }),
+        Plot.line(serie, { x: 'ano', y: 'v', stroke: '#00a651', strokeWidth: 2.5 }),
+        Plot.dot(serie, { x: 'ano', y: 'v', fill: '#00a651', stroke: '#22201c', r: 4, title: d => `alianças ${d.ano}: ${nota(d.v)}` }),
+        Plot.dot(esp, { x: 'ano', y: 'v', symbol: 'square', fill: '#22201c', r: 5, title: d => `especialistas ${d.ano}: ${nota(d.v)}` }),
       ],
     }));
   }

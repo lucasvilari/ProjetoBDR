@@ -15,7 +15,8 @@ const LIMITE_RESULTADOS = 30;
 const ORDEM_CARGOS = ['PRESIDENTE', 'VICE-PRESIDENTE', 'GOVERNADOR', 'VICE-GOVERNADOR', 'SENADOR',
   '1º SUPLENTE SENADOR', '1º SUPLENTE', '2º SUPLENTE SENADOR', '2º SUPLENTE', 'DEPUTADO FEDERAL',
   'DEPUTADO ESTADUAL', 'PREFEITO', 'VICE-PREFEITO', 'VEREADOR'];
-const COR_RESULTADO = { 'Vitória': '#157a42', 'Reeleito': '#157a42', 'Derrota': '#c2410c', 'Candidatura não concluída': '#8a8f86' };
+const COR_RESULTADO = { 'Vitória': '#00a651', 'Reeleito': '#00a651', 'Derrota': '#f26522', 'Candidatura não concluída': '#9a8f7a',
+  'Resultado não informado': '#e8dcc4' };
 
 const campo = document.getElementById('campo-busca');
 const caixaResultados = document.getElementById('resultados');
@@ -90,7 +91,15 @@ function resultado(c) {
   if (eleito && c.reeleicao) return 'Reeleito';
   if (eleito) return 'Vitória';
   if (c.situacao === 'NÃO ELEITO' || c.situacao === 'SUPLENTE') return 'Derrota';
+  if (c.situacao === 'SEM SITUAÇÃO') return 'Resultado não informado';
   return 'Candidatura não concluída';
+}
+
+/** Por que falta o resultado: o arquivo de 2006 não traz a eleição presidencial; nos demais casos,
+ *  o TSE deixa a situação vazia, em geral para candidaturas indeferidas ou retiradas antes da eleição. */
+function motivoSemResultado(c) {
+  if (c.ano === 2006 && c.cargo === 'PRESIDENTE') return 'o arquivo de 2006 do TSE não traz o resultado da eleição presidencial';
+  return 'situação não informada pelo TSE (em geral, candidatura indeferida ou retirada antes da eleição)';
 }
 
 function local(codigo) {
@@ -140,10 +149,11 @@ function grafico(cands) {
     x: { domain: [1997, 2025], ticks: [1998, 2002, 2006, 2010, 2014, 2018, 2022], tickFormat: d => String(d), label: null, grid: true },
     y: { domain: cargos, label: null, tickFormat: c => c.toLowerCase() },
     marks: [
-      Plot.ruleY(cargos, { stroke: '#c9ccc4' }),
-      Plot.dot(cands, { x: 'ano', y: 'cargo', r: 9, fill: c => COR_RESULTADO[c.resultado], stroke: '#1f2124', strokeWidth: 1.5,
+      Plot.ruleY(cargos, { stroke: '#c9b994' }),
+      Plot.dot(cands, { x: 'ano', y: 'cargo', r: 9, fill: c => COR_RESULTADO[c.resultado], stroke: c => (c.resultado === 'Derrota' ? '#f26522' : '#22201c'),
+                        strokeWidth: c => (c.resultado === 'Derrota' ? 3.5 : 1.5),
                         symbol: c => (c.resultado === 'Reeleito' ? 'diamond2' : c.resultado === 'Derrota' ? 'times' : 'circle'),
-                        title: c => `${c.ano}: ${c.cargo.toLowerCase()}, ${c.local}, ${c.sigla}\n${c.resultado} (${c.situacao.toLowerCase()})` }),
+                        title: c => `${c.ano}: ${c.cargo.toLowerCase()}, ${c.local}, ${c.sigla}\n${c.resultado} (${c.situacao === 'SEM SITUAÇÃO' ? motivoSemResultado(c) : c.situacao.toLowerCase()})` }),
       Plot.text(cands, { x: 'ano', y: 'cargo', text: 'sigla', dy: -17, fontWeight: 700 }),
     ],
   });
@@ -159,8 +169,8 @@ function graficoIdeologia(cands) {
     x: { domain: [1997, 2025], ticks: [1998, 2002, 2006, 2010, 2014, 2018, 2022], tickFormat: d => String(d), label: null },
     y: { domain: [0, 10], ticks: [0, 5, 10], tickFormat: v => ({ 0: 'esquerda (0)', 5: 'centro (5)', 10: 'direita (10)' })[v], label: null, grid: true },
     marks: [
-      Plot.line(comNota, { x: 'ano', y: 'nota', stroke: '#1f2124', strokeWidth: 2, curve: 'step-after' }),
-      Plot.dot(comNota, { x: 'ano', y: 'nota', r: 5, fill: '#1f2124',
+      Plot.line(comNota, { x: 'ano', y: 'nota', stroke: '#22201c', strokeWidth: 2.5, curve: 'step-after' }),
+      Plot.dot(comNota, { x: 'ano', y: 'nota', r: 5, fill: '#00a651', stroke: '#22201c',
                           title: c => `${c.ano}: ${c.sigla}, nota ${String(c.nota).replace('.', ',')}` }),
       // a sigla só aparece quando o partido muda, para os rótulos não se sobreporem
       Plot.text(comNota.filter((c, i) => i === 0 || c.sigla !== comNota[i - 1].sigla),
@@ -170,6 +180,19 @@ function graficoIdeologia(cands) {
 }
 
 const dinheiro = v => (v == null ? '' : formata.real(v));
+const faltou = texto => `<span class="sem-info">${texto}</span>`;
+
+/** Patrimônio, receita, parcela pública e despesa; quando falta, diz por quê. */
+function celulasFinanceiras(c) {
+  if (c.ano < 2018) {
+    return `<td colspan="4" class="sem-info-linha">${faltou('Dados de patrimônio, receitas e despesas só existem de 2018 em diante.')}</td>`;
+  }
+  const patrimonio = c.patrimonio ? dinheiro(c.patrimonio) : faltou('nenhum bem declarado');
+  const receita = c.receita ? dinheiro(c.receita) : faltou('nenhuma receita declarada');
+  const publica = c.receita ? formata.pct(100 * (c.receita_publica ?? 0) / c.receita) : faltou('sem receita');
+  const despesa = c.despesa ? dinheiro(c.despesa) : faltou('nenhuma despesa declarada');
+  return `<td class="num">${patrimonio}</td><td class="num">${receita}</td><td class="num">${publica}</td><td class="num">${despesa}</td>`;
+}
 
 async function abre(id) {
   ficha.hidden = false;
@@ -185,40 +208,48 @@ async function abre(id) {
     <section class="bloco-ficha" aria-labelledby="t-linha">
       <h3 id="t-linha">Linha do tempo</h3>
       <p class="legenda-grafico">
-        <span class="chave" style="--cor:#157a42">vitória</span>
-        <span class="chave chave-losango" style="--cor:#157a42">reeleição</span>
-        <span class="chave chave-x" style="--cor:#c2410c">derrota</span>
-        <span class="chave" style="--cor:#8a8f86">não concluída</span>
+        <span class="chave" style="--cor:#00a651">vitória</span>
+        <span class="chave chave-losango" style="--cor:#00a651">reeleição</span>
+        <span class="chave chave-x" style="--cor:#f26522">derrota</span>
+        <span class="chave" style="--cor:#9a8f7a">não concluída</span>
+        <span class="chave chave-anel" style="--cor:#22201c">resultado não informado</span>
       </p>
       <div id="g-linha" class="grafico"></div>
     </section>
     <section class="bloco-ficha" aria-labelledby="t-ideo" id="s-ideo">
       <h3 id="t-ideo">Posição ideológica do partido</h3>
       <p class="apoio">Nota dada por especialistas a cada partido pelo qual concorreu, de 0 (esquerda) a 10 (direita).</p>
+      <p class="apoio" id="ideo-faltas" hidden></p>
       <div id="g-ideo" class="grafico"></div>
     </section>
     <section class="bloco-ficha" aria-labelledby="t-tabela">
       <h3 id="t-tabela">Todas as candidaturas</h3>
-      <p class="apoio">Patrimônio, receitas e despesas existem a partir de 2018. A parcela pública é a receita vinda do fundo eleitoral e do Fundo Partidário.</p>
+      <p class="apoio">Patrimônio, receitas e despesas existem a partir de 2018. A parcela pública é a receita vinda do fundo eleitoral e do Fundo Partidário. Candidaturas que não chegaram à eleição costumam não ter prestação de contas.</p>
       <div class="rolagem">
         <table class="tabela">
           <thead><tr><th>Ano</th><th>Cargo</th><th>Local</th><th>Partido</th><th>Resultado</th>
             <th class="num">Patrimônio</th><th class="num">Receita</th><th class="num">Parcela pública</th><th class="num">Despesa</th></tr></thead>
           <tbody>${cands.map(c => `<tr>
             <td>${c.ano}</td><td>${c.cargo.toLowerCase()}</td><td>${c.local}</td><td>${c.sigla}</td>
-            <td><span class="selo selo-${c.resultado === 'Derrota' ? 'derrota' : c.resultado === 'Candidatura não concluída' ? 'neutro' : 'vitoria'}">${c.resultado}</span>
-              <span class="apoio situacao">${c.situacao.toLowerCase()}</span></td>
-            <td class="num">${dinheiro(c.patrimonio)}</td><td class="num">${dinheiro(c.receita)}</td>
-            <td class="num">${c.receita ? formata.pct(100 * (c.receita_publica ?? 0) / c.receita) : ''}</td>
-            <td class="num">${dinheiro(c.despesa)}</td></tr>`).join('')}
+            <td><span class="selo selo-${c.resultado === 'Derrota' ? 'derrota' : ['Vitória', 'Reeleito'].includes(c.resultado) ? 'vitoria' : 'neutro'}">${c.resultado}</span>
+              <span class="apoio situacao">${c.situacao === 'SEM SITUAÇÃO' ? motivoSemResultado(c) : c.situacao.toLowerCase()}</span></td>
+            ${celulasFinanceiras(c)}</tr>`).join('')}
           </tbody>
         </table>
       </div>
     </section>`;
   document.getElementById('g-linha').append(grafico(cands));
   const ideo = graficoIdeologia(cands);
+  // partidos sem nota: extintos antes da pesquisa com especialistas (2018 e 2022)
+  const semNota = [...new Set(cands.filter(c => c.nota == null).map(c => `${c.sigla} (${c.ano})`))];
+  if (semNota.length) {
+    const aviso = document.getElementById('ideo-faltas');
+    aviso.hidden = false;
+    aviso.textContent = `Sem nota dos especialistas, por serem partidos extintos ou criados fora das pesquisas de 2018 e 2022: ${semNota.join(', ')}.`;
+  }
   if (ideo) document.getElementById('g-ideo').append(ideo);
-  else document.getElementById('s-ideo').hidden = true;
+  else if (!semNota.length) document.getElementById('s-ideo').hidden = true;
+  else document.getElementById('g-ideo').innerHTML = '<p class="apoio">Notas insuficientes para traçar a trajetória.</p>';
   ficha.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 

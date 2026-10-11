@@ -24,17 +24,17 @@ site/
 ├── js/<página>.js          uma por página
 ├── gera_dados.py           gera dados/ a partir do banco
 └── dados/
-    ├── destaques.json      número da página inicial
     ├── partidos.json       medidas de ideologia e eleitos por partido
-    ├── mapa/               perguntas 1, 2 e 8: brasil.json e municipios/<UF>.json
+    ├── mapa/               perguntas 1, 2 e 8: brasil.json, municipios/<UF>.json e
+    │                       candidatos/<UF ou BR>.json (recortes com até 20 candidatos)
     ├── geo/                contornos do IBGE (estados e municípios dos seis estados)
     └── politicos/          índice de busca, fichas e carreiras, em fatias
 ```
 
 ## Gerar os dados
 
-O gerador usa dois bancos: o dos seis estados (`eleicoes`, o do dump) para os políticos e
-um com o país inteiro para o mapa, os partidos e o destaque, carregado com
+O gerador usa dois bancos: o dos seis estados (`eleicoes`, o do dump) para os políticos e as
+listas de candidatos, e um com o país inteiro para o mapa e os partidos, carregado com
 `banco/carga.py --ufs todas` num banco separado:
 
 ```bash
@@ -49,7 +49,7 @@ DATABASE_URL="dbname=eleicoes_nacional" banco/.venv/bin/python banco/carga.py --
 cd site && ../banco/.venv/bin/python gera_dados.py
 ```
 
-Uma parte só: `--partes politicos` (ou `mapa`, `geo`, `partidos`, `destaques`). Título
+Uma parte só: `--partes politicos` (ou `candidatos`, `mapa`, `geo`, `partidos`). Título
 eleitoral, CPF e data de nascimento não saem do banco: cada político recebe um número
 sequencial próprio.
 

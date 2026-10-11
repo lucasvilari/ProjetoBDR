@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%23157a42%27/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2300a651%27/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/estilo.css">
   <script type="module" src="js/partido.js"></script>
 </head>
@@ -23,14 +23,15 @@
     <dl class="fatos medidas">
       <div><dt>Especialistas</dt><dd>Nota de 0 (esquerda) a 10 (direita) dada por cientistas políticos em 2018 e 2022.</dd></div>
       <div><dt>Alianças</dt><dd>Posição revelada pelas coligações para prefeito, na mesma escala. Só passa a acompanhar a ideologia a partir de 2020.</dd></div>
-      <div><dt>Câmara</dt><dd>Posição nas votações da Câmara dos Deputados, de −100 a +100. Mede sobretudo o alinhamento com o governo.</dd></div>
+      <div><dt>Câmara</dt><dd>Posição nas votações da Câmara dos Deputados, de −100 (esquerda) a +100 (direita); no gráfico, a barra cresce para o lado em que o partido fica. Mede sobretudo o alinhamento com o governo.</dd></div>
     </dl>
 
     <section class="bloco" aria-labelledby="t-espectro">
       <h2 id="t-espectro">Especialistas e alianças</h2>
       <p class="legenda-grafico">
-        <span class="chave" style="--cor:#1f2124">especialistas, 2022</span>
-        <span class="chave chave-anel" style="--cor:#157a42">alianças, 2024</span>
+        <span class="chave" style="--cor:#22201c">especialistas, 2022</span>
+        <span class="chave chave-anel" style="--cor:#00a651">alianças, 2024</span>
+        <span class="degrade"><span>Câmara: esquerda −100</span><i aria-hidden="true"></i><span>+100 direita</span></span>
       </p>
       <div class="graficos-lado">
         <div id="g-espectro" class="grafico"></div>

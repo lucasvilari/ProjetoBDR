@@ -7,7 +7,8 @@ e grava os resultados em arquivos pequenos.
     politicos  carreiras e índice de busca (banco dos seis estados)
     mapa       perguntas 1, 2 e 8 no Brasil, por estado e por município (banco nacional)
     geo        contornos dos estados e municípios (API de malhas do IBGE)
-    destaques  número da página inicial (banco nacional)
+    candidatos candidatos a presidente, governador, senador e prefeito, um a um, para os
+               recortes com poucos candidatos no mapa (banco dos seis estados)
 
 Uso (com o ambiente de banco/.venv):
     ../banco/.venv/bin/python gera_dados.py                 # tudo
@@ -419,24 +420,58 @@ def parte_partidos(conn):
     log(f'partidos: {len(partidos)} partidos atuais')
 
 
-# --------------------------------------------------------------------------- destaques
+# --------------------------------------------------------------------------- candidatos (recortes pequenos)
 
-def parte_destaques(conn):
-    """Número da página inicial: gasto médio de quem se elegeu deputado federal em 2022."""
+# Onde há poucos candidatos (presidente no Brasil; governador e senador num estado;
+# prefeito num município), o mapa mostra os candidatos um a um em vez de faixas.
+CARGOS_INDIVIDUAIS = ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'PREFEITO')
+
+SQL_CANDIDATOS = """
+WITH bens AS (SELECT sq_candidato, SUM(valor) AS total FROM bem GROUP BY 1),
+     rec AS (SELECT sq_candidato, SUM(valor) AS total,
+                    SUM(valor) FILTER (WHERE UPPER(fonte) LIKE 'FUNDO%%') AS publica
+             FROM receita GROUP BY 1),
+     des AS (SELECT sq_candidato, SUM(valor) AS total FROM despesa GROUP BY 1)
+SELECT v.ano, v.cargo, v.ue, COALESCE(m.uf, v.ue) AS uf, v.titulo_eleitoral, p.nome, pa.sigla,
+       v.situacao_final, v.eleito, COALESCE(b.total, 0), r.total, r.publica, d.total
+FROM vw_candidatura v
+JOIN politico p ON p.titulo_eleitoral = v.titulo_eleitoral
+JOIN partido pa ON pa.id_partido = v.id_partido
+LEFT JOIN municipio m ON m.cod_tse = v.ue
+LEFT JOIN bens b ON b.sq_candidato = v.sq_candidato
+LEFT JOIN rec r  ON r.sq_candidato = v.sq_candidato
+LEFT JOIN des d  ON d.sq_candidato = v.sq_candidato
+WHERE v.ano = ANY(%(anos)s) AND v.cargo = ANY(%(cargos)s)
+ORDER BY v.ano, v.cargo, v.ue, v.eleito DESC, p.nome
+"""
+
+
+def parte_candidatos(conn):
+    log('candidatos: listas dos recortes pequenos')
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT AVG(COALESCE(g.total, 0)) FROM vw_candidatura v
-            LEFT JOIN (SELECT sq_candidato, SUM(valor) total FROM despesa GROUP BY 1) g USING (sq_candidato)
-            WHERE v.ano = 2022 AND v.cargo = 'DEPUTADO FEDERAL' AND v.eleito""")
-        valor = num(cur.fetchone()[0])
-    grava('destaques.json', {'custo_cadeira': {
-        'valor': round(valor), 'cargo': 'DEPUTADO FEDERAL', 'ano': 2022,
-        'legenda': 'Gasto médio de campanha de quem se elegeu deputado federal em 2022, no Brasil.'}})
-    log(f'destaques: R$ {valor:,.0f}')
+        # o mesmo número público da página Político (mesma ordem de parte_politicos)
+        cur.execute('SELECT titulo_eleitoral FROM politico ORDER BY nome, titulo_eleitoral')
+        ids = {titulo: pid for pid, (titulo,) in enumerate(cur.fetchall(), start=1)}
+        cur.execute(SQL_CANDIDATOS, {'anos': list(ANOS), 'cargos': list(CARGOS_INDIVIDUAIS)})
+        linhas = cur.fetchall()
+    cargos = list(CARGOS_MAPA)
+    arquivos = defaultdict(list)
+    for ano, cargo, ue, uf, titulo, nome, sigla, situacao, eleito, patrimonio, receita, publica, despesa in linhas:
+        if uf != 'BR' and uf not in UFS_PROJETO:
+            continue
+        arquivos[uf].append([ano, cargos.index(cargo), ue, ids[titulo], nome, sigla, situacao or 'SEM SITUAÇÃO',
+                             bool(eleito), inteiro(num(patrimonio)), inteiro(num(receita)), inteiro(num(publica)),
+                             inteiro(num(despesa))])
+    shutil.rmtree(DADOS / 'mapa' / 'candidatos', ignore_errors=True)
+    campos = ['ano', 'cargo', 'territorio', 'id', 'nome', 'partido', 'situacao', 'eleito',
+              'patrimonio', 'receita', 'receita_publica', 'despesa']
+    for uf, lista in arquivos.items():
+        grava(f'mapa/candidatos/{uf}.json', {'campos': campos, 'candidatos': lista})
+    log(f'candidatos: {sum(map(len, arquivos.values())):,} candidaturas em {len(arquivos)} arquivos')
 
 
 PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
-          'partidos': parte_partidos, 'destaques': parte_destaques}
+          'partidos': parte_partidos, 'candidatos': parte_candidatos}
 
 
 def main():
@@ -446,7 +481,7 @@ def main():
     ap.add_argument('--nacional', default='dbname=eleicoes_nacional', help='banco com o país inteiro')
     args = ap.parse_args()
     for parte in args.partes.split(','):
-        dsn = args.banco if parte == 'politicos' else args.nacional
+        dsn = args.banco if parte in ('politicos', 'candidatos') else args.nacional
         with psycopg.connect(dsn) as conn:
             PARTES[parte](conn)
 
