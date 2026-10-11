@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa · Confirma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%23157a42%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css">
+  <script type="module" src="js/mapa.js"></script>
+</head>
+<body data-pagina="mapa">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <h1>Mapa</h1>
+    <p class="apoio">O Brasil inteiro, um dos seis estados do projeto ou um município deles. Escolha a
+      pergunta, o ano e o cargo; clique num estado destacado para ver os municípios.</p>
+
+    <form class="controles" id="controles">
+      <fieldset class="pergunta">
+        <legend>Pergunta</legend>
+        <label><input type="radio" name="pergunta" value="custo" checked> Quanto custa uma cadeira</label>
+        <label><input type="radio" name="pergunta" value="patrimonio"> Patrimônio e vitória</label>
+        <label><input type="radio" name="pergunta" value="dependencia"> Dinheiro público e vitória</label>
+      </fieldset>
+      <label class="campo">Ano <select name="ano"></select></label>
+      <label class="campo">Cargo <select name="cargo"></select></label>
+      <label class="campo" id="campo-faixa" hidden>Colorir o mapa pela faixa <select name="faixa"></select></label>
+    </form>
+
+    <div class="mapa-grade">
+      <section class="mapa-area" aria-label="Mapa">
+        <div class="mapa-topo">
+          <h2 id="titulo-territorio">Brasil</h2>
+          <button type="button" class="botao" id="voltar" hidden>Voltar ao Brasil</button>
+        </div>
+        <div id="mapa" class="mapa"></div>
+        <div id="legenda" class="legenda-mapa"></div>
+        <p id="dica" class="apoio dica" aria-live="polite"></p>
+      </section>
+      <section class="painel" id="painel" aria-live="polite"></section>
+    </div>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

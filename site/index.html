@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirma: dinheiro e carreira nas eleições brasileiras</title>
+  <meta name="description" content="Quanto custa uma cadeira, quem se elege com dinheiro público e como foi a carreira de cada político, com dados abertos das eleições brasileiras.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%23157a42%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css">
+  <script type="module" src="js/inicio.js"></script>
+</head>
+<body data-pagina="inicio">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <section class="abertura" aria-labelledby="t-abertura">
+      <h1 id="t-abertura">Quanto custa uma cadeira?</h1>
+      <div class="visor" id="visor" aria-live="polite"></div>
+      <p class="apoio" id="visor-legenda">Carregando o valor…</p>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-sobre">
+      <h2 id="t-sobre">O que este site responde</h2>
+      <p>Reunimos os dados abertos das eleições brasileiras de 1998 a 2024 num banco de dados e
+        respondemos a quatro perguntas sobre dinheiro e carreira na política. Cada número sai de
+        uma consulta SQL publicada no repositório do projeto, que qualquer pessoa pode refazer.</p>
+      <dl class="fatos">
+        <div>
+          <dt><a href="mapa.html">Quanto custa uma cadeira?</a></dt>
+          <dd>O gasto de campanha dividido pelas vagas de cada cargo, no Brasil e em cada estado.</dd>
+        </div>
+        <div>
+          <dt><a href="mapa.html">Patrimônio ajuda a se eleger?</a></dt>
+          <dd>A taxa de vitória por faixa de bens declarados ao TSE.</dd>
+        </div>
+        <div>
+          <dt><a href="mapa.html">Quem depende de dinheiro público se elege menos?</a></dt>
+          <dd>A taxa de vitória conforme a parcela da receita que veio do fundo eleitoral e do Fundo Partidário.</dd>
+        </div>
+        <div>
+          <dt><a href="politico.html">Como foi a carreira de um político?</a></dt>
+          <dd>Cada candidatura de 1998 a 2024, com cargo, partido e resultado.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-limites">
+      <h2 id="t-limites">O que os dados cobrem</h2>
+      <dl class="fatos">
+        <div>
+          <dt>Dinheiro e patrimônio</dt>
+          <dd>Eleições de 2018 a 2024, no Brasil inteiro e em cada estado; nos seis estados do projeto, também por município. Os valores são os declarados ao TSE, sem correção pela inflação.</dd>
+        </div>
+        <div>
+          <dt>Carreiras</dt>
+          <dd>Políticos que concorreram em Amapá, Mato Grosso do Sul, Minas Gerais, Paraíba, Rondônia e Roraima, e os candidatos a presidente.</dd>
+        </div>
+        <div>
+          <dt>Período das carreiras</dt>
+          <dd>De 1998 a 2024. Antes de 1998 o TSE não publica o título eleitoral, que liga as candidaturas de uma mesma pessoa.</dd>
+        </div>
+        <div>
+          <dt>Gastos</dt>
+          <dd>Despesas contratadas pelas campanhas, que podem diferir do que foi efetivamente pago.</dd>
+        </div>
+        <div>
+          <dt>Eleições</dt>
+          <dd>Só as eleições ordinárias. Eleições suplementares, que refazem uma eleição anulada, ficam de fora.</dd>
+        </div>
+        <div>
+          <dt>Dados pessoais</dt>
+          <dd>O título eleitoral e o CPF são usados para ligar os dados, mas não são publicados.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-fontes">
+      <h2 id="t-fontes">Fontes</h2>
+      <ul class="fontes">
+        <li><a href="https://dadosabertos.tse.jus.br/">Portal de Dados Abertos do TSE</a>: candidaturas, bens, receitas, despesas, vagas e votação.</li>
+        <li><a href="https://servicodados.ibge.gov.br/api/docs/">APIs do IBGE</a>: municípios, malhas do mapa, população e PIB.</li>
+        <li><a href="http://www.ipeadata.gov.br/">Ipeadata</a>: indicadores do Atlas do Desenvolvimento Humano.</li>
+        <li><a href="https://doi.org/10.7910/DVN/MFIXKW">Harvard Dataverse</a>: classificação ideológica dos partidos por especialistas (Bolognesi, Codato, Ribeiro e Silva).</li>
+        <li><a href="https://dados-camara-dashboard-alpha.vercel.app/">Análise da Câmara dos Deputados</a>: posição dos partidos nas votações da Câmara.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

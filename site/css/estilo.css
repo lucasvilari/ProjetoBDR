@@ -1,0 +1,266 @@
+/* Confirma: estilo comum às quatro páginas.
+   Paleta da urna eletrônica: corpo cinza-claro, teclado escuro, teclas brancas,
+   CONFIRMA (verde) para vitória e destaque, CORRIGE (laranja) para derrota. */
+
+:root {
+  --urna: #e4e6e1;        /* fundo da página */
+  --papel: #f6f7f4;       /* superfícies de leitura */
+  --tecla: #ffffff;       /* caixas de dígitos e campos */
+  --teclado: #1f2124;     /* texto principal */
+  --tinta-2: #565b53;     /* texto secundário */
+  --linha: #c9ccc4;       /* divisórias */
+  --confirma: #157a42;    /* destaque, links, vitória */
+  --confirma-fundo: #d6ebdd;
+  --corrige: #c2410c;     /* derrota, alerta */
+  --corrige-fundo: #f6dfd2;
+
+  --fonte: "Archivo", system-ui, sans-serif;
+  --medida: 68ch;
+  --largura: 1120px;
+  --raio-tecla: 6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--urna);
+  color: var(--teclado);
+  font-family: var(--fonte);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+
+a { color: var(--confirma); text-underline-offset: 0.18em; }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible { outline: 3px solid var(--confirma); outline-offset: 2px; border-radius: 3px; }
+
+.pular {
+  position: absolute; left: -999px; top: 0;
+  background: var(--teclado); color: var(--tecla); padding: 0.5rem 1rem;
+}
+.pular:focus { left: 1rem; z-index: 10; }
+
+/* ------------------------------------------------------------------ topo */
+
+.topo {
+  background: var(--teclado);
+  color: var(--tecla);
+}
+.topo-interno {
+  max-width: var(--largura);
+  margin: 0 auto;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.marca {
+  display: flex; align-items: center; gap: 0.6rem;
+  color: var(--tecla); text-decoration: none;
+  font-weight: 800; font-stretch: 125%; font-size: 1.35rem; letter-spacing: 0.01em;
+}
+.marca-tecla {
+  width: 1.7rem; height: 1.2rem; border-radius: 4px;
+  background: var(--confirma);
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25);
+}
+.nav { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.nav a {
+  color: var(--tecla); text-decoration: none;
+  padding: 0.45rem 0.85rem; border-radius: var(--raio-tecla);
+  font-weight: 600; font-stretch: 110%;
+}
+.nav a:hover { background: rgb(255 255 255 / 0.1); }
+.nav a[aria-current="page"] { background: var(--tecla); color: var(--teclado); }
+
+/* ------------------------------------------------------------------ conteúdo */
+
+main { max-width: var(--largura); margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+
+h1, h2, h3 { line-height: 1.12; margin: 0 0 0.6em; }
+h1 { font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 800; font-stretch: 125%; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 750; font-stretch: 115%; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p, li { max-width: var(--medida); }
+.apoio { color: var(--tinta-2); }
+
+.bloco { margin-top: 3.5rem; }
+.bloco > h2 { padding-top: 1.25rem; border-top: 2px solid var(--teclado); }
+
+.superficie {
+  background: var(--papel);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.aviso-vazio {
+  color: var(--tinta-2);
+  border: 2px dashed var(--linha);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+/* ------------------------------------------------------------------ caixas de dígitos (abertura) */
+
+.visor {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.35rem;
+  margin: 1.25rem 0 0.75rem;
+}
+.visor-prefixo { font-size: clamp(1.5rem, 4vw, 2.4rem); font-weight: 700; margin-right: 0.4rem; }
+.digito {
+  display: inline-grid; place-items: center;
+  width: clamp(2.2rem, 6.4vw, 3.9rem); height: clamp(3rem, 8.6vw, 5.2rem);
+  background: var(--tecla);
+  border: 2px solid var(--teclado);
+  border-radius: var(--raio-tecla);
+  font-size: clamp(1.7rem, 5.4vw, 3.3rem); font-weight: 800;
+}
+.digito.separador { width: auto; background: none; border: 0; padding: 0 0.05rem; }
+.digito.vazio { color: transparent; }
+
+/* ------------------------------------------------------------------ listas de fatos */
+
+.fatos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1.25rem 2rem; }
+.fatos dt { font-weight: 700; }
+.fatos dd { margin: 0.2rem 0 0; color: var(--tinta-2); }
+
+.fontes { padding-left: 1.1rem; }
+.fontes li + li { margin-top: 0.5rem; }
+
+/* ------------------------------------------------------------------ rodapé */
+
+.rodape { border-top: 1px solid var(--linha); }
+.rodape-interno {
+  max-width: var(--largura); margin: 0 auto; padding: 1.5rem 1.25rem 2.5rem;
+  color: var(--tinta-2); font-size: 0.92rem;
+  display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; justify-content: space-between;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ------------------------------------------------------------------ página Político */
+
+.busca { margin: 2rem 0 1rem; max-width: 36rem; }
+.busca label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
+.busca input {
+  width: 100%; font: inherit; font-size: 1.2rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--tecla); color: var(--teclado);
+  border: 2px solid var(--teclado); border-radius: var(--raio-tecla);
+}
+.busca p { margin: 0.4rem 0 0; font-size: 0.92rem; }
+
+.resultados { list-style: none; padding: 0; margin: 0 0 1rem; max-width: 46rem; }
+.resultados li { max-width: none; border-bottom: 1px solid var(--linha); }
+.resultados a {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.15rem 1rem;
+  padding: 0.6rem 0.4rem; color: var(--teclado); text-decoration: none;
+}
+.resultados a:hover { background: var(--papel); }
+.resultado-nome { font-weight: 700; }
+
+#ficha { margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--teclado); }
+.ficha-nome { font-size: clamp(1.6rem, 3.6vw, 2.5rem); font-stretch: 120%; font-weight: 800; }
+
+.numeros {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: 0.75rem; margin: 1.25rem 0 0;
+}
+.numeros > div { background: var(--papel); border-radius: 8px; padding: 0.75rem 0.9rem; }
+.numeros dt { color: var(--tinta-2); font-size: 0.88rem; }
+.numeros dd { margin: 0.15rem 0 0; font-size: 1.6rem; font-weight: 800; font-stretch: 110%; }
+
+.bloco-ficha { margin-top: 2.5rem; }
+.grafico { overflow-x: auto; }
+.grafico svg { max-width: 100%; height: auto; }
+
+.legenda-grafico { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-size: 0.92rem; color: var(--tinta-2); }
+.chave::before {
+  content: ""; display: inline-block; width: 0.8rem; height: 0.8rem; margin-right: 0.35rem;
+  border-radius: 50%; background: var(--cor); border: 1.5px solid var(--teclado); vertical-align: -0.1rem;
+}
+.chave-losango::before { border-radius: 2px; transform: rotate(45deg) scale(0.85); }
+.chave-x::before { content: "×"; width: auto; height: auto; border: 0; background: none; color: var(--cor); font-weight: 800; }
+
+.rolagem { overflow-x: auto; }
+.tabela { border-collapse: collapse; width: 100%; font-size: 0.95rem; font-stretch: 90%; }
+.tabela th { text-align: left; font-weight: 700; border-bottom: 2px solid var(--teclado); padding: 0.45rem 0.6rem; white-space: nowrap; }
+.tabela td { border-bottom: 1px solid var(--linha); padding: 0.45rem 0.6rem; vertical-align: top; }
+.tabela .num { text-align: right; white-space: nowrap; }
+.situacao { display: block; font-size: 0.82rem; }
+.selo { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; font-weight: 700; font-size: 0.85rem; }
+.selo-vitoria { background: var(--confirma-fundo); color: var(--confirma); }
+.selo-derrota { background: var(--corrige-fundo); color: var(--corrige); }
+.selo-neutro { background: var(--linha); color: var(--teclado); }
+
+/* ------------------------------------------------------------------ página Mapa */
+
+.controles { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem 1.5rem; margin: 1.5rem 0 2rem; }
+.controles fieldset { border: 0; padding: 0; margin: 0; }
+.controles legend, .campo { font-weight: 700; font-size: 0.95rem; }
+.campo { display: flex; flex-direction: column; gap: 0.3rem; }
+.campo select {
+  font: inherit; font-weight: 400; padding: 0.5rem 0.6rem; min-width: 9rem;
+  background: var(--tecla); color: var(--teclado);
+  border: 2px solid var(--teclado); border-radius: var(--raio-tecla);
+}
+.pergunta { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.pergunta legend { margin-bottom: 0.3rem; }
+.pergunta label {
+  position: relative; cursor: pointer;
+  padding: 0.5rem 0.85rem; border-radius: var(--raio-tecla);
+  background: var(--tecla); border: 2px solid var(--teclado); font-weight: 600;
+}
+.pergunta input { position: absolute; opacity: 0; pointer-events: none; }
+.pergunta label:has(input:checked) { background: var(--teclado); color: var(--tecla); }
+.pergunta label:has(input:focus-visible) { outline: 3px solid var(--confirma); outline-offset: 2px; }
+
+.mapa-grade { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 2rem; align-items: start; }
+@media (max-width: 900px) { .mapa-grade { grid-template-columns: minmax(0, 1fr); } }
+.mapa-topo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.mapa-topo h2 { margin: 0; }
+.botao {
+  font: inherit; font-weight: 600; cursor: pointer;
+  padding: 0.45rem 0.85rem; border-radius: var(--raio-tecla);
+  background: var(--tecla); color: var(--teclado); border: 2px solid var(--teclado);
+}
+.mapa { margin-top: 0.75rem; }
+.mapa-svg { display: block; width: 100%; height: auto; }
+.mapa-svg path { stroke: var(--urna); stroke-width: 0.6; }
+.mapa-svg .estado.projeto { stroke: var(--teclado); stroke-width: 2; cursor: pointer; }
+.mapa-svg .municipio { stroke-width: 0.35; cursor: pointer; }
+.mapa-svg path[role="button"]:hover { filter: brightness(0.9); }
+.mapa-svg path:focus-visible { outline: none; stroke: var(--corrige); stroke-width: 3; }
+.mapa-svg .municipio.selecionado { stroke: var(--corrige); stroke-width: 2.5; }
+
+.legenda-mapa { margin-top: 0.75rem; font-size: 0.88rem; }
+.legenda-titulo { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+.legenda-faixas { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; color: var(--tinta-2); }
+.legenda-faixas i { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; margin-right: 0.3rem; vertical-align: -0.12rem; }
+.dica { font-size: 0.9rem; }
+
+.painel h3 { font-size: 1.3rem; font-stretch: 105%; }
+.painel h4 { margin: 1.75rem 0 0.5rem; }
+.numeros-painel { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0.75rem; }
+.numeros-painel dd { font-size: 1.35rem; }
+.tabela tr.atual td { background: var(--confirma-fundo); font-weight: 700; }
+
+/* ------------------------------------------------------------------ página Partido */
+
+.medidas { margin-top: 1.5rem; }
+.graficos-lado { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 1.5rem; align-items: start; }
+@media (max-width: 700px) { .graficos-lado { grid-template-columns: minmax(0, 1fr); } }
+.titulo-camara { font-size: 0.95rem; margin: 0 0 0.2rem; }
+.chave-anel::before { background: var(--urna); border: 2px solid var(--cor); }
+.campo-largo { max-width: 16rem; margin-bottom: 1rem; }
+.ficha-nome .apoio { font-size: 1rem; font-weight: 400; font-stretch: 100%; }

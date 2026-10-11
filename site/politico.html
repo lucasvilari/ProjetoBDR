@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Político · Confirma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%23157a42%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css">
+  <script type="module" src="js/politico.js"></script>
+</head>
+<body data-pagina="politico">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <h1>Político</h1>
+    <p class="apoio">Procure pelo nome de quem concorreu em Amapá, Mato Grosso do Sul, Minas Gerais,
+      Paraíba, Rondônia ou Roraima, ou à Presidência, para ver cada candidatura de 1998 a 2024.</p>
+
+    <form class="busca" role="search" id="form-busca">
+      <label for="campo-busca">Nome do político</label>
+      <input id="campo-busca" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Ex.: Ricardo Coutinho" aria-describedby="busca-ajuda">
+      <p id="busca-ajuda" class="apoio">Digite ao menos três letras de qualquer palavra do nome.</p>
+    </form>
+    <div id="resultados" aria-live="polite"></div>
+
+    <article id="ficha" hidden></article>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>
