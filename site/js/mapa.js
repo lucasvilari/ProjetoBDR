@@ -7,7 +7,7 @@
 // A seleção (pergunta, ano, cargo, faixa, UF e município) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata } from './comum.js';
+import { montaPagina, carregaDados, formata, comSeta } from './comum.js';
 
 montaPagina();
 
@@ -45,7 +45,7 @@ const estado = { pergunta: 'custo', ano: 2022, cargo: 'DEPUTADO FEDERAL', faixa:
 
 function leEndereco() {
   const p = new URLSearchParams(location.hash.slice(1));
-  if (['custo', 'patrimonio', 'dependencia'].includes(p.get('pergunta'))) estado.pergunta = p.get('pergunta');
+  if (['custo', 'patrimonio', 'dependencia', 'vies'].includes(p.get('pergunta'))) estado.pergunta = p.get('pergunta');
   if (brasil.anos.includes(Number(p.get('ano')))) estado.ano = Number(p.get('ano'));
   if (p.get('cargo')) estado.cargo = p.get('cargo');
   estado.faixa = p.has('faixa') ? Number(p.get('faixa')) : null;
@@ -54,8 +54,9 @@ function leEndereco() {
 }
 
 function escreveEndereco() {
-  const p = new URLSearchParams({ pergunta: estado.pergunta, ano: estado.ano, cargo: estado.cargo });
-  if (estado.faixa != null && estado.pergunta !== 'custo') p.set('faixa', estado.faixa);
+  const p = new URLSearchParams({ pergunta: estado.pergunta, ano: estado.ano });
+  if (!ehVies()) p.set('cargo', estado.cargo);
+  if (estado.faixa != null && comFaixas()) p.set('faixa', estado.faixa);
   if (estado.uf) p.set('uf', estado.uf);
   if (estado.mun) p.set('mun', estado.mun);
   history.replaceState(null, '', `#${p}`);
@@ -100,6 +101,185 @@ function valoresDoMapa(dados) {
   }
   delete valores.BR;          // o total do Brasil vai para o painel, não para as cores dos estados
   return valores;
+}
+
+// ---------------------------------------------------------------- pergunta 7: viés ideológico
+
+const ehVies = () => estado.pergunta === 'vies';
+const comFaixas = () => estado.pergunta === 'patrimonio' || estado.pergunta === 'dependencia';
+// classes da consulta p07, da esquerda à direita, em degradê roxo → bege → dourado
+const CORES_VIES = ['#5b3f99', '#9c88c4', '#ddd0b4', '#d4ab4f', '#b8860b'];
+
+async function linhasVies(arquivo) {
+  const dados = await carregaDados(arquivo);
+  return dados.linhas.map(l => registro(dados.campos, l));
+}
+const viesBrasil = () => carregaDados('vies/brasil.json');
+
+/** Índice de cada território do mapa atual no ano escolhido. */
+async function valoresVies(naUF) {
+  const linhas = await linhasVies(naUF ? `vies/municipios/${estado.uf}.json` : 'vies/brasil.json');
+  return Object.fromEntries(linhas.filter(l => l.ano === estado.ano && (naUF || /^[A-Z]{2}$/.test(l.territorio)))
+    .map(l => [l.territorio, l.indice]));
+}
+
+// degradê contínuo, centrado no 5: as classes da p07 deixariam quase todos os estados numa cor só
+const VIES_MIN = 3, VIES_MAX = 8;
+async function escalaVies() {
+  const { faixas } = await viesBrasil();
+  const esc = d3.scaleDiverging([VIES_MIN, 5, VIES_MAX], d3.interpolateRgbBasis([CORES_VIES[0], CORES_VIES[2], CORES_VIES[4]])).clamp(true);
+  esc.faixas = faixas;
+  return esc;
+}
+
+/** Legenda do viés: a barra em degradê com as fronteiras das cinco classes. */
+function legendaVies(esc) {
+  const pos = v => (100 * (v - VIES_MIN)) / (VIES_MAX - VIES_MIN);
+  const paradas = d3.range(VIES_MIN, VIES_MAX + 0.01, 0.5).map(v => `${esc(v)} ${pos(v)}%`).join(', ');
+  const cortes = esc.faixas.slice(0, -1).map(f => f[0]);
+  return `<span class="legenda-titulo">Índice ideológico (0 = esquerda, 10 = direita)</span>
+    <span class="escala-vies">
+      <i style="background: linear-gradient(90deg, ${paradas})"></i>
+      ${cortes.map(c => `<b style="left:${pos(c)}%">${String(c).replace('.', ',')}</b>`).join('')}
+      <em class="ponta-esq">← esquerda</em><em class="ponta-dir">direita →</em>
+    </span>
+    <span class="legenda-faixas"><span><i class="sem-dado"></i>sem dado</span></span>`;
+}
+
+const virgula = v => (v == null ? '—' : String(v).replace('.', ','));
+const corDaNota = n => (n == null ? '#9a8f7a' : d3.interpolateRgbBasis([CORES_VIES[0], CORES_VIES[2], CORES_VIES[4]])(Math.max(0, Math.min(1, (n - 3) / 5))));
+const nomeCurto = n => n.split(' ').filter(p => p.length > 2).slice(-1)[0] ?? n;   // "LUIZ INÁCIO LULA DA SILVA" -> "SILVA"
+const apelido = n => ({ 'LUIZ INÁCIO LULA DA SILVA': 'Lula', 'JAIR MESSIAS BOLSONARO': 'Bolsonaro', 'FERNANDO HADDAD': 'Haddad' })[n]
+  ?? nomeCurto(n).charAt(0) + nomeCurto(n).slice(1).toLowerCase();
+
+/** Duas linhas comparáveis entre si: gerais com gerais (deputado federal) e municipais com municipais (vereador). */
+function graficoPar(pontos, anos, titulo, largura) {
+  const doPar = pontos.filter(p => anos.includes(p.ano) && p.indice != null);
+  // rótulos na ponta direita, afastados quando os valores ficam próximos
+  const fim = doPar.filter(p => p.ano === anos[1]).sort((a, b) => a.indice - b.indice);
+  let ultimo = -Infinity;
+  for (const p of fim) { p.yRotulo = Math.max(p.indice, ultimo + 0.42); ultimo = p.yRotulo; }
+  return Plot.plot({
+    width: largura, height: 260, marginLeft: 34, marginRight: 118, marginTop: 28,
+    style: { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background: 'transparent' },
+    x: { type: 'point', domain: anos, label: null, inset: 14, tickFormat: String },
+    y: { domain: [2, 9], label: null, grid: true },
+    marks: [
+      Plot.text([titulo], { frameAnchor: 'top-left', dy: -22, fontWeight: 700, fontSize: 12.5 }),
+      // direção do eixo: alto = direita, baixo = esquerda
+      Plot.text(['↑ direita'], { frameAnchor: 'top-left', dx: 4, dy: 8, fill: '#b8860b', fontWeight: 700, fontSize: 11.5 }),
+      Plot.text(['↓ esquerda'], { frameAnchor: 'bottom-left', dx: 4, dy: -8, fill: '#5b3f99', fontWeight: 700, fontSize: 11.5 }),
+      Plot.line(doPar, { x: 'ano', y: 'indice', z: 'quem', stroke: p => (p.principal ? '#22201c' : '#8f8470'),
+                         strokeWidth: p => (p.principal ? 3 : 1.4) }),
+      Plot.dot(doPar, { x: 'ano', y: 'indice', r: p => (p.principal ? 5 : 3), fill: p => (p.principal ? '#22201c' : '#8f8470'),
+                        title: p => `${p.quem}, ${p.ano}: ${virgula(p.indice)} (${p.classificacao})` }),
+      Plot.text(doPar.filter(p => p.ano === anos[0] && p.principal), { x: 'ano', y: 'indice', text: p => virgula(p.indice), dx: -8, textAnchor: 'end', fontWeight: 700 }),
+      Plot.text(fim, { x: 'ano', y: 'yRotulo', text: p => `${p.quem} ${virgula(p.indice)}`, dx: 9, textAnchor: 'start',
+                       fill: p => (p.principal ? '#22201c' : '#5c5444'), fontWeight: p => (p.principal ? 700 : 400) }),
+    ],
+  });
+}
+
+/** Barras do 2º turno para presidente: o território e o Brasil, cada candidato na cor da nota do partido. */
+function barrasPresidente(linhas) {
+  const dados = linhas.flatMap(({ rotulo, presidente }) => (presidente?.segundo_turno ?? []).map(([nome, sigla, pct, nota]) =>
+    ({ rotulo, nome: `${apelido(nome)} (${sigla})`, curto: apelido(nome), pct, nota })));
+  if (!dados.length) return null;
+  return Plot.plot({
+    width: Math.min(720, painel.clientWidth || 520), height: 34 + 34 * linhas.length, marginLeft: 120, marginRight: 10,
+    style: { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background: 'transparent' },
+    x: { domain: [0, 100], axis: null }, y: { domain: linhas.map(l => l.rotulo), label: null },
+    marks: [
+      Plot.barX(dados, Plot.stackX({ y: 'rotulo', x: 'pct', fill: d => corDaNota(d.nota), stroke: '#22201c', strokeWidth: 1 })),
+      Plot.text(dados, Plot.stackX({ y: 'rotulo', x: 'pct', text: d => (d.pct < 25 ? `${virgula(d.pct)}%` : `${d.curto} ${virgula(d.pct)}%`),
+                                     fill: '#ffffff', fontWeight: 700, title: d => `${d.nome}: ${virgula(d.pct)}%` })),
+      Plot.ruleX([50], { stroke: '#22201c', strokeDasharray: '2,3' }),
+    ],
+  });
+}
+
+async function painelVies(onde, nome) {
+  const brasilV = await viesBrasil();
+  const linhasBR = await linhasVies('vies/brasil.json');
+  const municipal = /^\d{5}$/.test(onde);
+  const linhas = municipal ? await linhasVies(`vies/municipios/${estado.uf}.json`) : linhasBR;
+  const serie = linhas.filter(l => l.territorio === onde).sort((a, b) => a.ano - b.ano);
+  if (!serie.length) return `<p class="aviso-vazio">Não há votos registrados ${em(nome)}.</p>`;
+  const uf = estado.uf, regiao = uf ? brasilV.regiao_da_uf[uf] : null;
+  // comparações: o estado (se for município), a região (se for estado) e o Brasil
+  const comparar = [
+    ...(municipal ? [[uf, uf]] : []),
+    ...(!municipal && regiao ? [[regiao, regiao]] : []),
+    ...(onde !== 'BR' ? [['BR', 'Brasil']] : []),
+  ];
+  const curto = municipal ? (nome.length > 14 ? `${nome.slice(0, 13)}…` : nome) : (onde === 'BR' ? 'Brasil' : uf);
+  const pontos = [
+    ...serie.map(l => ({ ...l, quem: curto, principal: true })),
+    ...comparar.flatMap(([terr, rotulo]) => linhasBR.filter(l => l.territorio === terr).map(l => ({ ...l, quem: rotulo }))),
+  ];
+  const doAno = serie.find(l => l.ano === estado.ano) ?? serie.at(-1);
+  const geral = doAno.ano % 4 === 2;
+  const brAno = linhasBR.find(l => l.territorio === 'BR' && l.ano === doAno.ano);
+
+  // frase de abertura: o voto do ano escolhido, e o voto para presidente nos anos gerais
+  const cargoAno = geral ? 'deputado federal' : 'vereador';
+  let abertura = `${em(nome)[0].toUpperCase()}${em(nome).slice(1)}, em ${doAno.ano}, os votos para ${cargoAno} somaram um índice de
+    <strong>${virgula(doAno.indice)}</strong> numa escala de 0 (esquerda) a 10 (direita): ${doAno.classificacao?.toLowerCase() ?? 'sem classificação'}.`;
+  const st = doAno.presidente?.segundo_turno ?? [];
+  if (geral && st.length) {
+    const [v1, v2] = st;
+    abertura += ` Para presidente, o 2º turno deu ${virgula(v1[2])}% a ${apelido(v1[0])} (${v1[1]}) e ${virgula(v2[2])}% a ${apelido(v2[0])} (${v2[1]}).`;
+    if (onde !== 'BR' && brAno?.presidente?.segundo_turno?.length) {
+      const b1 = brAno.presidente.segundo_turno[0];
+      abertura += ` No Brasil, venceu ${apelido(b1[0])} (${b1[1]}), com ${virgula(b1[2])}%.`;
+    }
+    abertura += ` O voto para presidente e o voto para deputado podem apontar para lados diferentes: o primeiro escolhe uma
+      pessoa entre poucas; o segundo se espalha por muitos partidos, e é dele que sai o índice.`;
+  }
+
+  const largura = Math.min(900, painel.clientWidth || 520);
+  const lado = largura >= 520 ? Math.floor(largura / 2) - 6 : largura;
+  const caixa = document.createElement('div');
+  caixa.innerHTML = `
+    <h3>Qual o viés político ${em(nome)} ao longo do tempo?</h3>
+    <p>${abertura}</p>
+    ${geral && st.length ? `<h4>Presidente, 2º turno de ${doAno.ano}</h4><div class="grafico" id="g-presidente"></div>
+      <p class="apoio">A cor de cada candidato segue a nota do partido: roxo à esquerda, dourado à direita.</p>` : ''}
+    <h4>Índice dos votos ao longo do tempo</h4>
+    <p class="apoio">Cada gráfico compara eleições do mesmo tipo: deputado federal com deputado federal, vereador com
+      vereador. Misturar os dois criaria saltos que não são mudança de opinião, sobretudo em municípios pequenos,
+      onde a eleição de vereador gira em torno de nomes locais.</p>
+    <div class="graficos-par"><div class="grafico" id="g-gerais"></div><div class="grafico" id="g-municipais"></div></div>
+    <p class="legenda-grafico">
+      <span class="chave" style="--cor:#22201c">${nome}</span>
+      ${comparar.length ? `<span class="chave" style="--cor:#8f8470">${comparar.map(c => (c[0] === 'BR' ? 'Brasil' : c[0].length === 2 ? NOME_UF[c[0]] : `região ${c[0]}`)).join(' e ')}</span>` : ''}
+    </p>
+    <h4>Ano a ano ${em(nome)}</h4>
+    <div class="rolagem"><table class="tabela">
+      <thead><tr><th>Ano</th><th>Votos usados no índice</th><th class="num">Índice<span class="situacao">← esquerda 0 a 10 direita →</span></th><th>Classe</th><th>Presidente, 2º turno</th></tr></thead>
+      <tbody>${serie.map(l => `<tr${l.ano === doAno.ano ? ' class="atual"' : ''}><td>${l.ano}</td>
+        <td>${l.ano % 4 === 0 ? 'vereador' : 'deputado federal'}</td><td class="num">${comSeta(l.indice)}</td><td>${l.classificacao ?? '—'}</td>
+        <td>${l.presidente?.segundo_turno?.length ? l.presidente.segundo_turno.map(([n, s, pct]) => `${apelido(n)} ${virgula(pct)}%`).join(' × ')
+          : '<span class="sem-info">sem eleição para presidente</span>'}</td></tr>`).join('')}
+      </tbody></table></div>
+    <h4>Partidos mais votados para ${cargoAno} ${em(nome)}, em ${doAno.ano}</h4>
+    <div class="rolagem"><table class="tabela">
+      <thead><tr><th>Partido</th><th class="num">Parcela dos votos</th><th class="num">Nota dos especialistas<span class="situacao">← esquerda 0 a 10 direita →</span></th></tr></thead>
+      <tbody>${doAno.principais_partidos.map(([sigla, pct, nota]) => `<tr><td>${sigla}</td><td class="num">${virgula(pct)}%</td>
+        <td class="num">${nota == null ? '<span class="sem-info">sem nota</span>' : comSeta(nota)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="apoio">Como o índice é calculado: cada partido tem uma nota de 0 (esquerda) a 10 (direita) dada por
+      especialistas; o índice é a média dessas notas, com peso pelos votos que cada partido recebeu. Partidos sem nota
+      ficam fora da média. Com a régua das votações na Câmara (−100 a +100), que mede sobretudo o alinhamento com o
+      governo, o mesmo cálculo dá ${doAno.indice_camara == null ? 'sem valor' : `${doAno.indice_camara > 0 ? '+' : ''}${virgula(doAno.indice_camara)}`}
+      ${em(nome)} em ${doAno.ano} (cobrindo ${virgula(doAno.cobertura_camara_pct)}% dos votos).</p>`;
+  caixa.querySelector('#g-gerais').append(graficoPar(pontos, [2018, 2022], 'Gerais: deputado federal', lado));
+  caixa.querySelector('#g-municipais').append(graficoPar(pontos, [2020, 2024], 'Municipais: vereador', lado));
+  if (geral && st.length) {
+    const barras = barrasPresidente([{ rotulo: curto, presidente: doAno.presidente },
+      ...(onde !== 'BR' ? [{ rotulo: 'Brasil', presidente: brAno?.presidente }] : [])]);
+    if (barras) caixa.querySelector('#g-presidente').append(barras);
+  }
+  return caixa;
 }
 
 // ---------------------------------------------------------------- candidatos um a um
@@ -192,7 +372,8 @@ function montaControles() {
   const cargos = cargosDoAno(estado.ano);
   if (!cargos.includes(estado.cargo)) estado.cargo = cargos.includes('VEREADOR') ? 'VEREADOR' : 'DEPUTADO FEDERAL';
   selCargo.innerHTML = cargos.map(c => `<option value="${c}"${c === estado.cargo ? ' selected' : ''}>${c.toLowerCase()}</option>`).join('');
-  const comFaixa = estado.pergunta !== 'custo';
+  const comFaixa = comFaixas();
+  selCargo.closest('label').hidden = ehVies();     // o viés usa vereador ou deputado federal, conforme o ano
   document.getElementById('campo-faixa').hidden = !comFaixa || estado.cargo === 'PRESIDENTE';
   if (comFaixa) {
     const nomes = nomeFaixas();
@@ -236,26 +417,29 @@ function escala(valores) {
 
 function formatoValor(v) {
   if (v == null) return 'sem dado';
+  if (ehVies()) return String(v).replace('.', ',');
   return estado.pergunta === 'custo' ? formata.real(v) : formata.pct(v);
 }
 
 function desenhaLegenda(esc) {
   const legenda = document.getElementById('legenda');
   if (!esc) { legenda.innerHTML = ''; return; }
+  if (ehVies()) { legenda.innerHTML = legendaVies(esc); return; }
   const limites = esc.limites;
   const rotulo = i => (esc.rotulos ? esc.rotulos[i] : `${formatoValor(limites[i])} a ${formatoValor(limites[i + 1])}`);
-  const titulo = estado.pergunta === 'custo'
+  const titulo = ehVies() ? 'Índice ideológico (0 = esquerda, 10 = direita)' : estado.pergunta === 'custo'
     ? 'Gasto médio de quem se elegeu'
     : `Parcela dos eleitos na faixa "${nomeFaixas()[estado.faixa]}"`;
   legenda.innerHTML = `<span class="legenda-titulo">${titulo}</span>
     <span class="legenda-faixas">${esc.range().map((c, i) => `<span><i style="background:${c}"></i>${rotulo(i)}</span>`).join('')}
-    <span><i class="sem-dado"></i>${estado.pergunta === 'custo' ? 'sem dado' : 'sem eleitos com esse dado'}</span></span>`;
+    <span><i class="sem-dado"></i>${estado.pergunta === 'custo' || ehVies() ? 'sem dado' : 'sem eleitos com esse dado'}</span></span>`;
 }
 
 async function desenhaMapa() {
   // presidente: a eleição é nacional e não se divide por estado nem município
-  document.querySelector('.mapa-grade').classList.toggle('sem-mapa', estado.cargo === 'PRESIDENTE');
-  if (estado.cargo === 'PRESIDENTE') {
+  const presidente = estado.cargo === 'PRESIDENTE' && !ehVies();
+  document.querySelector('.mapa-grade').classList.toggle('sem-mapa', presidente);
+  if (presidente) {
     svgCaixa.innerHTML = `<div class="aviso-vazio aviso-mapa"><p><strong>A eleição para presidente é nacional.</strong>
       Os votos são somados no país inteiro, então não há custo, patrimônio ou dinheiro público por estado
       para colorir o mapa. A resposta para o Brasil está abaixo.</p></div>`;
@@ -264,17 +448,26 @@ async function desenhaMapa() {
     return;
   }
   const largura = svgCaixa.clientWidth || 640;
-  const altura = Math.round(largura * 0.92);
   const naUF = Boolean(estado.uf);
   const geo = naUF ? await carregaDados(`geo/municipios/${estado.uf}.json`) : geoEstados;
-  const municipal = naUF && CARGOS_MUNICIPAIS.includes(estado.cargo);
+  const municipal = naUF && (ehVies() || CARGOS_MUNICIPAIS.includes(estado.cargo));
   const dados = naUF ? await carregaDados(`mapa/municipios/${estado.uf}.json`) : brasil;
-  // num estado, cargo estadual: todos os municípios recebem a cor do estado
-  const valores = naUF && !municipal ? valoresDoMapa(brasil) : valoresDoMapa(dados);
-  const esc = escala(naUF && !municipal ? valoresDoMapa(brasil) : valores);
+  let valores, esc;
+  if (ehVies()) {
+    valores = await valoresVies(naUF);
+    esc = await escalaVies();
+  } else {
+    // num estado, cargo estadual: todos os municípios recebem a cor do estado
+    valores = naUF && !municipal ? valoresDoMapa(brasil) : valoresDoMapa(dados);
+    esc = escala(naUF && !municipal ? valoresDoMapa(brasil) : valores);
+  }
   const chave = f => (naUF ? (municipal ? f.properties.mun : estado.uf) : f.properties.uf);
 
-  const projecao = d3.geoMercator().fitSize([largura, altura], geo);
+  // a altura acompanha o formato do território (a Paraíba é larga e baixa), até um limite
+  const projecao = d3.geoMercator().fitWidth(largura, geo);
+  let altura = Math.ceil(d3.geoPath(projecao).bounds(geo)[1][1]);
+  const ALTURA_MAX = 640;
+  if (altura > ALTURA_MAX) { altura = ALTURA_MAX; projecao.fitSize([largura, altura], geo); }
   const caminho = d3.geoPath(projecao);
   const svg = d3.create('svg').attr('viewBox', [0, 0, largura, altura]).attr('class', 'mapa-svg')
     .attr('role', 'group').attr('aria-label', naUF ? `Municípios de ${NOME_UF[estado.uf]}` : 'Estados do Brasil');
@@ -308,7 +501,7 @@ async function desenhaMapa() {
   desenhaLegenda(esc);
   document.getElementById('dica').textContent = naUF
     ? (municipal ? 'Clique num município para ver os números dele.' : `Cargo estadual: o valor é o mesmo para todo o estado. Escolha prefeito ou vereador para comparar municípios.`)
-    : 'Os seis estados do projeto têm contorno escuro e podem ser clicados.';
+    : `Os seis estados do projeto têm contorno escuro e podem ser clicados.${ehVies() ? ` Em ${estado.ano}, o índice usa os votos para ${estado.ano % 4 === 0 ? 'vereador' : 'deputado federal'}.` : ''}`;
 }
 
 function dadosMunicipio(dados, cod) {
@@ -332,7 +525,7 @@ async function nomeTerritorio() {
 }
 
 function territorioAtual() {
-  if (estado.mun && CARGOS_MUNICIPAIS.includes(estado.cargo)) return estado.mun;
+  if (estado.mun && (ehVies() || CARGOS_MUNICIPAIS.includes(estado.cargo))) return estado.mun;
   return estado.uf ?? 'BR';
 }
 
@@ -389,7 +582,7 @@ async function painelFaixas(onde, nome) {
     ? `Patrimônio declarado ajuda a eleger ${estado.cargo.toLowerCase()}?`
     : `Quem depende de dinheiro público se elege ${estado.cargo.toLowerCase()}?`;
   const grafico = Plot.plot({
-    width: Math.min(560, painel.clientWidth || 520), height: 64 + 38 * linhas.length,
+    width: Math.min(720, painel.clientWidth || 520), height: 64 + 38 * linhas.length,
     marginLeft: 170, marginRight: 120, marginTop: 30,
     style: { fontFamily: 'Archivo, sans-serif', fontSize: '13px', background: 'transparent' },
     x: { label: 'taxa de vitória (%)', grid: true, nice: true },
@@ -425,10 +618,11 @@ async function painelFaixas(onde, nome) {
 async function desenhaPainel() {
   const onde = territorioAtual();
   const nome = await nomeTerritorio();
-  const conteudo = estado.pergunta === 'custo' ? await painelCusto(onde, nome) : await painelFaixas(onde, nome);
+  const conteudo = ehVies() ? await painelVies(onde, nome)
+    : estado.pergunta === 'custo' ? await painelCusto(onde, nome) : await painelFaixas(onde, nome);
   if (typeof conteudo === 'string') painel.innerHTML = conteudo;
   else painel.replaceChildren(conteudo);
-  if (estado.mun && !CARGOS_MUNICIPAIS.includes(estado.cargo)) {
+  if (estado.mun && !ehVies() && !CARGOS_MUNICIPAIS.includes(estado.cargo)) {
     painel.insertAdjacentHTML('afterbegin', `<p class="apoio">${nome} selecionado, mas ${estado.cargo.toLowerCase()} é um cargo estadual: os números abaixo são de ${NOME_UF[estado.uf]}.</p>`);
   }
 }

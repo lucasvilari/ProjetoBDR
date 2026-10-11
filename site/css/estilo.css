@@ -181,6 +181,7 @@ p, li { max-width: var(--medida); }
 .chave-losango::before { border-radius: 2px; transform: rotate(45deg) scale(0.85); }
 .chave-x::before { content: "×"; width: auto; height: auto; border: 0; background: none; color: var(--cor); font-weight: 800; }
 .chave-anel::before { background: var(--urna); border: 2.5px solid var(--cor); }
+.graficos-par { display: flex; flex-wrap: wrap; gap: 0 12px; }
 
 /* ------------------------------------------------------------------ página Político */
 
@@ -217,9 +218,11 @@ p, li { max-width: var(--medida); }
 .pergunta input { position: absolute; opacity: 0; pointer-events: none; }
 .pergunta label:has(input:focus-visible) { outline: 3px solid var(--corrige); outline-offset: 3px; }
 
-.mapa-grade { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 2rem; align-items: start; }
-@media (max-width: 900px) { .mapa-grade { grid-template-columns: minmax(0, 1fr); } }
-.mapa-grade.sem-mapa { grid-template-columns: minmax(0, 1fr); }
+/* mapa centralizado no alto; o painel de respostas vem abaixo, na largura da página */
+.mapa-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
+.mapa-area { width: 100%; max-width: 760px; justify-self: center; }
+.painel { border-top: 3px solid var(--tecla); padding-top: 1.25rem; }
+.painel > div > p, .painel > p { max-width: var(--medida); }
 .mapa-grade.sem-mapa .legenda-mapa, .mapa-grade.sem-mapa .dica { display: none; }
 .mapa-topo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .mapa-topo h2 { margin: 0; }
@@ -243,6 +246,13 @@ p, li { max-width: var(--medida); }
   background: repeating-linear-gradient(45deg, #cbbd9d 0 3px, #8f8470 3px 4.5px);
 }
 .dica { font-size: 0.9rem; }
+.escala-vies { position: relative; display: block; max-width: 26rem; height: 3.1rem; margin: 0.2rem 0 0.4rem; }
+.escala-vies i { position: absolute; left: 0; right: 0; top: 0; height: 0.9rem; border: 1px solid var(--tecla); border-radius: 3px; }
+.escala-vies b { position: absolute; top: 0; height: 1.25rem; border-left: 1.5px solid var(--tecla); padding: 0.95rem 0 0 0;
+  transform: translateX(-50%); font-size: 0.75rem; font-weight: 600; color: var(--tecla); text-indent: -0.6rem; }
+.escala-vies em { position: absolute; top: 2.05rem; font-style: normal; font-size: 0.75rem; color: var(--tinta-2); white-space: nowrap; }
+.escala-vies .ponta-esq { left: 0; }
+.escala-vies .ponta-dir { right: 0; }
 .aviso-mapa { margin-top: 0.75rem; }
 .aviso-mapa p { margin: 0; }
 
@@ -266,3 +276,9 @@ p, li { max-width: var(--medida); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* setas de direção ideológica nas tabelas */
+.seta { white-space: nowrap; font-weight: 600; }
+.seta-esq { color: #5b3f99; }
+.seta-dir { color: #8a6408; }
+.tabela th .situacao { font-weight: 400; color: var(--tinta-2); white-space: nowrap; }

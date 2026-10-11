@@ -45,6 +45,16 @@ const fmtReal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'B
 const fmtNum = new Intl.NumberFormat('pt-BR');
 const fmtPct = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 
+/** Valor ideológico com seta para o lado em que fica: "← 2,68" (esquerda) ou "6,56 →" (direita).
+ *  centro: 5 na escala de 0 a 10, 0 na escala da Câmara (−100 a +100). */
+export function comSeta(v, centro = 5, casas = null) {
+  if (v == null) return '—';
+  const txt = (casas == null ? String(v) : v.toFixed(casas)).replace('.', ',').replace('-', '−');
+  if (v < centro) return `<span class="seta seta-esq" title="à esquerda do centro">← ${txt}</span>`;
+  if (v > centro) return `<span class="seta seta-dir" title="à direita do centro">${txt} →</span>`;
+  return `<span class="seta" title="no centro">${txt}</span>`;
+}
+
 export const formata = {
   real: v => fmtReal.format(v),
   numero: v => fmtNum.format(v),

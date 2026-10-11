@@ -1,7 +1,7 @@
 // Página Partido: as três medidas de ideologia e os eleitos de cada partido atual.
 // Dados: partidos.json (gerado por gera_dados.py a partir do banco nacional).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata } from './comum.js';
+import { montaPagina, carregaDados, formata, comSeta } from './comum.js';
 
 montaPagina();
 
@@ -62,8 +62,8 @@ function tabela() {
       <th class="num">Prefeitos 2024</th><th class="num">Vereadores 2024</th></tr></thead>
     <tbody>${linhas.map(p => `<tr>
       <td><a href="#${encodeURIComponent(p.sigla)}">${p.sigla}</a> <span class="apoio situacao">${p.nome.toLowerCase()}</span></td>
-      <td class="num">${p.numero}</td><td class="num">${nota(p.especialistas['2018'])}</td><td class="num">${nota(p.especialistas['2022'])}</td>
-      <td class="num">${nota(p.coligacoes['2024'])}</td><td class="num">${p.camara ?? '—'}</td>
+      <td class="num">${p.numero}</td><td class="num">${comSeta(p.especialistas['2018'], 5, 2)}</td><td class="num">${comSeta(p.especialistas['2022'], 5, 2)}</td>
+      <td class="num">${comSeta(p.coligacoes['2024'], 5, 2)}</td><td class="num">${comSeta(p.camara, 0, 1)}</td>
       <td class="num">${formata.numero(eleitosDe(p, 2022, ['DEPUTADO FEDERAL']))}</td>
       <td class="num">${formata.numero(eleitosDe(p, 2024, ['PREFEITO']))}</td>
       <td class="num">${formata.numero(eleitosDe(p, 2024, ['VEREADOR']))}</td></tr>`).join('')}</tbody>`;

@@ -1,11 +1,11 @@
 # Site
 
-Site estático que responde a quatro perguntas com os dados do banco:
+Site estático que responde a cinco perguntas com os dados do banco:
 
 | Página | Pergunta |
 |---|---|
 | `index.html` | apresentação do projeto, delimitações e fontes |
-| `mapa.html` | quanto custa uma cadeira; patrimônio e vitória; dinheiro público e vitória (Brasil, os seis estados do projeto e seus municípios) |
+| `mapa.html` | quanto custa uma cadeira; patrimônio e vitória; dinheiro público e vitória; viés ideológico ao longo do tempo (Brasil, os seis estados do projeto e seus municípios) |
 | `partido.html` | posição dos partidos segundo especialistas, alianças e votações na Câmara |
 | `politico.html` | carreira de cada político de AP, MG, MS, PB, RO e RR, e dos candidatos a presidente, de 1998 a 2024 |
 
@@ -27,6 +27,7 @@ site/
     ├── partidos.json       medidas de ideologia e eleitos por partido
     ├── mapa/               perguntas 1, 2 e 8: brasil.json, municipios/<UF>.json e
     │                       candidatos/<UF ou BR>.json (recortes com até 20 candidatos)
+    ├── vies/               pergunta 7: brasil.json (Brasil, regiões, UFs) e municipios/<UF>.json
     ├── geo/                contornos do IBGE (estados e municípios dos seis estados)
     └── politicos/          índice de busca, fichas e carreiras, em fatias
 ```
@@ -34,7 +35,7 @@ site/
 ## Gerar os dados
 
 O gerador usa dois bancos: o dos seis estados (`eleicoes`, o do dump) para os políticos e as
-listas de candidatos, e um com o país inteiro para o mapa e os partidos, carregado com
+listas de candidatos, e um com o país inteiro para o mapa, os partidos e o viés, carregado com
 `banco/carga.py --ufs todas` num banco separado:
 
 ```bash
@@ -49,7 +50,7 @@ DATABASE_URL="dbname=eleicoes_nacional" banco/.venv/bin/python banco/carga.py --
 cd site && ../banco/.venv/bin/python gera_dados.py
 ```
 
-Uma parte só: `--partes politicos` (ou `candidatos`, `mapa`, `geo`, `partidos`). Título
+Uma parte só: `--partes politicos` (ou `candidatos`, `mapa`, `geo`, `partidos`, `vies`). Título
 eleitoral, CPF e data de nascimento não saem do banco: cada político recebe um número
 sequencial próprio.
 

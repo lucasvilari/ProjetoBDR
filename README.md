@@ -16,7 +16,7 @@ Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 ├── crawler/     baixa das fontes só os arquivos que as perguntas usam (python -m crawler)
 ├── banco/       esquema, carga, validação e as 18 consultas das perguntas
 ├── scripts/     geração e restauração do dump do banco
-├── site/        site estático das perguntas 1, 2, 8 e 10 (GitHub Pages)
+├── site/        site estático das perguntas 1, 2, 7, 8 e 10 (GitHub Pages)
 └── docs/        página do modelo (D.E.R. e tabelas) e figuras do D.E.R.
 ```
 
@@ -103,8 +103,9 @@ em `banco/evidencias/`:
 cd banco && ./evidencias.sh
 ```
 
-O site em `site/` mostra as respostas de quatro perguntas (custo da cadeira, patrimônio,
-dinheiro público e carreira dos políticos) a partir de arquivos gerados do banco; veja
+O site em `site/` mostra as respostas de cinco perguntas (custo da cadeira, patrimônio,
+viés ideológico, dinheiro público e carreira dos políticos) a partir de arquivos gerados do
+banco; veja
 `site/README.md`.
 
 As perguntas sobre ideologia usam três medidas por partido (especialistas,

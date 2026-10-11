@@ -7,6 +7,8 @@ e grava os resultados em arquivos pequenos.
     politicos  carreiras e índice de busca (banco dos seis estados)
     mapa       perguntas 1, 2 e 8 no Brasil, por estado e por município (banco nacional)
     geo        contornos dos estados e municípios (API de malhas do IBGE)
+    vies       pergunta 7: índice ideológico ponderado pelos votos no Brasil, nas regiões,
+               nas UFs e nos municípios dos seis estados (banco nacional)
     candidatos candidatos a presidente, governador, senador e prefeito, um a um, para os
                recortes com poucos candidatos no mapa (banco dos seis estados)
 
@@ -470,8 +472,142 @@ def parte_candidatos(conn):
     log(f'candidatos: {sum(map(len, arquivos.values())):,} candidaturas em {len(arquivos)} arquivos')
 
 
+# --------------------------------------------------------------------------- viés ideológico (pergunta 7)
+
+# Mesma regra da consulta sql/p07_vies_ideologico.sql: votos nominais e de legenda do 1º turno
+# para vereador (anos municipais) e deputado federal (anos gerais); nota de cada partido da edição
+# do survey mais próxima do ano; partidos sem nota ficam fora da média.
+SQL_VOTOS_VIES = """
+SELECT e.ano, vp.id_partido, m.regiao, m.uf, vp.cod_tse, SUM(vp.votos_nominais + vp.votos_legenda)
+FROM votos_part vp
+JOIN eleicao e   ON e.cod_eleicao = vp.cod_eleicao
+JOIN municipio m ON m.cod_tse = vp.cod_tse
+WHERE vp.turno = 1 AND vp.cargo IN ('VEREADOR', 'DEPUTADO FEDERAL') AND e.ano = ANY(%(anos)s)
+GROUP BY 1, 2, 3, 4, 5
+"""
+# Voto para presidente (anos gerais): votos de cada candidato por município e turno.
+SQL_PRESIDENTE = """
+SELECT e.ano, vc.turno, p.nome, pa.sigla, c.id_partido, m.regiao, m.uf, vc.cod_tse, SUM(vc.votos)
+FROM votos_cand vc
+JOIN candidatura c ON c.sq_candidato = vc.sq_candidato
+JOIN eleicao e     ON e.cod_eleicao = c.cod_eleicao
+JOIN politico p    ON p.titulo_eleitoral = c.titulo_eleitoral
+JOIN partido pa    ON pa.id_partido = c.id_partido
+JOIN municipio m   ON m.cod_tse = vc.cod_tse
+WHERE c.cargo = 'PRESIDENTE' AND e.ano = ANY(%(anos)s)
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
+"""
+FAIXAS_VIES = [(3.5, 'Esquerda'), (4.5, 'Centro-esquerda'), (5.5, 'Centro'), (6.5, 'Centro-direita'), (99, 'Direita')]
+TOP_PARTIDOS = 5
+
+
+def parte_vies(conn):
+    log('viés: índice ideológico ponderado pelos votos')
+    with conn.cursor() as cur:
+        cur.execute('SELECT id_partido, ano_survey, nota FROM ideologia_partido')
+        surveys = defaultdict(list)
+        for i, a, n in cur.fetchall():
+            surveys[i].append((a, num(n)))
+        cur.execute('SELECT id_partido, sigla, espectro_camara FROM partido')
+        siglas, camara = {}, {}
+        for i, s, c in cur.fetchall():
+            siglas[i], camara[i] = s, num(c)
+        cur.execute('SELECT DISTINCT id_partido, espectro_camara FROM vw_ideologia_partido WHERE espectro_camara IS NOT NULL')
+        camara.update({i: num(c) for i, c in cur.fetchall()})      # nomes antigos herdam do atual
+        cur.execute(SQL_VOTOS_VIES, {'anos': list(ANOS)})
+        votos = cur.fetchall()
+        cur.execute(SQL_PRESIDENTE, {'anos': list(ANOS)})
+        presidente = cur.fetchall()
+
+    def nota(id_partido, ano):
+        opcoes = surveys.get(id_partido)
+        if not opcoes:
+            return None
+        return min(opcoes, key=lambda o: (abs(o[0] - ano), -o[0]))[1]     # mais próxima; empate: mais recente
+
+    # soma por território: total de votos, votos com nota, soma de votos x nota, idem Câmara e por partido
+    acc = defaultdict(lambda: {'total': 0, 'com_nota': 0, 'soma': 0.0, 'cam_votos': 0, 'cam_soma': 0.0,
+                               'partidos': defaultdict(int)})
+    regiao_da_uf = {}
+    for ano, id_partido, regiao, uf, mun, v in votos:
+        regiao_da_uf[uf] = regiao
+        n = nota(id_partido, ano)
+        c = camara.get(id_partido)
+        territorios = ['BR', regiao, uf] + ([mun] if uf in UFS_PROJETO else [])
+        for terr in territorios:
+            a = acc[(ano, terr)]
+            a['total'] += v
+            a['partidos'][id_partido] += v
+            if n is not None:
+                a['com_nota'] += v
+                a['soma'] += v * n
+                if c is not None:
+                    a['cam_votos'] += v
+                    a['cam_soma'] += v * c
+
+    # presidente: votos por candidato e turno em cada território
+    pres = defaultdict(lambda: defaultdict(int))          # (ano, turno, território) -> (nome, sigla, id) -> votos
+    for ano, turno, nome, sigla, id_partido, regiao, uf, mun, v in presidente:
+        for terr in ['BR', regiao, uf] + ([mun] if uf in UFS_PROJETO else []):
+            pres[(ano, turno, terr)][(nome, sigla, id_partido)] += v
+
+    def presidente_em(ano, terr):
+        """2º turno (os dois finalistas, % dos votos válidos) e índice do 1º turno pela nota dos partidos."""
+        if (ano, 1, terr) not in pres:
+            return None
+        t2 = pres.get((ano, 2, terr), {})
+        total2 = sum(t2.values())
+        finalistas = [[nome, sigla, round(100 * v / total2, 1), nota(i, ano)] for (nome, sigla, i), v in
+                      sorted(t2.items(), key=lambda x: -x[1])] if total2 else []
+        t1 = pres[(ano, 1, terr)]
+        com_nota = [(v, nota(i, ano)) for (_, _, i), v in t1.items() if nota(i, ano) is not None]
+        votos_nota = sum(v for v, _ in com_nota)
+        return {'segundo_turno': finalistas,
+                'indice_1turno': round(sum(v * n for v, n in com_nota) / votos_nota, 2) if votos_nota else None}
+
+    def linha(ano, terr, a):
+        indice = a['soma'] / a['com_nota'] if a['com_nota'] else None
+        top = sorted(a['partidos'].items(), key=lambda x: -x[1])[:TOP_PARTIDOS]
+        return [ano, terr,
+                None if indice is None else round(indice, 2),
+                next(nome for lim, nome in FAIXAS_VIES if indice is None or indice < lim) if indice is not None else None,
+                round(a['cam_soma'] / a['cam_votos'], 1) if a['cam_votos'] else None,
+                round(100 * a['cam_votos'] / a['com_nota'], 1) if a['com_nota'] else None,
+                round(100 * a['com_nota'] / a['total'], 1) if a['total'] else None,
+                a['total'],
+                [[siglas[i], round(100 * v / a['total'], 1), nota(i, ano)] for i, v in top],
+                presidente_em(ano, terr)]
+
+    campos = ['ano', 'territorio', 'indice', 'classificacao', 'indice_camara', 'cobertura_camara_pct',
+              'cobertura_especialistas_pct', 'votos', 'principais_partidos', 'presidente']
+    brasil, por_uf = [], defaultdict(list)
+    for (ano, terr), a in sorted(acc.items(), key=lambda x: (x[0][0], str(x[0][1]))):
+        l = linha(ano, terr, a)
+        if isinstance(terr, str) and len(terr) == 5 and terr.isdigit():
+            por_uf[next(uf for uf in UFS_PROJETO if terr in municipios_da(conn, uf))].append(l)
+        else:
+            brasil.append(l)
+    shutil.rmtree(DADOS / 'vies', ignore_errors=True)
+    grava('vies/brasil.json', {'campos': campos, 'faixas': [[lim, nome] for lim, nome in FAIXAS_VIES],
+                               'regiao_da_uf': regiao_da_uf, 'linhas': brasil})
+    for uf, linhas in por_uf.items():
+        grava(f'vies/municipios/{uf}.json', {'campos': campos, 'linhas': linhas})
+    log(f'viés: {len(brasil)} linhas de Brasil, regiões e UFs; {sum(map(len, por_uf.values())):,} de municípios')
+
+
+_MUNICIPIOS = {}
+
+
+def municipios_da(conn, uf):
+    if uf not in _MUNICIPIOS:
+        with conn.cursor() as cur:
+            cur.execute('SELECT cod_tse FROM municipio WHERE uf = %s', (uf,))
+            _MUNICIPIOS[uf] = {c for (c,) in cur.fetchall()}
+    return _MUNICIPIOS[uf]
+
+
 PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
-          'partidos': parte_partidos, 'candidatos': parte_candidatos}
+          'partidos': parte_partidos, 'candidatos': parte_candidatos, 'vies': parte_vies}
 
 
 def main():
