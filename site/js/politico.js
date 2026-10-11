@@ -201,7 +201,7 @@ async function abre(id) {
   try { dados = await carreira(id); }
   catch { ficha.innerHTML = '<p class="apoio">Esse político não foi encontrado. Faça uma nova busca.</p>'; return; }
   const { nome, cands } = dados;
-  document.title = `${nome} · Confirma`;
+  document.title = `${nome} · Tá no Olho do Povo`;
   ficha.innerHTML = `
     <h2 class="ficha-nome">${nome}</h2>
     <dl class="numeros">${resumo(cands).map(([r, v]) => `<div><dt>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>

@@ -1,4 +1,4 @@
-/* Confirma: estilo comum às quatro páginas.
+/* Tá no Olho do Povo: estilo comum às quatro páginas.
    A urna eletrônica: corpo bege, teclas pretas em relevo, visor claro e afundado,
    CONFIRMA (verde) para a página atual, destaques e vitórias, CORRIGE (laranja) para derrotas. */
 
@@ -81,7 +81,9 @@ a:hover { text-decoration-thickness: 3px; }
 .marca-tecla {
   width: 2rem; height: 1.35rem; border-radius: 5px; background: var(--confirma);
   border: 1px solid var(--tecla-borda); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25), 0 2px 0 var(--tecla-borda);
+  display: inline-flex; align-items: center; justify-content: center; padding-bottom: 2px;
 }
+.marca-tecla svg { width: 1.45rem; height: auto; }
 .nav { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .nav a { display: inline-block; padding: 0.5rem 1rem; text-decoration: none; }
 

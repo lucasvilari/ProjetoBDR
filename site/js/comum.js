@@ -15,7 +15,7 @@ export function montaPagina() {
   const topo = document.querySelector('header.topo');
   topo.innerHTML = `
     <div class="topo-interno">
-      <a class="marca" href="index.html"><span class="marca-tecla" aria-hidden="true"></span>Confirma</a>
+      <a class="marca" href="index.html"><span class="marca-tecla" aria-hidden="true"><svg viewBox="0 0 24 14"><path d="M1 7C5 1 19 1 23 7C19 13 5 13 1 7Z" fill="#faf7ef" stroke="#22201c" stroke-width="1.3"/><circle cx="12" cy="7" r="3.7" fill="#22201c"/><circle cx="13.3" cy="5.7" r="1.2" fill="#faf7ef"/></svg></span>Tá no Olho do Povo</a>
       <nav class="nav" aria-label="Seções do site">
         ${PAGINAS.map(p => `<a href="${p.href}"${p.id === atual ? ' aria-current="page"' : ''}>${p.rotulo}</a>`).join('')}
       </nav>
