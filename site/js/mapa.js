@@ -7,7 +7,7 @@
 // A seleção (pergunta, ano, cargo, faixa, UF e município) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta } from './comum.js';
+import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261013';
 
 montaPagina();
 
@@ -141,9 +141,17 @@ function legendaVies(esc) {
     <span class="escala-vies">
       <i style="background: linear-gradient(90deg, ${paradas})"></i>
       ${cortes.map(c => `<b style="left:${pos(c)}%">${String(c).replace('.', ',')}</b>`).join('')}
-      <em class="ponta-esq">← esquerda</em><em class="ponta-dir">direita →</em>
+      <em class="ponta-esq">esquerda</em><em class="ponta-dir">direita</em>
     </span>
     <span class="legenda-faixas"><span><i class="sem-dado"></i>sem dado</span></span>`;
+}
+
+/** Texto branco ou escuro, o que tiver mais contraste com a cor de fundo. */
+function textoSobre(cor) {
+  const lum = c => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const { r, g, b } = d3.rgb(cor);
+  const l = 0.2126 * lum(r) + 0.7152 * lum(g) + 0.0722 * lum(b);
+  return (1.05 / (l + 0.05)) >= 4.5 ? '#ffffff' : '#22201c';
 }
 
 const virgula = v => (v == null ? '—' : String(v).replace('.', ','));
@@ -167,8 +175,8 @@ function graficoPar(pontos, anos, titulo, largura) {
     marks: [
       Plot.text([titulo], { frameAnchor: 'top-left', dy: -22, fontWeight: 700, fontSize: 12.5 }),
       // direção do eixo: alto = direita, baixo = esquerda
-      Plot.text(['↑ direita'], { frameAnchor: 'top-left', dx: 4, dy: 8, fill: '#b8860b', fontWeight: 700, fontSize: 11.5 }),
-      Plot.text(['↓ esquerda'], { frameAnchor: 'bottom-left', dx: 4, dy: -8, fill: '#5b3f99', fontWeight: 700, fontSize: 11.5 }),
+      Plot.text(['mais à direita'], { frameAnchor: 'top-left', dx: 4, dy: 8, fill: '#725306', fontWeight: 700, fontSize: 11.5 }),
+      Plot.text(['mais à esquerda'], { frameAnchor: 'bottom-left', dx: 4, dy: -8, fill: '#5b3f99', fontWeight: 700, fontSize: 11.5 }),
       Plot.line(doPar, { x: 'ano', y: 'indice', z: 'quem', stroke: p => (p.principal ? '#22201c' : '#8f8470'),
                          strokeWidth: p => (p.principal ? 3 : 1.4) }),
       Plot.dot(doPar, { x: 'ano', y: 'indice', r: p => (p.principal ? 5 : 3), fill: p => (p.principal ? '#22201c' : '#8f8470'),
@@ -185,14 +193,18 @@ function barrasPresidente(linhas) {
   const dados = linhas.flatMap(({ rotulo, presidente }) => (presidente?.segundo_turno ?? []).map(([nome, sigla, pct, nota]) =>
     ({ rotulo, nome: `${apelido(nome)} (${sigla})`, curto: apelido(nome), pct, nota })));
   if (!dados.length) return null;
+  const largura = Math.min(720, painel.clientWidth || 520);
+  const marginLeft = Math.min(120, 14 + 7 * d3.max(linhas, l => l.rotulo.length));
+  // o nome só entra quando a barra comporta nome e porcentagem
+  const cabe = d => (d.pct / 100) * (largura - marginLeft - 10) > 7 * (d.curto.length + 7);
   return Plot.plot({
-    width: Math.min(720, painel.clientWidth || 520), height: 34 + 34 * linhas.length, marginLeft: 120, marginRight: 10,
+    width: largura, height: 34 + 34 * linhas.length, marginLeft, marginRight: 10,
     style: { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background: 'transparent' },
     x: { domain: [0, 100], axis: null }, y: { domain: linhas.map(l => l.rotulo), label: null },
     marks: [
       Plot.barX(dados, Plot.stackX({ y: 'rotulo', x: 'pct', fill: d => corDaNota(d.nota), stroke: '#22201c', strokeWidth: 1 })),
-      Plot.text(dados, Plot.stackX({ y: 'rotulo', x: 'pct', text: d => (d.pct < 25 ? `${virgula(d.pct)}%` : `${d.curto} ${virgula(d.pct)}%`),
-                                     fill: '#ffffff', fontWeight: 700, title: d => `${d.nome}: ${virgula(d.pct)}%` })),
+      Plot.text(dados, Plot.stackX({ y: 'rotulo', x: 'pct', text: d => (cabe(d) ? `${d.curto} ${virgula(d.pct)}%` : `${virgula(d.pct)}%`),
+                                     fill: d => textoSobre(corDaNota(d.nota)), fontWeight: 700, title: d => `${d.nome}: ${virgula(d.pct)}%` })),
       Plot.ruleX([50], { stroke: '#22201c', strokeDasharray: '2,3' }),
     ],
   });
@@ -256,7 +268,7 @@ async function painelVies(onde, nome) {
     </p>
     <h4>Ano a ano ${em(nome)}</h4>
     <div class="rolagem"><table class="tabela">
-      <thead><tr><th>Ano</th><th>Votos usados no índice</th><th class="num">Índice<span class="situacao">← esquerda 0 a 10 direita →</span></th><th>Classe</th><th>Presidente, 2º turno</th></tr></thead>
+      <thead><tr><th>Ano</th><th>Votos usados no índice</th><th class="num">Índice<span class="situacao">esquerda 0 a 10 direita</span></th><th>Classe</th><th>Presidente, 2º turno</th></tr></thead>
       <tbody>${serie.map(l => `<tr${l.ano === doAno.ano ? ' class="atual"' : ''}><td>${l.ano}</td>
         <td>${l.ano % 4 === 0 ? 'vereador' : 'deputado federal'}</td><td class="num">${comSeta(l.indice)}</td><td>${l.classificacao ?? '—'}</td>
         <td>${l.presidente?.segundo_turno?.length ? l.presidente.segundo_turno.map(([n, s, pct]) => `${apelido(n)} ${virgula(pct)}%`).join(' × ')
@@ -264,7 +276,7 @@ async function painelVies(onde, nome) {
       </tbody></table></div>
     <h4>Partidos mais votados para ${cargoAno} ${em(nome)}, em ${doAno.ano}</h4>
     <div class="rolagem"><table class="tabela">
-      <thead><tr><th>Partido</th><th class="num">Parcela dos votos</th><th class="num">Nota dos especialistas<span class="situacao">← esquerda 0 a 10 direita →</span></th></tr></thead>
+      <thead><tr><th>Partido</th><th class="num">Parcela dos votos</th><th class="num">Nota dos especialistas<span class="situacao">esquerda 0 a 10 direita</span></th></tr></thead>
       <tbody>${doAno.principais_partidos.map(([sigla, pct, nota]) => `<tr><td>${sigla}</td><td class="num">${virgula(pct)}%</td>
         <td class="num">${nota == null ? '<span class="sem-info">sem nota</span>' : comSeta(nota)}</td></tr>`).join('')}</tbody></table></div>
     <p class="apoio">Como o índice é calculado: cada partido tem uma nota de 0 (esquerda) a 10 (direita) dada por
@@ -318,17 +330,23 @@ function painelIndividual(lista, nome, pergunta) {
   const comparacao = mediana == null ? '' : ` Entre os que não se elegeram, o valor do meio (mediana) foi ${metrica.fmt(mediana)}.`;
 
   const comValor = linhas.filter(c => c.v != null);
+  const largura = Math.min(760, painel.clientWidth || 520);
+  // tela estreita: o nome vai acima da barra, que ganha a largura toda
+  const estreito = largura < 560;
+  const barra = Plot.barX(comValor, { y: 'nome', x: 'v', fill: c => (c.eleito ? '#00a651' : '#cbbd9d'), stroke: '#22201c', strokeWidth: 1,
+                                       insetTop: estreito ? 19 : 0, title: c => `${c.nome} (${c.partido}): ${metrica.fmt(c.v)}` });
+  const valor = Plot.text(comValor, { y: 'nome', x: 'v', text: c => metrica.fmt(c.v), dx: 6, dy: estreito ? 9 : 0, textAnchor: 'start' });
   const grafico = comValor.length ? Plot.plot({
-    width: Math.min(760, painel.clientWidth || 520), height: 30 + 30 * comValor.length,
-    marginLeft: 245, marginRight: 110, marginTop: 10,
+    width: largura, height: (estreito ? 16 : 30) + (estreito ? 46 : 30) * comValor.length,
+    marginLeft: estreito ? 0 : 245, marginRight: estreito ? 100 : 110, marginTop: 10,
     style: { fontFamily: 'Archivo, sans-serif', fontSize: '12.5px', background: 'transparent' },
     x: { axis: null, domain: pergunta === 'dependencia' ? [0, 100] : undefined },
-    y: { domain: comValor.map(c => c.nome), label: null, tickFormat: n => (n.length > 28 ? `${n.slice(0, 27)}…` : n) },
-    marks: [
-      Plot.barX(comValor, { y: 'nome', x: 'v', fill: c => (c.eleito ? '#00a651' : '#cbbd9d'), stroke: '#22201c', strokeWidth: 1,
-                            title: c => `${c.nome} (${c.partido}): ${metrica.fmt(c.v)}` }),
-      Plot.text(comValor, { y: 'nome', x: 'v', text: c => metrica.fmt(c.v), dx: 6, textAnchor: 'start' }),
-    ],
+    y: { domain: comValor.map(c => c.nome), label: null, axis: estreito ? null : 'left',
+         tickFormat: n => (n.length > 28 ? `${n.slice(0, 27)}…` : n) },
+    marks: estreito
+      ? [barra, valor, Plot.text(comValor, { y: 'nome', x: 0, text: c => `${c.nome} (${c.partido})`, dy: -12, textAnchor: 'start',
+                                             fontWeight: c => (c.eleito ? 700 : 400), lineWidth: 40 })]
+      : [barra, valor],
   }) : null;
 
   const caixa = document.createElement('div');
@@ -344,7 +362,7 @@ function painelIndividual(lista, nome, pergunta) {
     <div class="rolagem"><table class="tabela">
       <thead><tr><th>Candidato</th><th>Resultado</th><th class="num">Patrimônio</th><th class="num">Gasto</th><th class="num">Dinheiro público</th></tr></thead>
       <tbody>${linhas.map(c => `<tr${c.eleito ? ' class="atual"' : ''}>
-        <td><a href="politico.html#${c.id}">${c.nome}</a> <span class="apoio situacao">${c.partido}</span></td>
+        <td class="nome"><a href="politico.html#${c.id}">${c.nome}</a> <span class="apoio situacao">${c.partido}</span></td>
         <td>${resultadoCandidato(c)}</td>
         <td class="num">${c.patrimonio ? formata.real(c.patrimonio) : '<span class="sem-info">nenhum bem</span>'}</td>
         <td class="num">${c.despesa ? formata.real(c.despesa) : '<span class="sem-info">sem despesa</span>'}</td>
@@ -442,7 +460,7 @@ async function desenhaMapa() {
   if (presidente) {
     svgCaixa.innerHTML = `<div class="aviso-vazio aviso-mapa"><p><strong>A eleição para presidente é nacional.</strong>
       Os votos são somados no país inteiro, então não há custo, patrimônio ou dinheiro público por estado
-      para colorir o mapa. A resposta para o Brasil está abaixo.</p></div>`;
+      para colorir o mapa. A resposta para o Brasil está no santinho.</p></div>`;
     document.getElementById('legenda').innerHTML = '';
     document.getElementById('dica').textContent = 'Escolha outro cargo para ver o mapa.';
     return;
@@ -539,22 +557,9 @@ async function painelCusto(onde, nome) {
       <td class="num">${x.vagas ? formata.numero(Math.round(10 * x.candidatos / x.vagas) / 10) : ''}</td>
       <td class="num">${x.vagas ? formata.real(x.gasto / x.vagas) : ''}</td>
       <td class="num">${custoMedio(x) == null ? '' : formata.real(custoMedio(x))}</td></tr>`).join('');
-  const umEleito = r.eleitos === 1;
   const html = `
     <h3>Quanto custa uma cadeira de ${estado.cargo.toLowerCase()} ${em(nome)}, em ${estado.ano}?</h3>
-    <dl class="numeros numeros-painel">
-      <div><dt>${umEleito ? 'Quanto gastou quem se elegeu' : 'Quanto gastou, em média, cada eleito'}</dt>
-        <dd>${custoMedio(r) == null ? '—' : formata.real(custoMedio(r))}</dd>
-        <dd class="explica">${umEleito ? 'Despesas da campanha vencedora.' : `Despesas dos ${formata.numero(r.eleitos)} eleitos ÷ ${formata.numero(r.eleitos)}.`}</dd></div>
-      <div><dt>Quanto a disputa custou por cadeira</dt>
-        <dd>${r.vagas ? formata.real(r.gasto / r.vagas) : '—'}</dd>
-        <dd class="explica">Despesas de todos os ${formata.numero(r.candidatos)} candidatos, eleitos ou não, ÷ ${formata.numero(r.vagas ?? 0)} ${r.vagas === 1 ? 'vaga' : 'vagas'}.</dd></div>
-      <div><dt>Candidatos por vaga</dt><dd>${r.vagas ? formata.numero(Math.round(10 * r.candidatos / r.vagas) / 10) : '—'}</dd></div>
-      <div><dt>Vagas</dt><dd>${formata.numero(r.vagas ?? 0)}</dd></div>
-    </dl>
-    <p class="apoio">O primeiro número diz quanto custou, para quem venceu, chegar à cadeira; o segundo, quanto
-      dinheiro a disputa inteira movimentou para cada cadeira, contando também quem perdeu. Despesas
-      contratadas pelas campanhas, em reais de cada ano, sem correção pela inflação.</p>
+    <p class="apoio">O santinho ao lado do mapa traz a resposta; vire-o para ver como foi calculada.</p>
     <div id="individual"></div>
     <h4>Todos os cargos de ${estado.ano} ${em(nome)}</h4>
     <div class="rolagem"><table class="tabela">
@@ -596,8 +601,6 @@ async function painelFaixas(onde, nome) {
                           dx: 6, textAnchor: 'start', stroke: '#e8dcc4', strokeWidth: 4, fill: '#22201c', paintOrder: 'stroke' }),
     ],
   });
-  const escolhida = linhas.find(r => r.faixa === estado.faixa);
-  const parcela = escolhida && eleitos ? (100 * escolhida.eleitos) / eleitos : 0;
   const caixa = document.createElement('div');
   caixa.innerHTML = `
     <h3>${pergunta}</h3>
@@ -606,7 +609,6 @@ async function painelFaixas(onde, nome) {
       tracejada é a taxa de todos os candidatos juntos (${formata.pct(geral)}). Barra que passa da linha
       é faixa que se elege mais do que a média.</p>
     <div class="grafico"></div>
-    <p>Dos eleitos, ${formata.pct(parcela)} estavam na faixa "${nomes[estado.faixa]}", a que colore o mapa.</p>
     <p class="apoio">${estado.pergunta === 'patrimonio'
       ? 'Bens declarados ao TSE no registro da candidatura.'
       : 'Parcela da receita vinda do fundo eleitoral e do Fundo Partidário; candidatos sem receita ficam de fora.'}
@@ -627,6 +629,109 @@ async function desenhaPainel() {
   }
 }
 
+// ---------------------------------------------------------------- o santinho e a pilha de anos
+
+const FONTE_SQL = { custo: 'p01_custo_cadeira.sql', patrimonio: 'p02_taxa_por_patrimonio.sql',
+  dependencia: 'p08_dependencia_publica.sql', vies: 'p07_vies_ideologico.sql' };
+const abrevia = v => (v >= 1e6 ? `R$ ${String((v / 1e6).toFixed(1)).replace('.', ',')} mi` : `R$ ${Math.round(v / 1e3)} mil`);
+
+/** A resposta da pergunta atual no território `onde` num ano: o que vai no santinho, ou null. */
+async function respostaDoAno(onde, ano) {
+  if (ehVies()) {
+    const linhas = await linhasVies(/^\d{5}$/.test(onde) ? `vies/municipios/${estado.uf}.json` : 'vies/brasil.json');
+    const l = linhas.find(x => x.territorio === onde && x.ano === ano);
+    if (!l || l.indice == null) return null;
+    const cargoAno = ano % 4 === 2 ? 'deputado federal' : 'vereador';
+    const st = l.presidente?.segundo_turno ?? [];
+    return {
+      numero: virgula(l.indice), curto: virgula(l.indice),
+      rotulo: `${l.classificacao ?? 'Sem classe'}, de 0 (esquerda) a 10 (direita), nos votos para ${cargoAno}.`,
+      linhas: [
+        ...(st.length ? [['Presidente, 2º turno', `${apelido(st[0][0])} ${virgula(st[0][2])}%`]] : []),
+        ['Votos com nota', `${virgula(l.cobertura_especialistas_pct)}%`],
+        ['Régua da Câmara', l.indice_camara == null ? '—' : `${l.indice_camara > 0 ? '+' : ''}${virgula(l.indice_camara)}`],
+      ],
+      verso: `<p>Cada partido tem uma nota de 0 (esquerda) a 10 (direita) dada por especialistas. O índice é a média
+        dessas notas, com peso pelos votos que cada partido recebeu para ${cargoAno}.</p>
+        <p>Partidos sem nota ficam fora da média. A régua da Câmara (−100 a +100) refaz a conta com as votações
+        dos deputados e mede sobretudo o alinhamento com o governo.</p>`,
+    };
+  }
+  const dados = await fonte(onde);
+  const ic = idxCargo(estado.cargo);
+  if (estado.pergunta === 'custo') {
+    const r = custos(dados, x => x.ano === ano && x.territorio === onde && x.cargo === ic)[0];
+    if (!r || custoMedio(r) == null) return null;
+    const um = r.eleitos === 1;
+    return {
+      numero: formata.real(custoMedio(r)), curto: abrevia(custoMedio(r)),
+      rotulo: um ? 'gastou a campanha de quem se elegeu.' : `gastou, em média, cada um dos ${formata.numero(r.eleitos)} eleitos.`,
+      linhas: [
+        ['Disputa por cadeira', r.vagas ? formata.real(r.gasto / r.vagas) : '—'],
+        ['Candidatos por vaga', r.vagas ? formata.numero(Math.round(10 * r.candidatos / r.vagas) / 10) : '—'],
+        ['Vagas', formata.numero(r.vagas ?? 0)],
+      ],
+      verso: `<p>O número grande soma as despesas ${um ? 'da campanha vencedora' : `dos ${formata.numero(r.eleitos)} eleitos e divide por ${formata.numero(r.eleitos)}`}:
+        quanto custou, para quem venceu, chegar à cadeira.</p>
+        <p>A disputa por cadeira soma as despesas de todos os ${formata.numero(r.candidatos)} candidatos, eleitos ou não,
+        e divide pelas ${formata.numero(r.vagas ?? 0)} vagas.</p>
+        <p>Despesas contratadas pelas campanhas, em reais de cada ano, sem correção pela inflação.</p>`,
+    };
+  }
+  const nomes = nomeFaixas();
+  const rs = faixas(dados, x => x.ano === ano && x.cargo === ic && x.territorio === onde);
+  const cand = d3.sum(rs, x => x.candidatos), el = d3.sum(rs, x => x.eleitos);
+  if (!el) return null;
+  const f = rs.find(x => x.faixa === estado.faixa);
+  const parcela = (100 * (f?.eleitos ?? 0)) / el;
+  return {
+    numero: formata.pct(parcela), curto: formata.pct(parcela),
+    rotulo: `dos eleitos estavam na faixa "${nomes[estado.faixa]}".`,
+    linhas: [
+      ['Vitória nessa faixa', f?.candidatos ? formata.pct((100 * f.eleitos) / f.candidatos) : '—'],
+      ['Vitória de todos', formata.pct((100 * el) / cand)],
+      ['Eleitos', `${formata.numero(el)} de ${formata.numero(cand)}`],
+    ],
+    verso: `<p>${estado.pergunta === 'patrimonio'
+      ? 'Bens declarados ao TSE no registro da candidatura, somados por candidato.'
+      : 'Parcela da receita vinda do fundo eleitoral e do Fundo Partidário; candidatos sem receita ficam de fora.'}</p>
+      <p>O número grande é a parcela dos eleitos que estava na faixa escolhida, a mesma que colore o mapa. A taxa de
+      vitória divide os eleitos da faixa pelos candidatos dela.</p>
+      <p>A relação não é de causa e efeito: dinheiro, viabilidade e já ocupar o cargo andam juntos.</p>`,
+  };
+}
+
+let anoDoSantinho = null;
+async function desenhaSantinho() {
+  const onde = territorioAtual();
+  // município selecionado com cargo estadual: os números são do estado, e o santinho diz isso
+  const nome = onde === estado.mun ? await nomeTerritorio() : (estado.uf ? NOME_UF[estado.uf] : 'Brasil');
+  const respostas = await Promise.all(brasil.anos.map(a => respostaDoAno(onde, a)));
+  const r = respostas[brasil.anos.indexOf(estado.ano)];
+  const cargoTxt = ehVies() ? (estado.ano % 4 === 2 ? 'deputado federal' : 'vereador') : estado.cargo.toLowerCase();
+  const geral = a => a % 4 === 2;
+  const vazio = a => (ehVies() || geral(a) === geral(estado.ano) ? 'sem dado' : geral(a) ? 'troca para deputado' : 'troca para vereador');
+  const atras = brasil.anos.map((a, j) => [a, respostas[j]]).filter(([a]) => a !== estado.ano);
+  const caixa = document.getElementById('pilha');
+  caixa.innerHTML = `
+    <div class="pilha-anos" role="group" aria-label="Outros anos da mesma pergunta">
+      ${atras.map(([a, r], k) => `<button type="button" class="pilha-ano" data-ano="${a}" style="--k:${k}">
+        <b>${a}</b><span>${r?.curto ?? vazio(a)}</span></button>`).join('')}
+    </div>
+    ${santinho(r ? { faixa: `${cargoTxt} · ${estado.ano}`, nome, ...r, fonte: FONTE_SQL[estado.pergunta] }
+      : { faixa: `${cargoTxt} · ${estado.ano}`, nome, numero: '—', rotulo: 'Sem dado para este recorte.', classe: 'santinho-neutro' })}`;
+  // o santinho do ano escolhido sai da pilha e assenta na frente
+  if (anoDoSantinho != null && anoDoSantinho !== estado.ano) {
+    caixa.classList.remove('assenta'); void caixa.offsetWidth; caixa.classList.add('assenta');
+  }
+  anoDoSantinho = estado.ano;
+}
+
+document.getElementById('pilha').addEventListener('click', e => {
+  const ano = e.target.closest('.pilha-ano')?.dataset.ano;
+  if (ano) { estado.ano = Number(ano); atualiza(); }
+});
+
 // ---------------------------------------------------------------- ciclo
 
 async function atualiza() {
@@ -634,7 +739,7 @@ async function atualiza() {
   escreveEndereco();
   document.getElementById('titulo-territorio').textContent = await nomeTerritorio();
   document.getElementById('voltar').hidden = !estado.uf;
-  await Promise.all([desenhaMapa(), desenhaPainel()]);
+  await Promise.all([desenhaMapa(), desenhaPainel(), desenhaSantinho()]);
 }
 
 leEndereco();

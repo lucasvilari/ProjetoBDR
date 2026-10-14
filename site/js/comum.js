@@ -26,6 +26,42 @@ export function montaPagina() {
       <span>Dados abertos do TSE, do IBGE, do Atlas do Desenvolvimento Humano e de especialistas em partidos.</span>
       <a href="${REPOSITORIO}">Código e consultas no GitHub</a>
     </div>`;
+  document.addEventListener('click', viraSantinho);
+}
+
+/** Um santinho: faixa (cargo, lugar, ano), o número da pergunta, o que ele mede, linhas de apoio e,
+ *  no verso, como foi calculado e o que falta. Devolve HTML. */
+export function santinho({ faixa, nome = '', numero, rotulo, linhas = [], verso, fonte = '', classe = '' }) {
+  return `<div class="santinho ${classe}">
+    <div class="santinho-carta">
+      <section class="santinho-face santinho-frente">
+        <div class="santinho-faixa">${faixa}</div>
+        ${nome ? `<span class="santinho-nome">${nome}</span>` : ''}
+        <strong class="santinho-numero"><span>${numero}</span></strong>
+        <p class="santinho-rotulo">${rotulo}</p>
+        ${linhas.length ? `<dl class="santinho-linhas">${linhas.map(([r, v]) => `<div><dt>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
+        ${verso ? `<div class="santinho-rodape santinho-cola"><span class="fonte">${fonte}</span>
+          <button type="button" class="botao virar" aria-pressed="false">Como se calcula</button></div>` : ''}
+      </section>
+      ${verso ? `<section class="santinho-face santinho-verso" inert>
+        <div class="santinho-faixa">Verso: como se calcula</div>
+        <div class="santinho-texto">${verso}</div>
+        <div class="santinho-rodape santinho-cola"><span class="fonte">${fonte}</span>
+          <button type="button" class="botao virar" aria-pressed="true">Voltar à frente</button></div>
+      </section>` : ''}
+    </div>
+  </div>`;
+}
+
+/** Vira o santinho do botão clicado; a face escondida fica inerte, e o foco passa para a outra face. */
+function viraSantinho(e) {
+  const botao = e.target.closest('.virar');
+  if (!botao) return;
+  const caixa = botao.closest('.santinho');
+  const virado = caixa.classList.toggle('virado');
+  const [frente, verso] = caixa.querySelectorAll('.santinho-face');
+  frente.inert = virado; verso.inert = !virado;
+  (virado ? verso : frente).querySelector('.virar').focus({ preventScroll: true });
 }
 
 const cache = new Map();
@@ -50,8 +86,8 @@ const fmtPct = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 export function comSeta(v, centro = 5, casas = null) {
   if (v == null) return '—';
   const txt = (casas == null ? String(v) : v.toFixed(casas)).replace('.', ',').replace('-', '−');
-  if (v < centro) return `<span class="seta seta-esq" title="à esquerda do centro">← ${txt}</span>`;
-  if (v > centro) return `<span class="seta seta-dir" title="à direita do centro">${txt} →</span>`;
+  if (v < centro) return `<span class="seta seta-esq" title="à esquerda do centro"><i aria-hidden="true"></i>${txt}</span>`;
+  if (v > centro) return `<span class="seta seta-dir" title="à direita do centro">${txt}<i aria-hidden="true"></i></span>`;
   return `<span class="seta" title="no centro">${txt}</span>`;
 }
 

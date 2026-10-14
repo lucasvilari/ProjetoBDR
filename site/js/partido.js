@@ -1,7 +1,7 @@
 // Página Partido: as três medidas de ideologia e os eleitos de cada partido atual.
 // Dados: partidos.json (gerado por gera_dados.py a partir do banco nacional).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta } from './comum.js';
+import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261013';
 
 montaPagina();
 
@@ -19,9 +19,12 @@ const MARGENS = { marginTop: 34, marginBottom: 6 };   // iguais nos dois gráfic
 function graficoEspectro() {
   const pontos = ordenados.map(p => ({ sigla: p.sigla, esp: p.especialistas['2022'], col: p.coligacoes['2024'] ?? null }));
   const largura = document.getElementById('g-espectro').clientWidth || 640;
+  const estreito = largura < 400;
+  const rotulos = estreito ? { 0: 'esq.', 5: 'centro', 10: 'dir.' } : { 0: 'esquerda', 5: 'centro', 10: 'direita' };
   return Plot.plot({
-    width: largura, height: altura, marginLeft: 120, ...MARGENS, style: ESTILO,
-    x: { domain: [0, 10], ticks: [0, 2.5, 5, 7.5, 10], tickFormat: v => ({ 0: 'esquerda', 5: 'centro', 10: 'direita' })[v] ?? '', grid: true, label: null, axis: 'top' },
+    width: largura, height: altura, marginLeft: estreito ? 98 : 120, ...MARGENS,
+    style: { ...ESTILO, fontSize: estreito ? '11px' : ESTILO.fontSize },
+    x: { domain: [0, 10], ticks: [0, 2.5, 5, 7.5, 10], tickFormat: v => rotulos[v] ?? '', grid: true, label: null, axis: 'top' },
     y: { domain: siglas, label: null },
     marks: [
       Plot.link(pontos.filter(d => d.col != null), { x1: 'esp', x2: 'col', y1: 'sigla', y2: 'sigla', stroke: '#4fb548', strokeWidth: 2 }),
@@ -34,10 +37,12 @@ function graficoEspectro() {
 
 function graficoCamara() {
   const pontos = ordenados.map(p => ({ sigla: p.sigla, camara: p.camara }));
+  const largura = document.getElementById('g-camara').clientWidth || 220;
+  const estreito = largura < 180;
   return Plot.plot({
-    width: 220, height: altura, marginLeft: 18, marginRight: 18, ...MARGENS, style: ESTILO,
-    x: { domain: [-100, 100], ticks: [-100, 0, 100], tickFormat: v => (v > 0 ? `+${v}` : String(v)), grid: true,
-         label: 'Câmara: ← esquerda | direita →', labelAnchor: 'center', axis: 'top' },
+    width: largura, height: altura, marginLeft: 18, marginRight: 18, ...MARGENS, style: ESTILO,
+    x: { domain: [-100, 100], ticks: estreito ? [0] : [-100, 0, 100], tickFormat: v => (v > 0 ? `+${v}` : String(v)), grid: true,
+         label: estreito ? 'Câmara' : 'Câmara: esquerda | direita', labelAnchor: 'center', axis: 'top' },
     y: { domain: siglas, axis: null },
     // degradê: roxo (esquerda) → bege (centro) → dourado (direita); não usa o verde e o laranja de vitória e derrota
     color: { type: 'linear', domain: [-100, 0, 100], range: ['#5b3f99', '#ddd0b4', '#b8860b'] },
@@ -45,7 +50,7 @@ function graficoCamara() {
       Plot.ruleX([0], { stroke: '#22201c' }),
       Plot.barX(pontos.filter(d => d.camara != null), { x: 'camara', y: 'sigla', fill: 'camara', stroke: '#22201c', strokeWidth: 0.8,
                                                          title: d => `${d.sigla}, Câmara: ${d.camara}` }),
-      Plot.text(pontos.filter(d => d.camara == null), { x: 0, y: 'sigla', text: () => 'sem deputados', fill: '#7a705e', fontSize: 11 }),
+      Plot.text(pontos.filter(d => d.camara == null), { x: 0, y: 'sigla', text: () => (estreito ? 'sem dep.' : 'sem deputados'), fill: '#5c5444', fontSize: 11 }),
     ],
   });
 }
@@ -61,7 +66,7 @@ function tabela() {
       <th class="num">Alianças 2024</th><th class="num">Câmara</th><th class="num">Deputados federais 2022</th>
       <th class="num">Prefeitos 2024</th><th class="num">Vereadores 2024</th></tr></thead>
     <tbody>${linhas.map(p => `<tr>
-      <td><a href="#${encodeURIComponent(p.sigla)}">${p.sigla}</a> <span class="apoio situacao">${p.nome.toLowerCase()}</span></td>
+      <td class="nome"><a href="#${encodeURIComponent(p.sigla)}">${p.sigla}</a> <span class="apoio situacao">${p.nome.toLowerCase()}</span></td>
       <td class="num">${p.numero}</td><td class="num">${comSeta(p.especialistas['2018'], 5, 2)}</td><td class="num">${comSeta(p.especialistas['2022'], 5, 2)}</td>
       <td class="num">${comSeta(p.coligacoes['2024'], 5, 2)}</td><td class="num">${comSeta(p.camara, 0, 1)}</td>
       <td class="num">${formata.numero(eleitosDe(p, 2022, ['DEPUTADO FEDERAL']))}</td>
@@ -75,12 +80,26 @@ function detalhe(sigla) {
   const serie = Object.entries(p.coligacoes).map(([ano, v]) => ({ ano: Number(ano), v }));
   const esp = Object.entries(p.especialistas).filter(([, v]) => v != null).map(([ano, v]) => ({ ano: Number(ano), v }));
   const caixa = document.getElementById('detalhe');
+  const camara = p.camara == null ? 'sem deputados' : `${p.camara > 0 ? '+' : ''}${String(p.camara).replace('.', ',')}`;
   caixa.innerHTML = `
-    <h3 class="ficha-nome">${p.sigla} <span class="apoio">${p.nome.toLowerCase()}, número ${p.numero}</span></h3>
-    <p>As alianças do partido ao longo do tempo (linha) e a nota dos especialistas (quadrados). A concordância
-      entre as duas réguas, somando todos os partidos, foi de ${String(concordancia['2016']).replace('.', ',')} em 2016
-      e ${String(concordancia['2024']).replace('.', ',')} em 2024 (1 seria a mesma ordem).</p>
-    <div class="grafico" id="g-detalhe"></div>
+    <div class="detalhe-partido">
+      ${santinho({
+        faixa: `partido · número ${p.numero}`, nome: p.sigla, numero: p.numero, rotulo: p.nome.toLowerCase(),
+        linhas: [['Especialistas, 2022', nota(p.especialistas['2022'])], ['Alianças, 2024', nota(p.coligacoes['2024'] ?? null)],
+                 ['Câmara', camara], ['Deputados federais, 2022', formata.numero(eleitosDe(p, 2022, ['DEPUTADO FEDERAL']))]],
+        verso: `<p>Especialistas: nota de 0 (esquerda) a 10 (direita) dada por cientistas políticos em 2018 e 2022.</p>
+          <p>Alianças: a posição revelada pelas coligações para prefeito, na mesma escala.</p>
+          <p>Câmara: posição nas votações nominais, de −100 a +100; mede sobretudo o alinhamento com o governo.</p>`,
+        fonte: 'p07b_ideologia_coligacoes.sql',
+      })}
+      <div>
+        <h3>${p.sigla} ao longo do tempo</h3>
+        <p>As alianças do partido ao longo do tempo (linha) e a nota dos especialistas (quadrados). A concordância
+          entre as duas réguas, somando todos os partidos, foi de ${String(concordancia['2016']).replace('.', ',')} em 2016
+          e ${String(concordancia['2024']).replace('.', ',')} em 2024 (1 seria a mesma ordem).</p>
+        <div class="grafico" id="g-detalhe"></div>
+      </div>
+    </div>
     <div class="rolagem"><table class="tabela">
       <thead><tr><th>Ano</th><th>Cargo</th><th class="num">Candidatos</th><th class="num">Eleitos</th><th class="num">Taxa de vitória</th></tr></thead>
       <tbody>${p.eleicoes.map(([ano, cargo, cand, el]) => `<tr><td>${ano}</td><td>${cargo.toLowerCase()}</td>
@@ -89,7 +108,7 @@ function detalhe(sigla) {
     </table></div>`;
   if (serie.length) {
     caixa.querySelector('#g-detalhe').append(Plot.plot({
-      width: Math.min(760, caixa.clientWidth || 700), height: 220, marginLeft: 70, style: ESTILO,
+      width: caixa.querySelector('#g-detalhe').clientWidth || 600, height: 220, marginLeft: 70, style: ESTILO,
       x: { domain: [1999, 2025], ticks: [2000, 2004, 2008, 2012, 2016, 2020, 2024], tickFormat: String, label: null },
       y: { domain: [0, 10], ticks: [0, 5, 10], tickFormat: v => ({ 0: 'esquerda', 5: 'centro', 10: 'direita' })[v], grid: true, label: null },
       marks: [
@@ -108,5 +127,9 @@ const escolha = document.getElementById('escolha');
 escolha.innerHTML = [...partidos].sort((a, b) => a.sigla.localeCompare(b.sigla))
   .map(p => `<option value="${p.sigla}">${p.sigla}</option>`).join('');
 escolha.addEventListener('change', () => { location.hash = encodeURIComponent(escolha.value); });
-window.addEventListener('hashchange', () => detalhe(decodeURIComponent(location.hash.slice(1))));
+// o link da tabela troca o partido do detalhe, que fica acima: leva o leitor até ele
+window.addEventListener('hashchange', () => {
+  detalhe(decodeURIComponent(location.hash.slice(1)));
+  document.getElementById('t-detalhe').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
 detalhe(decodeURIComponent(location.hash.slice(1)));

@@ -7,32 +7,69 @@
   <meta name="description" content="Projeto de estudo de dados abertos das eleições brasileiras: custo das cadeiras, patrimônio, dinheiro público e a carreira de cada político.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2300a651%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/estilo.css">
-  <script type="module" src="js/inicio.js"></script>
+  <link rel="stylesheet" href="css/estilo.css?v=20261013">
+  <script type="module" src="js/inicio.js?v=20261013"></script>
 </head>
 <body data-pagina="inicio">
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
   <header class="topo"></header>
 
   <main id="conteudo">
-    <section class="visor origem" aria-labelledby="t-origem">
-      <h1 id="t-origem">Eleições brasileiras em dados abertos</h1>
-      <p>Este é um projeto de estudo de dados abertos, desenvolvido para a disciplina de Bancos de
-        Dados Relacionais do curso de Ciência da Computação. O objetivo é facilitar o acesso de
-        qualquer pessoa às informações das eleições: quanto custa uma cadeira, se patrimônio e
-        dinheiro público ajudam a eleger, para que lado cada lugar vota e como foi a carreira de
-        cada político.</p>
-      <p>Os dados vêm do TSE, do IBGE e de outras fontes públicas e foram reunidos num banco de
-        dados relacional. Cada número do site sai de uma consulta SQL publicada no repositório
-        do projeto, que qualquer pessoa pode conferir e refazer.</p>
-      <div class="atalhos">
-        <a class="botao" href="mapa.html">Ver o mapa</a>
-        <a class="botao" href="partido.html">Ver os partidos</a>
-        <a class="botao" href="politico.html">Procurar um político</a>
+    <section class="abertura" aria-labelledby="t-origem">
+      <div class="abertura-titulo">
+        <h1 id="t-origem">Tá no olho do povo</h1>
+        <p class="lide">Quanto custa uma cadeira, quem paga a campanha e para que lado cada lugar vota. Os números das eleições, com a conta à mostra.</p>
       </div>
-      <p class="apoio autores">Feito por Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.</p>
+      <nav class="leque" aria-label="As cinco perguntas">
+        <a class="santinho s1" href="mapa.html#pergunta=custo&amp;ano=2022&amp;cargo=DEPUTADO+FEDERAL">
+          <span class="santinho-carta"><span class="santinho-face">
+            <span class="santinho-faixa">Quanto custa uma cadeira</span>
+            <strong class="santinho-numero"><span>R$ 1.900.752</span></strong>
+            <span class="santinho-rotulo">gastou, em média, cada deputado federal eleito em 2022.</span>
+          </span></span>
+        </a>
+        <a class="santinho s2" href="mapa.html#pergunta=patrimonio&amp;ano=2022&amp;cargo=DEPUTADO+FEDERAL&amp;faixa=5">
+          <span class="santinho-carta"><span class="santinho-face">
+            <span class="santinho-faixa">Patrimônio e vitória</span>
+            <strong class="santinho-numero"><span>22,7%</span></strong>
+            <span class="santinho-rotulo">de quem declarou mais de R$ 5 milhões se elegeu deputado federal. Sem bens: 0,4%.</span>
+          </span></span>
+        </a>
+        <a class="santinho s3" href="mapa.html#pergunta=vies&amp;ano=2022">
+          <span class="santinho-carta"><span class="santinho-face">
+            <span class="santinho-faixa">Viés ideológico</span>
+            <strong class="santinho-numero"><span>6,56</span></strong>
+            <span class="santinho-rotulo">de 0 a 10: o voto para deputado em 2022 foi à direita, e Lula venceu com 50,9%.</span>
+          </span></span>
+        </a>
+        <a class="santinho s4" href="mapa.html#pergunta=dependencia&amp;ano=2022&amp;cargo=DEPUTADO+FEDERAL&amp;faixa=1">
+          <span class="santinho-carta"><span class="santinho-face">
+            <span class="santinho-faixa">Dinheiro público e vitória</span>
+            <strong class="santinho-numero"><span>12,4%</span></strong>
+            <span class="santinho-rotulo">de vitória para deputado com 50% a 75% da receita pública; com menos de 25%, 3,1%.</span>
+          </span></span>
+        </a>
+        <a class="santinho s5" href="politico.html">
+          <span class="santinho-carta"><span class="santinho-face">
+            <span class="santinho-faixa">A carreira de cada político</span>
+            <strong class="santinho-numero"><span>437.509</span></strong>
+            <span class="santinho-rotulo">políticos de seis estados e da Presidência, de 1998 a 2024.</span>
+          </span></span>
+        </a>
+      </nav>
+      <div class="abertura-texto">
+        <p>Este é um projeto de estudo de dados abertos, desenvolvido para a disciplina de Bancos de
+          Dados Relacionais do curso de Ciência da Computação. O objetivo é facilitar o acesso de
+          qualquer pessoa às informações das eleições: quanto custa uma cadeira, se patrimônio e
+          dinheiro público ajudam a eleger, para que lado cada lugar vota e como foi a carreira de
+          cada político.</p>
+        <p>Os dados vêm do TSE, do IBGE e de outras fontes públicas e foram reunidos num banco de
+          dados relacional. Cada número do site sai de uma consulta SQL publicada no repositório
+          do projeto, que qualquer pessoa pode conferir e refazer.</p>
+        <p class="apoio autores">Feito por Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.</p>
+      </div>
     </section>
 
     <section class="bloco" aria-labelledby="t-limites">

@@ -16,5 +16,3 @@ __pycache__/
 # Biblioteca do Graphviz usada só para gerar as figuras do D.E.R. (baixar do jsdelivr)
 docs/modelo/der/viz-global.js
 
-# notas locais do modo de aprendizado
-.vibe-wise/

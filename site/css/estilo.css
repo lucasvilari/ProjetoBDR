@@ -1,33 +1,43 @@
 /* Tá no Olho do Povo: estilo comum às quatro páginas.
-   A urna eletrônica: corpo bege, teclas pretas em relevo, visor claro e afundado,
-   CONFIRMA (verde) para a página atual, destaques e vitórias, CORRIGE (laranja) para derrotas. */
+   O corpo da urna (bege, teclas pretas em relevo, visor afundado) e o santinho: o cartãozinho de
+   campanha que aqui carrega o número da pergunta, com a faixa verde do CONFIRMA no alto e o
+   método e os limites no verso. Laranja do CORRIGE só para derrota. */
 
 :root {
   --urna: #e8dcc4;          /* corpo da urna: fundo da página */
-  --urna-funda: #d8c9a9;    /* corpo em sombra: faixa do topo, divisórias fortes */
-  --visor: #faf7ef;         /* visor: painéis de leitura e campos */
+  --urna-funda: #d8c9a9;    /* corpo em sombra: topo, rodapé, fendas */
+  --visor: #faf7ef;         /* visor afundado: mapa, campos */
+  --papel: #fffdf6;         /* papel do santinho */
   --tecla: #22201c;         /* teclas e texto principal */
   --tecla-borda: #000000;
   --tinta-2: #5c5444;       /* texto secundário */
   --linha: #c9b994;         /* divisórias finas */
-  --confirma: #00a651;      /* tecla CONFIRMA: preenchimentos */
-  --confirma-texto: #00632f;/* verde para texto sobre o bege (contraste) */
+  --confirma: #00a651;
+  --confirma-texto: #00632f;
   --confirma-fundo: #cfeed9;
-  --corrige: #f26522;       /* tecla CORRIGE: preenchimentos */
+  --corrige: #f26522;
   --corrige-texto: #a8410b;
-  --corrige-fundo: #fbdcc8;
-  --neutro: #9a8f7a;
+  --esquerda: #5b3f99;      /* régua ideológica: roxo, bege, dourado; nunca as cores de vitória e derrota */
+  --centro: #ddd0b4;
+  --direita: #b8860b;
+  --direita-texto: #725306;
 
   --fonte: "Archivo", system-ui, sans-serif;
-  --medida: 68ch;
-  --largura: 1120px;
+  /* módulo da tecla: tudo sai de múltiplos de 8px */
+  --m1: 0.5rem; --m2: 1rem; --m3: 1.5rem; --m4: 2rem; --m6: 3rem; --m8: 4rem;
+  --medida: 66ch;
+  --largura: 1200px;
   --raio: 8px;
+  --sombra-papel: 0 1px 0 rgb(60 40 10 / 0.12), 0 10px 22px -6px rgb(60 40 10 / 0.35);
+  --sai: cubic-bezier(0.16, 1, 0.3, 1);   /* saída exponencial */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--tinta-2) var(--urna-funda); accent-color: var(--confirma); }
+::selection { background: var(--confirma); color: var(--tecla); }
+input, select { caret-color: var(--corrige); }
 
 body {
   margin: 0;
@@ -41,15 +51,13 @@ body {
 
 a { color: var(--confirma-texto); text-underline-offset: 0.18em; text-decoration-thickness: 1.5px; }
 a:hover { text-decoration-thickness: 3px; }
-
 :focus-visible { outline: 3px solid var(--corrige); outline-offset: 3px; border-radius: 4px; }
 
-.pular { position: absolute; left: -999px; top: 0; background: var(--tecla); color: var(--visor); padding: 0.5rem 1rem; }
-.pular:focus { left: 1rem; z-index: 10; }
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pular { position: absolute; left: -999px; top: 0; background: var(--tecla); color: var(--visor); padding: var(--m1) var(--m2); }
+.pular:focus { left: var(--m2); z-index: 10; }
 
-/* ------------------------------------------------------------------ teclas
-   Navegação, botões, opções e seletores são teclas da urna: pretas, em relevo,
-   e afundam ao serem pressionadas. A tecla da escolha atual fica verde. */
+/* ------------------------------------------------------------------ teclas */
 
 .nav a, .botao, .pergunta label, .campo select {
   font: inherit; font-weight: 650; font-stretch: 105%;
@@ -62,16 +70,15 @@ a:hover { text-decoration-thickness: 3px; }
   transform: translateY(2px);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 0 var(--tecla-borda), 0 2px 3px rgb(60 40 10 / 0.25);
 }
-.nav a[aria-current="page"], .pergunta label:has(input:checked) {
-  background: var(--confirma); color: var(--tecla);
-}
+.nav a[aria-current="page"], .pergunta label:has(input:checked) { background: var(--confirma); color: var(--tecla); }
+.botao { cursor: pointer; padding: var(--m1) var(--m2); }
 
-/* ------------------------------------------------------------------ topo */
+/* ------------------------------------------------------------------ topo e rodapé */
 
 .topo { background: var(--urna-funda); border-bottom: 3px solid var(--tecla); }
 .topo-interno {
-  max-width: var(--largura); margin: 0 auto; padding: 1rem 1.25rem 1.15rem;
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  max-width: var(--largura); margin: 0 auto; padding: var(--m2) var(--m3);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--m2); flex-wrap: wrap;
 }
 .marca {
   display: flex; align-items: center; gap: 0.65rem;
@@ -85,95 +92,191 @@ a:hover { text-decoration-thickness: 3px; }
 }
 .marca-tecla svg { width: 1.45rem; height: auto; }
 .nav { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-.nav a { display: inline-block; padding: 0.5rem 1rem; text-decoration: none; }
+.nav a { display: inline-block; padding: var(--m1) var(--m2); text-decoration: none; }
+
+.rodape { background: var(--urna-funda); border-top: 3px solid var(--tecla); margin-top: var(--m8); }
+.rodape-interno {
+  max-width: var(--largura); margin: 0 auto; padding: var(--m3) var(--m3) var(--m6);
+  color: var(--tinta-2); font-size: 0.92rem;
+  display: flex; flex-wrap: wrap; gap: var(--m1) var(--m4); justify-content: space-between;
+}
 
 /* ------------------------------------------------------------------ conteúdo */
 
-main { max-width: var(--largura); margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+main { max-width: var(--largura); margin: 0 auto; padding: var(--m3) var(--m3) 0; }
 
-h1, h2, h3, h4 { line-height: 1.12; margin: 0 0 0.6em; }
-h1 { font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 800; font-stretch: 125%; letter-spacing: -0.015em; }
-h2 { font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 780; font-stretch: 118%; }
-h3 { font-size: 1.15rem; font-weight: 700; }
+h1, h2, h3, h4 { line-height: 1.1; margin: 0 0 0.5em; text-wrap: balance; }
+h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 850; font-stretch: 125%; letter-spacing: -0.015em; }
+h2 { font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 800; font-stretch: 118%; }
+h3 { font-size: 1.2rem; font-weight: 750; font-stretch: 108%; }
+h4 { font-size: 1.05rem; font-weight: 750; margin-top: var(--m4); }
 p, li { max-width: var(--medida); }
 .apoio { color: var(--tinta-2); }
+.cabeca { display: grid; gap: var(--m1); margin-bottom: var(--m3); }
+.cabeca h1 { margin: 0; }
+.cabeca p { margin: 0; }
 
-.bloco { margin-top: 3.5rem; }
-.bloco > h2 { padding-top: 1.1rem; border-top: 3px solid var(--tecla); }
+.bloco { margin-top: var(--m8); }
+.bloco > h2 { padding-top: var(--m2); border-top: 3px solid var(--tecla); }
 
-/* visor: painel claro, afundado no corpo da urna */
-.visor, .superficie, .aviso-vazio {
+.aviso-vazio {
   background: var(--visor);
-  border: 2px solid var(--tecla); border-radius: 10px;
+  border: 2px solid var(--tecla); border-radius: 12px;
   box-shadow: inset 0 3px 8px rgb(60 40 10 / 0.16);
-  padding: 1.5rem 1.6rem;
+  padding: var(--m3);
 }
 .aviso-vazio { color: var(--tinta-2); }
 
-/* ------------------------------------------------------------------ página inicial */
+/* ------------------------------------------------------------------ o santinho
+   Faixa verde com cargo, lugar e ano; o número da pergunta em corpo de candidato; linhas de apoio.
+   Vira para o verso, que diz como o número foi calculado e o que falta. */
 
-.origem { display: grid; gap: 1.5rem; }
-.origem h1 { margin: 0; }
-.origem p { margin: 0; font-size: 1.15rem; }
-.atalhos { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.atalhos .botao { display: inline-block; padding: 0.7rem 1.15rem; text-decoration: none; }
-.atalhos .botao.confirma { background: var(--confirma); color: var(--tecla); }
-.autores { font-size: 0.95rem; }
+.santinho { position: relative; perspective: 1400px; }
+.santinho-carta {
+  display: grid; transform-style: preserve-3d;
+  transition: transform 560ms var(--sai);
+}
+.santinho.virado .santinho-carta { transform: rotateY(180deg); }
+.santinho-face {
+  grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: var(--papel); border: 2.5px solid var(--tecla); border-radius: 6px;
+  box-shadow: var(--sombra-papel); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.santinho-verso { transform: rotateY(180deg); }
+.santinho-faixa {
+  background: var(--confirma); border-bottom: 2.5px solid var(--tecla);
+  padding: 0.55rem var(--m2); font-weight: 800; font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.santinho-verso .santinho-faixa { background: var(--tecla); color: var(--visor); }
+.santinho-nome {
+  display: block; padding: 0.7rem var(--m2) 0;
+  font-weight: 900; font-stretch: 72%; font-size: 1.7rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.01em;
+}
+/* o número vai na caixa do santinho, como o número do candidato */
+.santinho-numero { display: block; padding: 0.7rem var(--m2) 0; }
+.santinho-numero span {
+  display: inline-block; max-width: 100%; white-space: nowrap;
+  border: 2.5px solid var(--tecla); border-radius: 4px; background: #fff; padding: 0.08em 0.22em 0.04em;
+  font-size: clamp(2.5rem, 5.4vw, 4.2rem); font-weight: 900; font-stretch: 62%; line-height: 0.95; letter-spacing: -0.01em;
+}
+.santinho-numero small { font-size: 0.42em; font-stretch: 80%; font-weight: 800; letter-spacing: 0; }
+.santinho-rotulo { display: block; padding: var(--m1) var(--m2) var(--m2); margin: 0; font-weight: 700; font-size: 1.02rem; line-height: 1.3; }
+.santinho-linhas { margin: 0; }
+.santinho-linhas div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--m2); border-top: 1.5px solid var(--tecla); padding: 0.55rem var(--m2); }
+.santinho-linhas dt { font-size: 0.95rem; }
+.santinho-linhas dd { margin: 0; font-weight: 900; font-stretch: 70%; font-size: 1.45rem; white-space: nowrap; }
+.santinho-texto { padding: var(--m2); font-size: 0.95rem; line-height: 1.5; flex: 1; }
+.santinho-texto p { margin: 0 0 0.7em; }
+.santinho-texto p:last-child { margin-bottom: 0; }
+.santinho-rodape { margin-top: auto; padding: var(--m1) var(--m2) var(--m2); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--m1); }
+/* a colinha: o pé destacável do santinho, separado por picote */
+.santinho-cola { border-top: 2px dashed var(--tecla); margin-top: auto; padding-top: 0.7rem; background: rgb(232 220 196 / 0.35); }
+.santinho-rodape .fonte { font-size: 0.8rem; color: var(--tinta-2); }
+.virar { font-size: 0.92rem; padding: 0.4rem 0.8rem; white-space: nowrap; margin-left: auto; }
+.santinho-derrota .santinho-faixa { background: var(--corrige); }
+.santinho-neutro .santinho-faixa { background: var(--urna-funda); }
 
-.fatos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1.25rem 2rem; }
-.fatos dt { font-weight: 700; }
-.fatos dd { margin: 0.2rem 0 0; color: var(--tinta-2); }
-
-.fontes { padding-left: 1.1rem; }
-.fontes li + li { margin-top: 0.5rem; }
-
-/* ------------------------------------------------------------------ rodapé */
-
-.rodape { background: var(--urna-funda); border-top: 3px solid var(--tecla); }
-.rodape-interno {
-  max-width: var(--largura); margin: 0 auto; padding: 1.5rem 1.25rem 2.5rem;
-  color: var(--tinta-2); font-size: 0.92rem;
-  display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; justify-content: space-between;
+/* a pilha: os outros anos atrás do santinho da frente; cada um é uma tecla que traz o ano para a frente */
+.pilha { position: relative; padding-top: 4.9rem; }
+.pilha-anos { position: absolute; inset: 0; }
+.pilha-ano {
+  position: absolute; top: calc(var(--k) * 1.55rem); left: calc(1% + var(--k) * 3%); right: calc(7% - var(--k) * 3%); height: 7rem;
+  display: flex; align-items: baseline; gap: 0.5rem; padding: 0.12rem 0.7rem;
+  font: inherit; cursor: pointer; text-align: left; color: var(--tecla);
+  background: var(--papel); border: 2px solid var(--tecla); border-radius: 6px; box-shadow: 0 -1px 4px rgb(60 40 10 / 0.18);
+  transform: rotate(var(--giro, 0deg)) translateY(var(--desce, 0px)); transition: transform 220ms var(--sai), background 120ms;
+}
+.pilha-ano:nth-child(1) { --giro: -1.3deg; }
+.pilha-ano:nth-child(2) { --giro: 0.9deg; }
+.pilha-ano:nth-child(3) { --giro: -0.5deg; }
+.pilha-ano:hover, .pilha-ano:focus-visible { --desce: -6px; background: #fff; }
+.pilha-ano b { font-size: 0.9rem; font-weight: 850; }
+.pilha-ano span { font-size: 0.82rem; font-stretch: 80%; font-weight: 700; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pilha .santinho { position: relative; z-index: 5; }
+.assenta .santinho-carta { animation: assenta 420ms var(--sai); }
+@keyframes assenta {
+  from { transform: translateY(-18px) rotate(-2.5deg); }
+  to { transform: none; }
 }
 
-/* ------------------------------------------------------------------ campos, tabelas e números */
+/* ------------------------------------------------------------------ página inicial */
 
-.botao { cursor: pointer; padding: 0.5rem 0.95rem; }
+.abertura {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--m3) var(--m6); align-items: start;
+  grid-template-areas: "titulo leque" "texto leque";
+}
+.abertura-titulo { grid-area: titulo; }
+.abertura-texto { grid-area: texto; }
+.leque { grid-area: leque; align-self: center; }
+.abertura h1 { margin: 0 0 var(--m2); }
+.abertura .lide { font-size: 1.25rem; font-weight: 600; margin: 0; max-width: 30ch; }
+.abertura-texto p { margin: 0 0 var(--m2); }
+/* o leque: cinco santinhos espalhados, tortos como na calçada, que se endireitam ao apontar */
+.leque { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--m3) var(--m2); }
+.leque .santinho { grid-column: span 2; text-decoration: none; color: inherit; }
+.leque .s4 { grid-column: 2 / span 2; }
+.leque .s5 { grid-column: 4 / span 2; }
+.leque .santinho-numero span { font-size: clamp(1.6rem, 2.3vw, 2.15rem); }
+.leque .santinho-rotulo { font-size: 0.92rem; }
+.leque a.santinho { transition: transform 260ms var(--sai); transform: rotate(var(--giro)); }
+.leque a.santinho:hover, .leque a.santinho:focus-visible { transform: rotate(0deg) translateY(-6px); }
+.leque a.santinho:focus-visible { outline-offset: 6px; }
+.leque .s1 { --giro: -2.5deg; } .leque .s2 { --giro: 1.5deg; } .leque .s3 { --giro: -1deg; }
+.leque .s4 { --giro: 2deg; } .leque .s5 { --giro: -1.8deg; }
+.autores { font-size: 0.95rem; }
+
+.fatos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--m3) var(--m4); margin: 0; }
+.fatos div { border-top: 1.5px solid var(--tecla); padding-top: var(--m1); }
+.fatos dt { font-weight: 800; }
+.fatos dd { margin: 0.2rem 0 0; color: var(--tinta-2); }
+.fontes { padding-left: 1.1rem; }
+.fontes li + li { margin-top: var(--m1); }
+
+/* ------------------------------------------------------------------ campos e tabelas
+   Tabelas num tamanho só: a hierarquia vem do peso, da caixa e do cabeçalho invertido em tecla preta. */
+
 .campo { display: flex; flex-direction: column; gap: 0.35rem; font-weight: 700; font-size: 0.95rem; }
 .campo select {
-  padding: 0.55rem 2.2rem 0.55rem 0.75rem; min-width: 9rem; cursor: pointer; appearance: none;
+  padding: 0.55rem 2.2rem 0.55rem 0.75rem; min-width: 6.5rem; cursor: pointer; appearance: none;
   background-image: linear-gradient(45deg, transparent 50%, var(--visor) 50%), linear-gradient(135deg, var(--visor) 50%, transparent 50%);
   background-position: right 1rem center, right 0.65rem center; background-size: 0.35rem 0.35rem; background-repeat: no-repeat;
 }
 
-.numeros {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
-  gap: 0.75rem; margin: 1.25rem 0 0;
-}
-.numeros > div {
-  background: var(--visor); border: 2px solid var(--tecla); border-radius: 10px;
-  box-shadow: inset 0 3px 8px rgb(60 40 10 / 0.16); padding: 0.75rem 0.9rem;
-}
-.numeros dt { color: var(--tinta-2); font-size: 0.88rem; }
-.numeros dd { margin: 0.15rem 0 0; font-size: 1.45rem; font-weight: 800; font-stretch: 105%; white-space: nowrap; }
-
 .rolagem { overflow-x: auto; }
-.tabela { border-collapse: collapse; width: 100%; font-size: 0.95rem; font-stretch: 92%; }
-.tabela th { text-align: left; font-weight: 700; border-bottom: 3px solid var(--tecla); padding: 0.45rem 0.6rem; white-space: nowrap; }
-.tabela td { border-bottom: 1px solid var(--linha); padding: 0.45rem 0.6rem; vertical-align: top; }
+.rolagem, .grafico {
+  background:
+    linear-gradient(90deg, var(--urna) 30%, rgb(232 220 196 / 0)) left / 2.5rem 100% no-repeat local,
+    linear-gradient(270deg, var(--urna) 30%, rgb(232 220 196 / 0)) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(60 40 10 / 0.28), transparent) left / 0.9rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(60 40 10 / 0.28), transparent) right / 0.9rem 100% no-repeat scroll;
+}
+.tabela { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 0.95rem; }
+.tabela th {
+  text-align: left; font-weight: 750; font-size: inherit; text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--tecla); color: var(--visor); padding: 0.55rem 0.7rem; white-space: nowrap;
+}
+.tabela th:first-child { border-radius: 6px 0 0 0; }
+.tabela th:last-child { border-radius: 0 6px 0 0; }
+.tabela td { border-bottom: 1px solid var(--linha); padding: 0.5rem 0.7rem; vertical-align: top; }
 .tabela .num { text-align: right; white-space: nowrap; }
-.tabela tr.atual td { background: var(--confirma-fundo); font-weight: 700; }
-.situacao { display: block; font-size: 0.82rem; }
-.sem-info { color: var(--tinta-2); font-style: italic; font-size: 0.85rem; white-space: normal; }
-.sem-info-linha { text-align: center; }
+.tabela .nome { min-width: 11rem; }
+.tabela tr.atual td { background: var(--confirma-fundo); font-weight: 750; }
+.tabela tbody tr:hover td { background: rgb(255 253 246 / 0.6); }
+.tabela tr.atual:hover td { background: var(--confirma-fundo); }
+.situacao { display: block; font-size: inherit; font-weight: 400; color: var(--tinta-2); }
+.tabela th .situacao { color: rgb(250 247 239 / 0.75); text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.sem-info { color: var(--tinta-2); font-style: italic; white-space: normal; }
+.tabela .sem-info-linha { text-align: center; vertical-align: middle; }
 
-.selo { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 5px; font-weight: 700; font-size: 0.85rem; border: 1px solid var(--tecla); }
+.selo { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.82rem; border: 1.5px solid var(--tecla); }
 .selo-vitoria { background: var(--confirma); color: var(--tecla); }
 .selo-derrota { background: var(--corrige); color: var(--tecla); }
-.selo-neutro { background: var(--visor); color: var(--tecla); }
+.selo-neutro { background: var(--papel); color: var(--tecla); }
 
 .grafico { overflow-x: auto; }
 .grafico svg { max-width: 100%; height: auto; }
+.grafico.rola svg { max-width: none; }
 
 .legenda-grafico { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-size: 0.92rem; color: var(--tinta-2); }
 .chave::before {
@@ -181,72 +284,52 @@ p, li { max-width: var(--medida); }
   border-radius: 50%; background: var(--cor); border: 1.5px solid var(--tecla); vertical-align: -0.1rem;
 }
 .chave-losango::before { border-radius: 2px; transform: rotate(45deg) scale(0.85); }
-.chave-x::before { content: "×"; width: auto; height: auto; border: 0; background: none; color: var(--cor); font-weight: 800; }
+.chave-x::before {
+  border: 0; border-radius: 0; background: var(--cor);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 1.5l7 7M8.5 1.5l-7 7' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 1.5l7 7M8.5 1.5l-7 7' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 .chave-anel::before { background: var(--urna); border: 2.5px solid var(--cor); }
 .graficos-par { display: flex; flex-wrap: wrap; gap: 0 12px; }
 
-/* ------------------------------------------------------------------ página Político */
-
-.busca { margin: 2rem 0 1rem; max-width: 36rem; }
-.busca label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
-.busca input {
-  width: 100%; font: inherit; font-size: 1.25rem; padding: 0.75rem 0.95rem;
-  background: var(--visor); color: var(--tecla);
-  border: 2px solid var(--tecla); border-radius: 10px; box-shadow: inset 0 3px 8px rgb(60 40 10 / 0.16);
-}
-.busca p { margin: 0.4rem 0 0; font-size: 0.92rem; }
-
-.resultados { list-style: none; padding: 0; margin: 0 0 1rem; max-width: 46rem; }
-.resultados li { max-width: none; border-bottom: 1px solid var(--linha); }
-.resultados a {
-  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.15rem 1rem;
-  padding: 0.65rem 0.5rem; color: var(--tecla); text-decoration: none; border-radius: 6px;
-}
-.resultados a:hover { background: var(--visor); }
-.resultado-nome { font-weight: 700; }
-
-#ficha { margin-top: 3rem; padding-top: 1.5rem; border-top: 3px solid var(--tecla); }
-.ficha-nome { font-size: clamp(1.6rem, 3.6vw, 2.5rem); font-stretch: 122%; font-weight: 800; }
-.ficha-nome .apoio { font-size: 1rem; font-weight: 400; font-stretch: 100%; }
-.bloco-ficha { margin-top: 2.5rem; }
-
 /* ------------------------------------------------------------------ página Mapa */
 
-.controles { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem 1.5rem; margin: 1.5rem 0 2rem; }
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1); margin: 0 0 var(--m3); }
+.controles .campo { flex-direction: row; align-items: center; }
 .controles fieldset { border: 0; padding: 0; margin: 0; }
 .controles legend { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.35rem; }
-.pergunta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.pergunta label { position: relative; cursor: pointer; padding: 0.55rem 0.95rem; }
+.pergunta { display: flex; flex-wrap: wrap; gap: var(--m1); }
+.pergunta label { position: relative; cursor: pointer; padding: 0.55rem 0.85rem; font-size: 0.97rem; }
 .pergunta input { position: absolute; opacity: 0; pointer-events: none; }
 .pergunta label:has(input:focus-visible) { outline: 3px solid var(--corrige); outline-offset: 3px; }
 
-/* mapa centralizado no alto; o painel de respostas vem abaixo, na largura da página */
-.mapa-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
-.mapa-area { width: 100%; max-width: 760px; justify-self: center; }
-.painel { border-top: 3px solid var(--tecla); padding-top: 1.25rem; }
-.painel > div > p, .painel > p { max-width: var(--medida); }
-.mapa-grade.sem-mapa .legenda-mapa, .mapa-grade.sem-mapa .dica { display: none; }
-.mapa-topo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.mapa-grade { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(19rem, 1fr); gap: var(--m4); align-items: start; }
+.mapa-area { min-width: 0; }
+.mapa-topo { display: flex; justify-content: space-between; align-items: center; gap: var(--m2); }
 .mapa-topo h2 { margin: 0; }
-.mapa { margin-top: 0.75rem; }
+.mapa {
+  margin: 18px 10px 10px; padding: var(--m2); background: #f3f1e4; border: 2px solid var(--tecla); border-radius: 10px;
+  /* visor afundado: sombra por dentro, moldura do corpo da urna e a borda da tampa */
+  box-shadow: inset 0 4px 14px rgb(60 40 10 / 0.25), 0 0 0 8px var(--urna-funda), 0 0 0 10px var(--tecla);
+}
 .mapa-svg { display: block; width: 100%; height: auto; }
-.mapa-svg path { stroke: var(--urna); stroke-width: 0.7; }
+.mapa-svg path { stroke: var(--visor); stroke-width: 0.7; }
 .mapa-svg .estado.projeto { stroke: var(--tecla); stroke-width: 2.2; cursor: pointer; }
 .mapa-svg .municipio { stroke-width: 0.35; cursor: pointer; }
 .mapa-svg path[role="button"]:hover { filter: brightness(0.88); }
 .mapa-svg path:focus-visible { outline: none; stroke: var(--corrige); stroke-width: 3; }
 .mapa-svg .municipio.selecionado { stroke: var(--corrige); stroke-width: 2.5; }
+.mapa-grade.sem-mapa .legenda-mapa, .mapa-grade.sem-mapa .dica { display: none; }
+.coluna-santinho { position: sticky; top: var(--m2); }
 
-.legenda-mapa { margin-top: 0.75rem; font-size: 0.88rem; }
+.legenda-mapa { margin-top: var(--m1); font-size: 0.88rem; }
 .legenda-titulo { display: block; font-weight: 700; margin-bottom: 0.35rem; }
-.legenda-faixas { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; color: var(--tinta-2); }
+.legenda-faixas { display: flex; flex-wrap: wrap; gap: 0.35rem var(--m2); color: var(--tinta-2); }
 .legenda-faixas i {
   display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; margin-right: 0.35rem;
   vertical-align: -0.15rem; border: 1px solid var(--tecla);
 }
-.legenda-faixas i.sem-dado, .chave-sem-dado {
-  background: repeating-linear-gradient(45deg, #cbbd9d 0 3px, #8f8470 3px 4.5px);
-}
+.legenda-faixas i.sem-dado { background: repeating-linear-gradient(45deg, #cbbd9d 0 3px, #8f8470 3px 4.5px); }
 .dica { font-size: 0.9rem; }
 .escala-vies { position: relative; display: block; max-width: 26rem; height: 3.1rem; margin: 0.2rem 0 0.4rem; }
 .escala-vies i { position: absolute; left: 0; right: 0; top: 0; height: 0.9rem; border: 1px solid var(--tecla); border-radius: 3px; }
@@ -255,32 +338,85 @@ p, li { max-width: var(--medida); }
 .escala-vies em { position: absolute; top: 2.05rem; font-style: normal; font-size: 0.75rem; color: var(--tinta-2); white-space: nowrap; }
 .escala-vies .ponta-esq { left: 0; }
 .escala-vies .ponta-dir { right: 0; }
-.aviso-mapa { margin-top: 0.75rem; }
 .aviso-mapa p { margin: 0; }
+/* sem mapa (presidente): o aviso ocupa o lugar do visor, sem a moldura em volta */
+.mapa:has(> .aviso-mapa) { margin: 0; padding: 0; background: none; border: 0; box-shadow: none; }
 
-.painel h3 { font-size: 1.3rem; font-stretch: 108%; }
-.painel h4 { margin: 1.75rem 0 0.5rem; }
-.numeros-painel { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0.75rem; }
-.numeros-painel dd { font-size: 1.35rem; }
-.numeros dd.explica { font-size: 0.82rem; font-weight: 400; font-stretch: 100%; white-space: normal; color: var(--tinta-2); margin-top: 0.3rem; }
-#individual h3 { margin-top: 1.75rem; }
+.painel { margin-top: var(--m6); border-top: 3px solid var(--tecla); padding-top: var(--m3); }
+.painel > div > p, .painel > p { max-width: var(--medida); }
+.painel h3 { font-size: 1.35rem; }
+#individual h3 { margin-top: var(--m4); }
 
 /* ------------------------------------------------------------------ página Partido */
 
-.medidas { margin-top: 1.5rem; }
-.graficos-lado { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 1.5rem; align-items: start; }
-@media (max-width: 700px) { .graficos-lado { grid-template-columns: minmax(0, 1fr); } }
-.campo-largo { max-width: 16rem; margin-bottom: 1rem; }
-.degrade { display: inline-flex; align-items: center; gap: 0.4rem; }
-.degrade i { display: inline-block; width: 7rem; height: 0.8rem; border: 1px solid var(--tecla); border-radius: 3px;
-  background: linear-gradient(90deg, #5b3f99, #ddd0b4 50%, #b8860b); }
+.medidas { margin: var(--m3) 0 0; }
+.graficos-lado { display: grid; grid-template-columns: minmax(0, 1fr) clamp(7.5rem, 30vw, 220px); gap: clamp(0.5rem, 2vw, 1.5rem); align-items: start; }
+.campo-largo { max-width: 16rem; margin-bottom: var(--m2); }
+.degrade { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+.degrade i { display: inline-block; width: clamp(3rem, 14vw, 7rem); height: 0.8rem; border: 1px solid var(--tecla); border-radius: 3px;
+  background: linear-gradient(90deg, var(--esquerda), var(--centro) 50%, var(--direita)); }
+.detalhe-partido { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m4); align-items: start; }
+
+/* ------------------------------------------------------------------ página Político */
+
+.busca { margin: var(--m3) 0 var(--m2); max-width: 36rem; }
+.busca label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
+.busca input {
+  width: 100%; font: inherit; font-size: 1.25rem; padding: 0.75rem 0.95rem;
+  background: var(--visor); color: var(--tecla);
+  border: 2px solid var(--tecla); border-radius: 10px; box-shadow: inset 0 3px 8px rgb(60 40 10 / 0.16);
+}
+.busca p { margin: 0.4rem 0 0; font-size: 0.92rem; }
+
+/* resultados: uma chuva de santinhos pequenos, levemente tortos, que se endireitam ao apontar */
+.resultados { list-style: none; padding: 0; margin: 0 0 var(--m2); display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: var(--m2); }
+.resultados li { max-width: none; }
+.resultados a {
+  display: flex; flex-direction: column; height: 100%; color: var(--tecla); text-decoration: none;
+  background: var(--papel); border: 2px solid var(--tecla); border-radius: 6px; box-shadow: var(--sombra-papel); overflow: hidden;
+  transform: rotate(var(--giro, 0deg)); transition: transform 200ms var(--sai);
+}
+.resultados li:nth-child(3n+1) a { --giro: -0.8deg; }
+.resultados li:nth-child(3n+2) a { --giro: 0.6deg; }
+.resultados a:hover, .resultados a:focus-visible { --giro: 0deg; transform: translateY(-3px); }
+.resultados .santinho-faixa { font-size: 0.72rem; padding: 0.4rem 0.7rem; }
+.resultado-nome { font-weight: 850; font-stretch: 80%; font-size: 1.2rem; line-height: 1.15; padding: 0.6rem 0.7rem 0.2rem; }
+.resultado-meta { padding: 0 0.7rem 0.7rem; font-size: 0.9rem; color: var(--tinta-2); }
+
+#ficha { margin-top: var(--m6); padding-top: var(--m3); border-top: 3px solid var(--tecla); }
+.ficha-cabeca { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m4); align-items: start; }
+.ficha-nome { font-size: clamp(1.7rem, 3.6vw, 2.6rem); font-stretch: 122%; font-weight: 850; }
+.ficha-nome .apoio { font-size: 1rem; font-weight: 400; font-stretch: 100%; }
+.bloco-ficha { margin-top: var(--m6); }
+
+/* ------------------------------------------------------------------ setas de direção ideológica */
+
+.seta { white-space: nowrap; font-weight: 650; }
+.seta-esq { color: var(--esquerda); }
+.seta-dir { color: var(--direita-texto); }
+.seta i { display: inline-block; width: 0.85em; height: 0.7em; background: currentColor; vertical-align: 0; }
+.seta-esq i { margin-right: 0.3em;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M11 5H2M5.5 1.5L2 5l3.5 3.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M11 5H2M5.5 1.5L2 5l3.5 3.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.seta-dir i { margin-left: 0.3em;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5h9M6.5 1.5L10 5 6.5 8.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5h9M6.5 1.5L10 5 6.5 8.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ------------------------------------------------------------------ telas estreitas */
+
+@media (max-width: 860px) {
+  .mapa-grade, .abertura, .detalhe-partido, .ficha-cabeca { grid-template-columns: minmax(0, 1fr); }
+  .abertura { grid-template-areas: "titulo" "leque" "texto"; }
+  .coluna-santinho { position: static; }
+  .leque { grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); }
+  .leque .santinho, .leque .s4, .leque .s5 { grid-column: auto; }
+}
+@media (max-width: 560px) {
+  main { padding-inline: var(--m2); }
+  .controles { padding: var(--m2); }
+  .santinho-numero span { font-size: clamp(2.2rem, 11vw, 3rem); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-
-/* setas de direção ideológica nas tabelas */
-.seta { white-space: nowrap; font-weight: 600; }
-.seta-esq { color: #5b3f99; }
-.seta-dir { color: #8a6408; }
-.tabela th .situacao { font-weight: 400; color: var(--tinta-2); white-space: nowrap; }

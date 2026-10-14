@@ -7,7 +7,7 @@
 //   politicos/carreira/N.json   candidaturas, 1.000 políticos por arquivo
 // A busca baixa só as fatias e fichas necessárias; abrir um político baixa uma carreira.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata } from './comum.js';
+import { montaPagina, carregaDados, formata, santinho } from './comum.js?v=20261013';
 
 montaPagina();
 
@@ -74,8 +74,9 @@ async function busca(texto) {
   caixaResultados.innerHTML = `
     <ul class="resultados">${mostrados.map(f => `
       <li><a href="#${f.id}">
+        <span class="santinho-faixa">${tabelas.cargos[f.ultimo_cargo].toLowerCase()} · ${f.uf}</span>
         <span class="resultado-nome">${f.nome}</span>
-        <span class="apoio">${tabelas.cargos[f.ultimo_cargo].toLowerCase()} (${f.uf}), ${f.primeiro_ano === f.ultimo_ano ? f.primeiro_ano : `de ${f.primeiro_ano} a ${f.ultimo_ano}`}, ${f.vitorias} ${f.vitorias === 1 ? 'vitória' : 'vitórias'}</span>
+        <span class="resultado-meta">${f.primeiro_ano === f.ultimo_ano ? f.primeiro_ano : `${f.primeiro_ano} a ${f.ultimo_ano}`}, ${f.vitorias} ${f.vitorias === 1 ? 'vitória' : 'vitórias'}</span>
       </a></li>`).join('')}
     </ul>${extra}`;
 }
@@ -139,13 +140,22 @@ function resumo(cands) {
   ];
 }
 
+/** Largura e margens das linhas do tempo, medidas no próprio quadro. No celular o gráfico mantém uma
+ *  largura mínima legível e rola para o lado. */
+function medidas(alvo) {
+  const disponivel = document.getElementById(alvo).clientWidth;
+  const estreito = disponivel < 600;
+  return {
+    width: Math.max(540, Math.min(1080, disponivel)), marginLeft: estreito ? 128 : 170, marginRight: 30,
+    style: { fontFamily: 'Archivo, sans-serif', fontSize: estreito ? '12px' : '13px', background: 'transparent' },
+  };
+}
+
 function grafico(cands) {
   const cargos = ORDEM_CARGOS.filter(c => cands.some(d => d.cargo === c));
   return Plot.plot({
-    width: Math.min(1080, document.querySelector('main').clientWidth),
-    height: 70 + 46 * cargos.length,
-    marginLeft: 170, marginTop: 30, marginRight: 30,
-    style: { fontFamily: 'Archivo, sans-serif', fontSize: '13px', background: 'transparent' },
+    ...medidas('g-linha'),
+    height: 70 + 46 * cargos.length, marginTop: 30,
     x: { domain: [1997, 2025], ticks: [1998, 2002, 2006, 2010, 2014, 2018, 2022], tickFormat: d => String(d), label: null, grid: true },
     y: { domain: cargos, label: null, tickFormat: c => c.toLowerCase() },
     marks: [
@@ -163,9 +173,8 @@ function graficoIdeologia(cands) {
   const comNota = cands.filter(c => c.nota != null);
   if (comNota.length < 2) return null;
   return Plot.plot({
-    width: Math.min(1080, document.querySelector('main').clientWidth),
-    height: 200, marginLeft: 170, marginRight: 30,
-    style: { fontFamily: 'Archivo, sans-serif', fontSize: '13px', background: 'transparent' },
+    ...medidas('g-ideo'),
+    height: 200,
     x: { domain: [1997, 2025], ticks: [1998, 2002, 2006, 2010, 2014, 2018, 2022], tickFormat: d => String(d), label: null },
     y: { domain: [0, 10], ticks: [0, 5, 10], tickFormat: v => ({ 0: 'esquerda (0)', 5: 'centro (5)', 10: 'direita (10)' })[v], label: null, grid: true },
     marks: [
@@ -179,13 +188,36 @@ function graficoIdeologia(cands) {
   });
 }
 
+/** A ficha em forma de santinho: o número grande são as vitórias; o verso diz o que a ficha não cobre. */
+function santinhoDoPolitico(cands) {
+  const r = Object.fromEntries(resumo(cands));
+  const ultima = cands.at(-1);
+  return santinho({
+    faixa: `${ultima.cargo.toLowerCase()} · ${ultima.local} · ${ultima.ano}`,
+    numero: r['Vitórias'],
+    rotulo: `${r['Vitórias'] === 1 ? 'vitória' : 'vitórias'} em ${r['Candidaturas']} ${r['Candidaturas'] === 1 ? 'candidatura' : 'candidaturas'}, ${r['Período']}.`,
+    linhas: [['Derrotas', r['Derrotas']], ['Reeleições', r['Reeleições']], ['Cargos diferentes', r['Cargos diferentes']],
+             ['Partidos diferentes', r['Partidos diferentes']], ['Taxa de vitória', r['Taxa de vitória']]],
+    verso: `<p>As candidaturas de uma mesma pessoa são ligadas pelo título eleitoral, que o TSE só publica de 1998 em diante.
+      O título e o CPF não são publicados aqui.</p>
+      <p>Patrimônio, receitas e despesas só existem a partir de 2018. Candidaturas que não chegaram à eleição costumam
+      não ter resultado nem prestação de contas.</p>`,
+    fonte: 'p10b_resumo_carreira.sql',
+    classe: r['Vitórias'] ? '' : 'santinho-derrota',
+  });
+}
+
 const dinheiro = v => (v == null ? '' : formata.real(v));
 const faltou = texto => `<span class="sem-info">${texto}</span>`;
 
-/** Patrimônio, receita, parcela pública e despesa; quando falta, diz por quê. */
-function celulasFinanceiras(c) {
+/** Patrimônio, receita, parcela pública e despesa; quando falta, diz por quê. As candidaturas
+ *  anteriores a 2018 seguidas dividem uma célula só com o aviso, em vez de repeti-lo em cada linha. */
+function celulasFinanceiras(c, i, cands) {
   if (c.ano < 2018) {
-    return `<td colspan="4" class="sem-info-linha">${faltou('Dados de patrimônio, receitas e despesas só existem de 2018 em diante.')}</td>`;
+    if (i > 0 && cands[i - 1].ano < 2018) return '';
+    let n = 1;
+    while (cands[i + n]?.ano < 2018) n += 1;
+    return `<td colspan="4"${n > 1 ? ` rowspan="${n}"` : ''} class="sem-info-linha">${faltou('Dados de patrimônio, receitas e despesas só existem de 2018 em diante.')}</td>`;
   }
   const patrimonio = c.patrimonio ? dinheiro(c.patrimonio) : faltou('nenhum bem declarado');
   const receita = c.receita ? dinheiro(c.receita) : faltou('nenhuma receita declarada');
@@ -204,8 +236,9 @@ async function abre(id) {
   document.title = `${nome} · Tá no Olho do Povo`;
   ficha.innerHTML = `
     <h2 class="ficha-nome">${nome}</h2>
-    <dl class="numeros">${resumo(cands).map(([r, v]) => `<div><dt>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>
-    <section class="bloco-ficha" aria-labelledby="t-linha">
+    <div class="ficha-cabeca">
+    ${santinhoDoPolitico(cands)}
+    <section aria-labelledby="t-linha">
       <h3 id="t-linha">Linha do tempo</h3>
       <p class="legenda-grafico">
         <span class="chave" style="--cor:#00a651">vitória</span>
@@ -214,13 +247,14 @@ async function abre(id) {
         <span class="chave" style="--cor:#9a8f7a">não concluída</span>
         <span class="chave chave-anel" style="--cor:#22201c">resultado não informado</span>
       </p>
-      <div id="g-linha" class="grafico"></div>
+      <div id="g-linha" class="grafico rola"></div>
     </section>
+    </div>
     <section class="bloco-ficha" aria-labelledby="t-ideo" id="s-ideo">
       <h3 id="t-ideo">Posição ideológica do partido</h3>
       <p class="apoio">Nota dada por especialistas a cada partido pelo qual concorreu, de 0 (esquerda) a 10 (direita).</p>
       <p class="apoio" id="ideo-faltas" hidden></p>
-      <div id="g-ideo" class="grafico"></div>
+      <div id="g-ideo" class="grafico rola"></div>
     </section>
     <section class="bloco-ficha" aria-labelledby="t-tabela">
       <h3 id="t-tabela">Todas as candidaturas</h3>
@@ -229,11 +263,11 @@ async function abre(id) {
         <table class="tabela">
           <thead><tr><th>Ano</th><th>Cargo</th><th>Local</th><th>Partido</th><th>Resultado</th>
             <th class="num">Patrimônio</th><th class="num">Receita</th><th class="num">Parcela pública</th><th class="num">Despesa</th></tr></thead>
-          <tbody>${cands.map(c => `<tr>
+          <tbody>${cands.map((c, i) => `<tr>
             <td>${c.ano}</td><td>${c.cargo.toLowerCase()}</td><td>${c.local}</td><td>${c.sigla}</td>
             <td><span class="selo selo-${c.resultado === 'Derrota' ? 'derrota' : ['Vitória', 'Reeleito'].includes(c.resultado) ? 'vitoria' : 'neutro'}">${c.resultado}</span>
               <span class="apoio situacao">${c.situacao === 'SEM SITUAÇÃO' ? motivoSemResultado(c) : c.situacao.toLowerCase()}</span></td>
-            ${celulasFinanceiras(c)}</tr>`).join('')}
+            ${celulasFinanceiras(c, i, cands)}</tr>`).join('')}
           </tbody>
         </table>
       </div>

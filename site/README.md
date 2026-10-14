@@ -14,6 +14,15 @@ gerados uma vez a partir do banco. HTML, CSS e JavaScript puros, com módulos do
 navegador; gráficos com [Observable Plot](https://observablehq.com/plot/) e mapa com
 [D3](https://d3js.org/), ambos carregados do jsDelivr com versão fixa.
 
+## Visual
+
+O tema é a urna eletrônica: corpo bege, teclas pretas em relevo, visor afundado para o mapa. Cada
+resposta aparece num santinho, o cartãozinho de campanha, com a faixa verde do CONFIRMA (cargo e
+ano), o lugar, o número da pergunta na caixa e, no verso, como o número foi calculado e de qual
+consulta ele sai. No Mapa, os outros anos ficam empilhados atrás do santinho e trazem o ano para a
+frente quando clicados. O componente está em `js/comum.js` (`santinho()`) e o estilo em
+`css/estilo.css`.
+
 ## Estrutura
 
 ```
@@ -69,3 +78,9 @@ Depois abra http://localhost:8765.
 O workflow `.github/workflows/site.yml` publica esta pasta no GitHub Pages a cada push
 na `main` que altere `site/`. Nas configurações do repositório, em Pages, a fonte deve
 ser "GitHub Actions".
+
+As páginas carregam o CSS e os módulos com `?v=` e uma data (por exemplo `css/estilo.css?v=20261013`),
+e os módulos importam `./comum.js?v=...` com a mesma data. Ao mudar qualquer CSS ou JS, troque essa
+data em todos os lugares de uma vez (`grep -rn "?v=" site`): o GitHub Pages guarda os arquivos em
+cache por alguns minutos, e sem a troca um visitante pode receber o `comum.js` antigo junto com uma
+página nova.
