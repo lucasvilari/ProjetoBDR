@@ -1,4 +1,5 @@
-// Página Mapa (perguntas 1, 2 e 8): Brasil, estados do projeto e seus municípios.
+// Página Mapa (perguntas 2, 7 e 8): Brasil, estados do projeto e seus municípios.
+// O custo da cadeira (pergunta 1) fica na página Cadeiras.
 //
 // Dados (gerados por gera_dados.py):
 //   mapa/brasil.json            linhas do Brasil e das 27 UFs
@@ -7,23 +8,11 @@
 // A seleção (pergunta, ano, cargo, faixa, UF e município) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261015';
+import { montaPagina, carregaDados, formata, comSeta, santinho, NOME_UF, em } from './comum.js?v=20261015c';
 
 montaPagina();
 
-const NOME_UF = {
-  AC: 'Acre', AL: 'Alagoas', AM: 'Amazonas', AP: 'Amapá', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal',
-  ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MG: 'Minas Gerais', MS: 'Mato Grosso do Sul',
-  MT: 'Mato Grosso', PA: 'Pará', PB: 'Paraíba', PE: 'Pernambuco', PI: 'Piauí', PR: 'Paraná', RJ: 'Rio de Janeiro',
-  RN: 'Rio Grande do Norte', RO: 'Rondônia', RR: 'Roraima', RS: 'Rio Grande do Sul', SC: 'Santa Catarina',
-  SE: 'Sergipe', SP: 'São Paulo', TO: 'Tocantins',
-};
 const CARGOS_MUNICIPAIS = ['PREFEITO', 'VEREADOR'];
-// "no Brasil", "na Paraíba", "no Amapá"; os demais estados e os municípios levam "em"
-const PREPOSICAO = { Brasil: 'no', 'Amapá': 'no', 'Paraíba': 'na', Acre: 'no', Amazonas: 'no', 'Pará': 'no',
-  Tocantins: 'no', 'Maranhão': 'no', 'Piauí': 'no', 'Ceará': 'no', 'Rio Grande do Norte': 'no', 'Espírito Santo': 'no',
-  'Rio de Janeiro': 'no', 'Paraná': 'no', 'Rio Grande do Sul': 'no', 'Distrito Federal': 'no', Bahia: 'na' };
-const em = nome => `${PREPOSICAO[nome] ?? 'em'} ${nome}`;
 // escala do verde-limão ao verde-escuro: até a classe mais baixa se destaca do fundo bege;
 // "sem dado" é hachurado, para não se confundir com valor baixo
 const SEM_DADO = 'url(#sem-dado)';
@@ -41,11 +30,17 @@ const painel = document.getElementById('painel');
 
 // ---------------------------------------------------------------- estado da página
 
-const estado = { pergunta: 'custo', ano: 2022, cargo: 'DEPUTADO FEDERAL', faixa: null, uf: null, mun: null };
+const estado = { pergunta: 'patrimonio', ano: 2022, cargo: 'DEPUTADO FEDERAL', faixa: null, uf: null, mun: null };
 
 function leEndereco() {
   const p = new URLSearchParams(location.hash.slice(1));
-  if (['custo', 'patrimonio', 'dependencia', 'vies'].includes(p.get('pergunta'))) estado.pergunta = p.get('pergunta');
+  // endereços antigos da pergunta 1 levam à página Cadeiras, no mesmo recorte
+  if (p.get('pergunta') === 'custo') {
+    const destino = new URLSearchParams({ ano: p.get('ano') ?? 2022, cargo: p.get('cargo') ?? 'DEPUTADO FEDERAL', onde: p.get('uf') ?? 'BR' });
+    if (p.get('mun')) destino.set('mun', p.get('mun'));
+    location.replace(`cadeiras.html#${destino}`);
+  }
+  if (['patrimonio', 'dependencia', 'vies'].includes(p.get('pergunta'))) estado.pergunta = p.get('pergunta');
   if (brasil.anos.includes(Number(p.get('ano')))) estado.ano = Number(p.get('ano'));
   if (p.get('cargo')) estado.cargo = p.get('cargo');
   estado.faixa = p.has('faixa') ? Number(p.get('faixa')) : null;
@@ -73,32 +68,24 @@ async function fonte(territorio) {
   return brasil;
 }
 
-function custos(dados, filtro) {
-  return dados.custo.map(l => registro(brasil.campos_custo, l)).filter(filtro);
-}
 function faixas(dados, filtro) {
   return dados[estado.pergunta].map(l => registro(brasil.campos_faixa, l)).filter(filtro);
 }
 
 const ehCargo = r => r.ano === estado.ano && r.cargo === idxCargo(estado.cargo);
-const custoMedio = r => (r.eleitos ? r.gasto_eleitos / r.eleitos : null);
 const taxa = (eleitos, candidatos) => (candidatos ? (100 * eleitos) / candidatos : null);
 
 /** Valor que colore cada território do mapa atual: {território: número}. */
 function valoresDoMapa(dados) {
   const valores = {};
-  if (estado.pergunta === 'custo') {
-    for (const r of custos(dados, ehCargo)) valores[r.territorio] = custoMedio(r);
-  } else {
-    // parcela dos eleitos de cada território que está na faixa escolhida: a base são os
-    // eleitos, então funciona até com um eleito só (governador) e não depende de muitos candidatos
-    const eleitos = {}, naFaixa = {};
-    for (const r of faixas(dados, ehCargo)) {
-      eleitos[r.territorio] = (eleitos[r.territorio] ?? 0) + r.eleitos;
-      if (r.faixa === estado.faixa) naFaixa[r.territorio] = r.eleitos;
-    }
-    for (const [t, total] of Object.entries(eleitos)) valores[t] = total ? (100 * (naFaixa[t] ?? 0)) / total : null;
+  // parcela dos eleitos de cada território que está na faixa escolhida: a base são os
+  // eleitos, então funciona até com um eleito só (governador) e não depende de muitos candidatos
+  const eleitos = {}, naFaixa = {};
+  for (const r of faixas(dados, ehCargo)) {
+    eleitos[r.territorio] = (eleitos[r.territorio] ?? 0) + r.eleitos;
+    if (r.faixa === estado.faixa) naFaixa[r.territorio] = r.eleitos;
   }
+  for (const [t, total] of Object.entries(eleitos)) valores[t] = total ? (100 * (naFaixa[t] ?? 0)) / total : null;
   delete valores.BR;          // o total do Brasil vai para o painel, não para as cores dos estados
   return valores;
 }
@@ -314,7 +301,6 @@ const resultadoCandidato = c => (c.eleito ? 'eleito' : c.situacao === 'SEM SITUA
 /** Painel com os candidatos lado a lado: a métrica da pergunta em barras, o eleito em verde. */
 function painelIndividual(lista, nome, pergunta) {
   const metrica = {
-    custo: { valor: c => c.despesa, rotulo: 'gasto de campanha', fmt: v => formata.real(v), falta: 'sem despesa declarada' },
     patrimonio: { valor: c => c.patrimonio, rotulo: 'patrimônio declarado', fmt: v => formata.real(v), falta: 'nenhum bem declarado' },
     dependencia: { valor: parcelaPublica, rotulo: 'parcela da receita vinda de dinheiro público', fmt: v => formata.pct(v), falta: 'sem receita declarada' },
   }[pergunta];
@@ -351,7 +337,6 @@ function painelIndividual(lista, nome, pergunta) {
 
   const caixa = document.createElement('div');
   const titulo = {
-    custo: `Quanto gastou cada candidato a ${estado.cargo.toLowerCase()} ${em(nome)}, em ${estado.ano}?`,
     patrimonio: `O que separou quem se elegeu ${estado.cargo.toLowerCase()} ${em(nome)}, em ${estado.ano}: o patrimônio`,
     dependencia: `O que separou quem se elegeu ${estado.cargo.toLowerCase()} ${em(nome)}, em ${estado.ano}: o dinheiro público`,
   }[pergunta];
@@ -436,7 +421,7 @@ function escala(valores) {
 function formatoValor(v) {
   if (v == null) return 'sem dado';
   if (ehVies()) return String(v).replace('.', ',');
-  return estado.pergunta === 'custo' ? formata.real(v) : formata.pct(v);
+  return formata.pct(v);
 }
 
 function desenhaLegenda(esc) {
@@ -445,12 +430,10 @@ function desenhaLegenda(esc) {
   if (ehVies()) { legenda.innerHTML = legendaVies(esc); return; }
   const limites = esc.limites;
   const rotulo = i => (esc.rotulos ? esc.rotulos[i] : `${formatoValor(limites[i])} a ${formatoValor(limites[i + 1])}`);
-  const titulo = ehVies() ? 'Índice ideológico (0 = esquerda, 10 = direita)' : estado.pergunta === 'custo'
-    ? 'Gasto médio de quem se elegeu'
-    : `Parcela dos eleitos na faixa "${nomeFaixas()[estado.faixa]}"`;
+  const titulo = `Parcela dos eleitos na faixa "${nomeFaixas()[estado.faixa]}"`;
   legenda.innerHTML = `<span class="legenda-titulo">${titulo}</span>
     <span class="legenda-faixas">${esc.range().map((c, i) => `<span><i style="background:${c}"></i>${rotulo(i)}</span>`).join('')}
-    <span><i class="sem-dado"></i>${estado.pergunta === 'custo' || ehVies() ? 'sem dado' : 'sem eleitos com esse dado'}</span></span>`;
+    <span><i class="sem-dado"></i>sem eleitos com esse dado</span></span>`;
 }
 
 async function desenhaMapa() {
@@ -459,7 +442,7 @@ async function desenhaMapa() {
   document.querySelector('.mapa-grade').classList.toggle('sem-mapa', presidente);
   if (presidente) {
     svgCaixa.innerHTML = `<div class="aviso-vazio aviso-mapa"><p><strong>A eleição para presidente é nacional.</strong>
-      Os votos são somados no país inteiro, então não há custo, patrimônio ou dinheiro público por estado
+      Os votos são somados no país inteiro, então não há patrimônio ou dinheiro público por estado
       para colorir o mapa. A resposta para o Brasil está no santinho.</p></div>`;
     document.getElementById('legenda').innerHTML = '';
     document.getElementById('dica').textContent = 'Escolha outro cargo para ver o mapa.';
@@ -558,31 +541,6 @@ function territorioAtual() {
   return estado.uf ?? 'BR';
 }
 
-async function painelCusto(onde, nome) {
-  const dados = await fonte(onde);
-  const doAno = custos(dados, r => r.ano === estado.ano && r.territorio === onde);
-  const r = doAno.find(x => x.cargo === idxCargo(estado.cargo));
-  if (!r) return `<p class="aviso-vazio">Não há ${estado.cargo.toLowerCase()} ${em(nome)} em ${estado.ano}${estado.cargo === 'PRESIDENTE' ? ': o cargo de presidente só tem valor para o Brasil' : ''}.</p>`;
-  const linhas = doAno.sort((a, b) => (custoMedio(b) ?? 0) - (custoMedio(a) ?? 0)).map(x => `<tr${x === r ? ' class="atual"' : ''}>
-      <td>${brasil.cargos[x.cargo].toLowerCase()}</td><td class="num">${formata.numero(x.vagas ?? 0)}</td>
-      <td class="num">${x.vagas ? formata.numero(Math.round(10 * x.candidatos / x.vagas) / 10) : ''}</td>
-      <td class="num">${x.vagas ? formata.real(x.gasto / x.vagas) : ''}</td>
-      <td class="num">${custoMedio(x) == null ? '' : formata.real(custoMedio(x))}</td></tr>`).join('');
-  const html = `
-    <h3>Quanto custa uma cadeira de ${estado.cargo.toLowerCase()} ${em(nome)}, em ${estado.ano}?</h3>
-    <p class="apoio">O santinho ao lado do mapa traz a resposta; vire-o para ver como foi calculada.</p>
-    <div id="individual"></div>
-    <h4>Todos os cargos de ${estado.ano} ${em(nome)}</h4>
-    <div class="rolagem"><table class="tabela">
-      <thead><tr><th>Cargo</th><th class="num">Vagas</th><th class="num">Candidatos por vaga</th><th class="num">Disputa por cadeira</th><th class="num">Gasto médio por eleito</th></tr></thead>
-      <tbody>${linhas}</tbody></table></div>`;
-  const caixa = document.createElement('div');
-  caixa.innerHTML = html;
-  const lista = await candidatosDe(onde);
-  if (lista.length && lista.length <= LIMITE_INDIVIDUAL) caixa.querySelector('#individual').append(painelIndividual(lista, nome, 'custo'));
-  return caixa;
-}
-
 async function painelFaixas(onde, nome) {
   const lista = await candidatosDe(onde);
   if (lista.length && lista.length <= LIMITE_INDIVIDUAL) return painelIndividual(lista, nome, estado.pergunta);
@@ -631,8 +589,7 @@ async function painelFaixas(onde, nome) {
 async function desenhaPainel() {
   const onde = territorioAtual();
   const nome = await nomeTerritorio();
-  const conteudo = ehVies() ? await painelVies(onde, nome)
-    : estado.pergunta === 'custo' ? await painelCusto(onde, nome) : await painelFaixas(onde, nome);
+  const conteudo = ehVies() ? await painelVies(onde, nome) : await painelFaixas(onde, nome);
   if (typeof conteudo === 'string') painel.innerHTML = conteudo;
   else painel.replaceChildren(conteudo);
   if (estado.mun && !ehVies() && !CARGOS_MUNICIPAIS.includes(estado.cargo)) {
@@ -642,9 +599,8 @@ async function desenhaPainel() {
 
 // ---------------------------------------------------------------- o santinho e a pilha de anos
 
-const FONTE_SQL = { custo: 'p01_custo_cadeira.sql', patrimonio: 'p02_taxa_por_patrimonio.sql',
+const FONTE_SQL = { patrimonio: 'p02_taxa_por_patrimonio.sql',
   dependencia: 'p08_dependencia_publica.sql', vies: 'p07_vies_ideologico.sql' };
-const abrevia = v => (v >= 1e6 ? `R$ ${String((v / 1e6).toFixed(1)).replace('.', ',')} mi` : `R$ ${Math.round(v / 1e3)} mil`);
 
 /** A resposta da pergunta atual no território `onde` num ano: o que vai no santinho, ou null. */
 async function respostaDoAno(onde, ano) {
@@ -670,25 +626,6 @@ async function respostaDoAno(onde, ano) {
   }
   const dados = await fonte(onde);
   const ic = idxCargo(estado.cargo);
-  if (estado.pergunta === 'custo') {
-    const r = custos(dados, x => x.ano === ano && x.territorio === onde && x.cargo === ic)[0];
-    if (!r || custoMedio(r) == null) return null;
-    const um = r.eleitos === 1;
-    return {
-      numero: formata.real(custoMedio(r)), curto: abrevia(custoMedio(r)),
-      rotulo: um ? 'gastou a campanha de quem se elegeu.' : `gastou, em média, cada um dos ${formata.numero(r.eleitos)} eleitos.`,
-      linhas: [
-        ['Disputa por cadeira', r.vagas ? formata.real(r.gasto / r.vagas) : '—'],
-        ['Candidatos por vaga', r.vagas ? formata.numero(Math.round(10 * r.candidatos / r.vagas) / 10) : '—'],
-        ['Vagas', formata.numero(r.vagas ?? 0)],
-      ],
-      verso: `<p>O número grande soma as despesas ${um ? 'da campanha vencedora' : `dos ${formata.numero(r.eleitos)} eleitos e divide por ${formata.numero(r.eleitos)}`}:
-        quanto custou, para quem venceu, chegar à cadeira.</p>
-        <p>A disputa por cadeira soma as despesas de todos os ${formata.numero(r.candidatos)} candidatos, eleitos ou não,
-        e divide pelas ${formata.numero(r.vagas ?? 0)} vagas.</p>
-        <p>Despesas contratadas pelas campanhas, em reais de cada ano, sem correção pela inflação.</p>`,
-    };
-  }
   const nomes = nomeFaixas();
   const rs = faixas(dados, x => x.ano === ano && x.cargo === ic && x.territorio === onde);
   const cand = d3.sum(rs, x => x.candidatos), el = d3.sum(rs, x => x.eleitos);

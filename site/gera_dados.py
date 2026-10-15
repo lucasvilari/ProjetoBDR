@@ -11,6 +11,8 @@ e grava os resultados em arquivos pequenos.
                nas UFs e nos municípios dos seis estados (banco nacional)
     candidatos candidatos a presidente, governador, senador e prefeito, um a um, para os
                recortes com poucos candidatos no mapa (banco dos seis estados)
+    cadeiras   eleitos de cada partido nos seis estados, nos municípios deles e para presidente
+               (banco dos seis estados)
 
 Uso (com o ambiente de banco/.venv):
     ../banco/.venv/bin/python gera_dados.py                 # tudo
@@ -600,6 +602,51 @@ def parte_vies(conn):
     log(f'viés: {len(brasil)} linhas de Brasil, regiões e UFs; {sum(map(len, por_uf.values())):,} de municípios')
 
 
+# --------------------------------------------------------------------------- cadeiras por partido
+
+# Eleitos de cada partido por ano, cargo e território, para o plenário da página Cadeiras.
+# Banco dos seis estados: cada UF do projeto (cargos estaduais e a soma dos municipais) e seus
+# municípios; presidente no Brasil. As cadeiras do Brasil nos demais cargos vêm de partidos.json.
+CARGOS_CADEIRAS = ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL', 'PREFEITO', 'VEREADOR')
+
+SQL_CADEIRAS = """
+SELECT v.ano, v.cargo, v.ue, COALESCE(m.uf, v.ue) AS uf, pa.sigla, ip.nota_especialistas, COUNT(*)
+FROM vw_candidatura v
+JOIN partido pa ON pa.id_partido = v.id_partido
+LEFT JOIN municipio m ON m.cod_tse = v.ue
+LEFT JOIN vw_ideologia_partido ip ON ip.id_partido = v.id_partido AND ip.ano = v.ano
+WHERE v.eleito AND v.ano >= 2018 AND v.cargo = ANY(%(cargos)s)
+GROUP BY 1, 2, 3, 4, 5, 6
+ORDER BY 1, 2, 3, 5
+"""
+
+
+def parte_cadeiras(conn):
+    log('cadeiras: eleitos por partido')
+    with conn.cursor() as cur:
+        cur.execute(SQL_CADEIRAS, {'cargos': list(CARGOS_CADEIRAS)})
+        linhas = cur.fetchall()
+    # arquivo (UF ou BR) -> (ano, cargo, território, sigla) -> eleitos; a UF soma os seus municípios
+    por_arquivo = defaultdict(lambda: defaultdict(int))
+    notas = defaultdict(dict)                                  # sigla -> {ano: nota}
+    for ano, cargo, ue, uf, sigla, nota, eleitos in linhas:
+        if nota is not None:
+            notas[sigla][str(ano)] = num(nota)
+        c = CARGOS_CADEIRAS.index(cargo)
+        por_arquivo[uf][(ano, c, ue, sigla)] += eleitos
+        if ue != uf:
+            por_arquivo[uf][(ano, c, uf, sigla)] += eleitos
+    shutil.rmtree(DADOS / 'cadeiras', ignore_errors=True)
+    for arquivo, contagem in por_arquivo.items():
+        siglas = sorted({k[3] for k in contagem})
+        grava(f'cadeiras/{arquivo}.json', {
+            'cargos': list(CARGOS_CADEIRAS), 'campos': ['ano', 'cargo', 'territorio', 'partido', 'eleitos'],
+            'partidos': [[s, notas.get(s, {})] for s in siglas],
+            'linhas': [[a, c, t, siglas.index(s), n] for (a, c, t, s), n in sorted(contagem.items())],
+        })
+    log(f'cadeiras: {len(por_arquivo)} arquivos, {tamanho_pasta(DADOS / "cadeiras") / 1e6:.1f} MB')
+
+
 _MUNICIPIOS = {}
 
 
@@ -612,7 +659,8 @@ def municipios_da(conn, uf):
 
 
 PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
-          'partidos': parte_partidos, 'candidatos': parte_candidatos, 'vies': parte_vies}
+          'partidos': parte_partidos, 'candidatos': parte_candidatos, 'vies': parte_vies,
+          'cadeiras': parte_cadeiras}
 
 
 def main():
@@ -622,7 +670,7 @@ def main():
     ap.add_argument('--nacional', default='dbname=eleicoes_nacional', help='banco com o país inteiro')
     args = ap.parse_args()
     for parte in args.partes.split(','):
-        dsn = args.banco if parte in ('politicos', 'candidatos') else args.nacional
+        dsn = args.banco if parte in ('politicos', 'candidatos', 'cadeiras') else args.nacional
         with psycopg.connect(dsn) as conn:
             PARTES[parte](conn)
 

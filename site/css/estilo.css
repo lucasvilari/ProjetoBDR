@@ -419,6 +419,41 @@ p, li { max-width: var(--medida); }
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5h9M6.5 1.5L10 5 6.5 8.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5h9M6.5 1.5L10 5 6.5 8.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
 
+/* ------------------------------------------------------------------ o plenário (página Cadeiras)
+   Cada bolinha é uma cadeira, numa meia-lua como os gráficos de plenário; os partidos ocupam fatias da
+   esquerda para a direita, na cor da nota ideológica. O visor afundado da urna é a mesma moldura do mapa. */
+
+.plenario-area h2 { margin: 0 0 var(--m1); }
+.plenario-area h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); }
+.plenario {
+  margin: 18px 10px 10px; padding: var(--m3) var(--m2) var(--m2); background: #f3f1e4; border: 2px solid var(--tecla); border-radius: 10px;
+  box-shadow: inset 0 4px 14px rgb(60 40 10 / 0.25), 0 0 0 8px var(--urna-funda), 0 0 0 10px var(--tecla);
+}
+.plenario-svg { display: block; width: 100%; height: auto; }
+.plenario-svg circle { stroke: var(--tecla); stroke-width: 0.6; transition: opacity 150ms; }
+.plenario-svg.miudo circle { stroke: none; }
+.plenario-svg.destacando circle:not(.ativo) { opacity: 0.18; }
+.plenario-total { text-anchor: middle; font-weight: 900; font-stretch: 72%; fill: var(--tecla); }
+.plenario-escala { text-anchor: middle; font-size: 6px; font-weight: 700; fill: var(--tinta-2); }
+.plenario-rotulo { text-anchor: middle; font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; fill: var(--tinta-2); }
+.resumo-plenario { margin: var(--m2) 0 var(--m1); line-height: 1.5; }
+.resumo-plenario .lado { display: inline-block; margin-right: 1rem; font-size: 0.92rem; white-space: nowrap; }
+.resumo-plenario .lado::before {
+  content: ""; display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 50%; margin-right: 0.35rem;
+  vertical-align: -0.05rem; background: var(--cor); border: 1.5px solid var(--tecla);
+}
+.legenda-partidos { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.legenda-partidos li {
+  max-width: none; display: inline-flex; align-items: center; gap: 0.35rem; cursor: default;
+  padding: 0.25rem 0.5rem; border: 1.5px solid var(--tecla); border-radius: 4px; background: var(--papel); font-size: 0.88rem;
+}
+.legenda-partidos li.ativo, .legenda-partidos li:focus-visible { background: var(--tecla); color: var(--visor); outline: none; }
+.legenda-partidos i { width: 0.8rem; height: 0.8rem; border-radius: 50%; border: 1.5px solid var(--tecla); }
+.legenda-partidos .sigla { font-weight: 700; }
+.legenda-partidos b { font-stretch: 75%; font-weight: 900; }
+.link-cargo { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.link-cargo:focus-visible { outline: 3px solid var(--corrige); outline-offset: 2px; }
+
 /* ------------------------------------------------------------------ telas estreitas */
 
 @media (max-width: 860px) {

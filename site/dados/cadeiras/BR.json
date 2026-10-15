@@ -1,0 +1,1 @@
+{"cargos":["PRESIDENTE","GOVERNADOR","SENADOR","DEPUTADO FEDERAL","DEPUTADO ESTADUAL","PREFEITO","VEREADOR"],"campos":["ano","cargo","territorio","partido","eleitos"],"partidos":[["PSL",{"2018":8.11,"2020":8.11}],["PT",{"2018":2.97,"2020":2.68,"2022":2.68,"2024":2.68}]],"linhas":[[2018,0,"BR",0,1],[2022,0,"BR",1,1]]}

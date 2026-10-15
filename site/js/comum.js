@@ -1,7 +1,8 @@
-// Partes comuns às quatro páginas: cabeçalho, rodapé, leitura dos dados e formatos.
+// Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
 const PAGINAS = [
+  { id: 'cadeiras', rotulo: 'Cadeiras', href: 'cadeiras.html' },
   { id: 'mapa', rotulo: 'Mapa', href: 'mapa.html' },
   { id: 'partido', rotulo: 'Partido', href: 'partido.html' },
   { id: 'politico', rotulo: 'Político', href: 'politico.html' },
@@ -65,6 +66,19 @@ function viraSantinho(e) {
   frente.inert = virado; verso.inert = !virado;
   (virado ? verso : frente).querySelector('.virar').focus({ preventScroll: true });
 }
+
+export const NOME_UF = {
+  AC: 'Acre', AL: 'Alagoas', AM: 'Amazonas', AP: 'Amapá', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal',
+  ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MG: 'Minas Gerais', MS: 'Mato Grosso do Sul',
+  MT: 'Mato Grosso', PA: 'Pará', PB: 'Paraíba', PE: 'Pernambuco', PI: 'Piauí', PR: 'Paraná', RJ: 'Rio de Janeiro',
+  RN: 'Rio Grande do Norte', RO: 'Rondônia', RR: 'Roraima', RS: 'Rio Grande do Sul', SC: 'Santa Catarina',
+  SE: 'Sergipe', SP: 'São Paulo', TO: 'Tocantins',
+};
+// "no Brasil", "na Paraíba", "no Amapá"; os demais estados e os municípios levam "em"
+const PREPOSICAO = { Brasil: 'no', 'Amapá': 'no', 'Paraíba': 'na', Acre: 'no', Amazonas: 'no', 'Pará': 'no',
+  Tocantins: 'no', 'Maranhão': 'no', 'Piauí': 'no', 'Ceará': 'no', 'Rio Grande do Norte': 'no', 'Espírito Santo': 'no',
+  'Rio de Janeiro': 'no', 'Paraná': 'no', 'Rio Grande do Sul': 'no', 'Distrito Federal': 'no', Bahia: 'na' };
+export const em = nome => `${PREPOSICAO[nome] ?? 'em'} ${nome}`;
 
 const cache = new Map();
 

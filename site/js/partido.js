@@ -1,7 +1,7 @@
-// Página Partido: as três medidas de ideologia e os eleitos de cada partido atual.
+// Página Partido: as três medidas de ideologia de cada partido atual. Os eleitos (as cadeiras) ficam na página Cadeiras.
 // Dados: partidos.json (gerado por gera_dados.py a partir do banco nacional).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261015';
+import { montaPagina, carregaDados, comSeta, santinho } from './comum.js?v=20261015c';
 
 montaPagina();
 
@@ -55,23 +55,15 @@ function graficoCamara() {
   });
 }
 
-function eleitosDe(p, ano, cargos) {
-  return p.eleicoes.filter(e => e[0] === ano && cargos.includes(e[1])).reduce((s, e) => s + e[3], 0);
-}
-
 function tabela() {
   const linhas = [...partidos].sort((a, b) => (a.especialistas['2022'] ?? 99) - (b.especialistas['2022'] ?? 99));
   document.getElementById('tabela').innerHTML = `
     <thead><tr><th>Partido</th><th class="num">Número</th><th class="num">Especialistas 2018</th><th class="num">Especialistas 2022</th>
-      <th class="num">Alianças 2024</th><th class="num">Câmara</th><th class="num">Deputados federais 2022</th>
-      <th class="num">Prefeitos 2024</th><th class="num">Vereadores 2024</th></tr></thead>
+      <th class="num">Alianças 2024</th><th class="num">Câmara</th></tr></thead>
     <tbody>${linhas.map(p => `<tr>
       <td class="nome"><a href="#${encodeURIComponent(p.sigla)}">${p.sigla}</a> <span class="apoio situacao">${p.nome.toLowerCase()}</span></td>
       <td class="num">${p.numero}</td><td class="num">${comSeta(p.especialistas['2018'], 5, 2)}</td><td class="num">${comSeta(p.especialistas['2022'], 5, 2)}</td>
-      <td class="num">${comSeta(p.coligacoes['2024'], 5, 2)}</td><td class="num">${comSeta(p.camara, 0, 1)}</td>
-      <td class="num">${formata.numero(eleitosDe(p, 2022, ['DEPUTADO FEDERAL']))}</td>
-      <td class="num">${formata.numero(eleitosDe(p, 2024, ['PREFEITO']))}</td>
-      <td class="num">${formata.numero(eleitosDe(p, 2024, ['VEREADOR']))}</td></tr>`).join('')}</tbody>`;
+      <td class="num">${comSeta(p.coligacoes['2024'], 5, 2)}</td><td class="num">${comSeta(p.camara, 0, 1)}</td></tr>`).join('')}</tbody>`;
 }
 
 function detalhe(sigla) {
@@ -86,7 +78,7 @@ function detalhe(sigla) {
       ${santinho({
         faixa: `partido · número ${p.numero}`, nome: p.sigla, numero: p.numero, rotulo: p.nome.toLowerCase(),
         linhas: [['Especialistas, 2022', nota(p.especialistas['2022'])], ['Alianças, 2024', nota(p.coligacoes['2024'] ?? null)],
-                 ['Câmara', camara], ['Deputados federais, 2022', formata.numero(eleitosDe(p, 2022, ['DEPUTADO FEDERAL']))]],
+                 ['Câmara', camara]],
         verso: `<p>Especialistas: nota de 0 (esquerda) a 10 (direita) dada por cientistas políticos em 2018 e 2022.</p>
           <p>Alianças: a posição revelada pelas coligações para prefeito, na mesma escala.</p>
           <p>Câmara: posição nas votações nominais, de −100 a +100; mede sobretudo o alinhamento com o governo.</p>`,
@@ -100,12 +92,8 @@ function detalhe(sigla) {
         <div class="grafico" id="g-detalhe"></div>
       </div>
     </div>
-    <div class="rolagem"><table class="tabela">
-      <thead><tr><th>Ano</th><th>Cargo</th><th class="num">Candidatos</th><th class="num">Eleitos</th><th class="num">Taxa de vitória</th></tr></thead>
-      <tbody>${p.eleicoes.map(([ano, cargo, cand, el]) => `<tr><td>${ano}</td><td>${cargo.toLowerCase()}</td>
-        <td class="num">${formata.numero(cand)}</td><td class="num">${formata.numero(el)}</td>
-        <td class="num">${formata.pct(100 * el / cand)}</td></tr>`).join('')}</tbody>
-    </table></div>`;
+    <p class="apoio">Quantas cadeiras o ${p.sigla} conquistou em cada eleição está na página
+      <a href="cadeiras.html">Cadeiras</a>.</p>`;
   if (serie.length) {
     caixa.querySelector('#g-detalhe').append(Plot.plot({
       width: caixa.querySelector('#g-detalhe').clientWidth || 600, height: 220, marginLeft: 70, style: ESTILO,

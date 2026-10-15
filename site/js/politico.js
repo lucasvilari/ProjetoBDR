@@ -7,7 +7,7 @@
 //   politicos/carreira/N.json   candidaturas, 1.000 políticos por arquivo
 // A busca baixa só as fatias e fichas necessárias; abrir um político baixa uma carreira.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho } from './comum.js?v=20261015';
+import { montaPagina, carregaDados, formata, santinho } from './comum.js?v=20261015c';
 
 montaPagina();
 
