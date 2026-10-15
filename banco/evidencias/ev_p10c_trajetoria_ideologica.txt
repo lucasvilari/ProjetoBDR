@@ -3,7 +3,7 @@ Pager usage is off.
 -- parâmetros: político = ANDERSON ADAUTO PEREIRA
                                                                  servidor                                                                 |  banco   |    executado_em     
 ------------------------------------------------------------------------------------------------------------------------------------------+----------+---------------------
- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 22:54:45
+ PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit | eleicoes | 2026-10-02 23:12:24
 (1 row)
 
 Timing is on.
@@ -45,4 +45,4 @@ ORDER BY ano, cargo;
  2024 | PREFEITO          | PV      | t              |               4.12 | f            |         2.34 |           -51.7 |           6.73 |               7.02
 (9 rows)
 
-Time: 4,499 ms
+Time: 8,427 ms

@@ -30,15 +30,17 @@ export function montaPagina() {
 }
 
 /** Um santinho: faixa (cargo, lugar, ano), o número da pergunta, o que ele mede, linhas de apoio e,
- *  no verso, como foi calculado e o que falta. Devolve HTML. */
-export function santinho({ faixa, nome = '', numero, rotulo, linhas = [], verso, fonte = '', classe = '' }) {
+ *  no verso, como foi calculado e o que falta. `foto` é um <img> que vai ao lado do número. Devolve HTML. */
+export function santinho({ faixa, nome = '', numero, rotulo, linhas = [], verso, fonte = '', classe = '', foto = '' }) {
   return `<div class="santinho ${classe}">
     <div class="santinho-carta">
       <section class="santinho-face santinho-frente">
         <div class="santinho-faixa">${faixa}</div>
         ${nome ? `<span class="santinho-nome">${nome}</span>` : ''}
+        ${foto ? '<div class="santinho-com-foto"><div>' : ''}
         <strong class="santinho-numero"><span>${numero}</span></strong>
         <p class="santinho-rotulo">${rotulo}</p>
+        ${foto ? `</div>${foto}</div>` : ''}
         ${linhas.length ? `<dl class="santinho-linhas">${linhas.map(([r, v]) => `<div><dt>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
         ${verso ? `<div class="santinho-rodape santinho-cola"><span class="fonte">${fonte}</span>
           <button type="button" class="botao virar" aria-pressed="false">Como se calcula</button></div>` : ''}

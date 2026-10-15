@@ -7,7 +7,7 @@
 // A seleção (pergunta, ano, cargo, faixa, UF e município) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261013';
+import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261015';
 
 montaPagina();
 
@@ -514,6 +514,17 @@ async function desenhaMapa() {
   clicavel.attr('tabindex', 0).attr('role', 'button')
     .on('click', (_, f) => seleciona(f))
     .on('keydown', (e, f) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); seleciona(f); } });
+
+  // o contorno grosso fica metade por fora do território, e os vizinhos desenhados depois o cobriam;
+  // uma camada só de contornos, por cima de tudo, fecha a borda dos estados do projeto e do município
+  // escolhido sem mudar a ordem das formas (nem a do teclado)
+  svg.append('g').attr('class', 'contornos').attr('aria-hidden', 'true')
+    .selectAll('path').data(geo.features.filter(f => (naUF ? f.properties.mun === estado.mun : ufsProjeto.has(f.properties.uf))))
+    .join('path').attr('d', caminho).attr('class', naUF ? 'municipio selecionado' : 'estado projeto');
+  // o foco do teclado também precisa ficar por cima: um contorno temporário para a forma focada
+  const foco = svg.append('path').attr('class', 'contorno-foco').attr('aria-hidden', 'true');
+  clicavel.on('focus', (e, f) => { if (e.target.matches(':focus-visible')) foco.attr('d', caminho(f)); })
+    .on('blur', () => foco.attr('d', null));
 
   svgCaixa.replaceChildren(svg.node());
   desenhaLegenda(esc);

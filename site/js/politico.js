@@ -7,7 +7,7 @@
 //   politicos/carreira/N.json   candidaturas, 1.000 políticos por arquivo
 // A busca baixa só as fatias e fichas necessárias; abrir um político baixa uma carreira.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho } from './comum.js?v=20261013';
+import { montaPagina, carregaDados, formata, santinho } from './comum.js?v=20261015';
 
 montaPagina();
 
@@ -17,6 +17,18 @@ const ORDEM_CARGOS = ['PRESIDENTE', 'VICE-PRESIDENTE', 'GOVERNADOR', 'VICE-GOVER
   'DEPUTADO ESTADUAL', 'PREFEITO', 'VICE-PREFEITO', 'VEREADOR'];
 const COR_RESULTADO = { 'Vitória': '#00a651', 'Reeleito': '#00a651', 'Derrota': '#f26522', 'Candidatura não concluída': '#9a8f7a',
   'Resultado não informado': '#e8dcc4' };
+
+// código de cada eleição no DivulgaCandContas do TSE, de onde vêm as fotos
+const ELEICAO_TSE = { 2018: 2022802018, 2020: 2030402020, 2022: 2040602022, 2024: 2045202024 };
+
+/** A foto do candidato no TSE ("ano/sq_candidato/ue", da candidatura mais recente desde 2018).
+ *  Sem foto, ou se o TSE não responder, a imagem some; quando o TSE não tem a foto, manda uma silhueta. */
+function foto(chave, classe) {
+  if (!chave) return '';
+  const [ano, sq, ue] = chave.split('/');
+  return `<img class="${classe}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"
+    src="https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img/${ELEICAO_TSE[ano]}/${sq}/${ue}">`;
+}
 
 const campo = document.getElementById('campo-busca');
 const caixaResultados = document.getElementById('resultados');
@@ -75,8 +87,10 @@ async function busca(texto) {
     <ul class="resultados">${mostrados.map(f => `
       <li><a href="#${f.id}">
         <span class="santinho-faixa">${tabelas.cargos[f.ultimo_cargo].toLowerCase()} · ${f.uf}</span>
-        <span class="resultado-nome">${f.nome}</span>
-        <span class="resultado-meta">${f.primeiro_ano === f.ultimo_ano ? f.primeiro_ano : `${f.primeiro_ano} a ${f.ultimo_ano}`}, ${f.vitorias} ${f.vitorias === 1 ? 'vitória' : 'vitórias'}</span>
+        <span class="resultado-corpo">${foto(f.foto, 'resultado-foto')}<span class="resultado-texto">
+          <span class="resultado-nome">${f.nome}</span>
+          <span class="resultado-meta">${f.primeiro_ano === f.ultimo_ano ? f.primeiro_ano : `${f.primeiro_ano} a ${f.ultimo_ano}`}, ${f.vitorias} ${f.vitorias === 1 ? 'vitória' : 'vitórias'}</span>
+        </span></span>
       </a></li>`).join('')}
     </ul>${extra}`;
 }
@@ -109,7 +123,7 @@ function local(codigo) {
 
 async function carreira(id) {
   const lote = await carregaDados(`politicos/carreira/${Math.floor((id - 1) / tabelas.por_arquivo)}.json`);
-  const [nome, linhas] = lote[id];
+  const [nome, linhas, foto] = lote[id];
   const cands = linhas.map(l => {
     const c = Object.fromEntries(tabelas.campos_candidatura.map((campo, i) => [campo, l[i] ?? null]));
     const notas = tabelas.notas[`${c.partido}|${c.ano}`] ?? [null, null];
@@ -120,7 +134,7 @@ async function carreira(id) {
     };
   });
   cands.forEach(c => { c.resultado = resultado(c); });
-  return { nome, cands };
+  return { nome, cands, foto };
 }
 
 function resumo(cands) {
@@ -189,7 +203,7 @@ function graficoIdeologia(cands) {
 }
 
 /** A ficha em forma de santinho: o número grande são as vitórias; o verso diz o que a ficha não cobre. */
-function santinhoDoPolitico(cands) {
+function santinhoDoPolitico(cands, chaveFoto) {
   const r = Object.fromEntries(resumo(cands));
   const ultima = cands.at(-1);
   return santinho({
@@ -204,6 +218,7 @@ function santinhoDoPolitico(cands) {
       não ter resultado nem prestação de contas.</p>`,
     fonte: 'p10b_resumo_carreira.sql',
     classe: r['Vitórias'] ? '' : 'santinho-derrota',
+    foto: foto(chaveFoto, 'santinho-foto'),
   });
 }
 
@@ -237,7 +252,7 @@ async function abre(id) {
   ficha.innerHTML = `
     <h2 class="ficha-nome">${nome}</h2>
     <div class="ficha-cabeca">
-    ${santinhoDoPolitico(cands)}
+    ${santinhoDoPolitico(cands, dados.foto)}
     <section aria-labelledby="t-linha">
       <h3 id="t-linha">Linha do tempo</h3>
       <p class="legenda-grafico">

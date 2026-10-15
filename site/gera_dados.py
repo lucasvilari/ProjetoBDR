@@ -73,7 +73,7 @@ WITH bens AS (SELECT sq_candidato, SUM(valor) AS total FROM bem GROUP BY 1),
                     SUM(valor) FILTER (WHERE UPPER(fonte) LIKE 'FUNDO%') AS publica
              FROM receita GROUP BY 1),
      des AS (SELECT sq_candidato, SUM(valor) AS total FROM despesa GROUP BY 1)
-SELECT v.titulo_eleitoral, v.ano, v.cargo, v.ue, COALESCE(m.uf, v.ue) AS uf,
+SELECT v.titulo_eleitoral, v.sq_candidato, v.ano, v.cargo, v.ue, COALESCE(m.uf, v.ue) AS uf,
        v.id_partido, v.situacao_final, v.eleito, v.reeleicao,
        CASE WHEN v.ano >= 2018 THEN COALESCE(b.total, 0) END AS patrimonio,
        r.total, r.publica, d.total
@@ -90,8 +90,10 @@ ORDER BY v.titulo_eleitoral, v.ano, v.cargo
 # do município; os valores em reais são inteiros; campos vazios no fim são omitidos.
 CAMPOS_CANDIDATURA = ['ano', 'cargo', 'local', 'partido', 'situacao', 'reeleicao',
                       'patrimonio', 'receita', 'receita_publica', 'despesa']
-# Ficha de busca: o suficiente para listar e distinguir homônimos.
-CAMPOS_FICHA = ['nome', 'uf', 'ultimo_cargo', 'primeiro_ano', 'ultimo_ano', 'vitorias']
+# Ficha de busca: o suficiente para listar e distinguir homônimos. foto é "ano/sq_candidato/ue"
+# da candidatura mais recente de 2018 em diante (antes disso o sq_candidato é sintético), com que
+# o site monta o endereço da foto no DivulgaCandContas do TSE; fica vazia para quem não tem.
+CAMPOS_FICHA = ['nome', 'uf', 'ultimo_cargo', 'primeiro_ano', 'ultimo_ano', 'vitorias', 'foto']
 POR_FICHA = 2000                         # políticos por arquivo de fichas
 
 
@@ -139,11 +141,14 @@ def parte_politicos(conn):
         notas = {f'{i}|{a}': [num(e), num(c)] for i, a, e, c in cur.fetchall()}
         cur.execute(SQL_CANDIDATURAS)
         por_titulo = defaultdict(list)
-        for (titulo, ano, cargo, local, uf, id_partido, situacao, eleito, reel,
+        fotos = {}                                       # título -> foto da candidatura mais recente
+        for (titulo, sq, ano, cargo, local, uf, id_partido, situacao, eleito, reel,
              patrimonio, receita, publica, despesa) in cur:
             linha = [ano, cargos(cargo), local, id_partido, situacoes(situacao or 'SEM SITUAÇÃO'), int(reel),
                      inteiro(patrimonio), inteiro(receita), inteiro(publica), inteiro(despesa)]
             por_titulo[titulo].append((uf, bool(eleito), sem_vazios_no_fim(linha)))
+            if sq > 0:
+                fotos[titulo] = f'{ano}/{sq}/{local}'
 
     pasta = DADOS / 'politicos'
     shutil.rmtree(pasta, ignore_errors=True)
@@ -157,8 +162,8 @@ def parte_politicos(conn):
         ultimo_uf, _, ultimo = cands[-1]
         anos = [c[0] for _, _, c in cands]
         fichas[(pid - 1) // POR_FICHA][pid] = [nome, ultimo_uf, ultimo[1], min(anos), max(anos),
-                                               sum(e for _, e, _ in cands)]
-        carreiras[(pid - 1) // POR_ARQUIVO][pid] = [nome, [c for _, _, c in cands]]
+                                               sum(e for _, e, _ in cands), fotos.get(titulo)]
+        carreiras[(pid - 1) // POR_ARQUIVO][pid] = [nome, [c for _, _, c in cands], fotos.get(titulo)]
         for palavra in set(normaliza(nome)):
             if len(palavra) >= 3 and palavra not in PALAVRAS_IGNORADAS:
                 palavras[palavra[:3]][palavra].append(pid)

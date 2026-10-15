@@ -161,6 +161,13 @@ p, li { max-width: var(--medida); }
   font-size: clamp(2.5rem, 5.4vw, 4.2rem); font-weight: 900; font-stretch: 62%; line-height: 0.95; letter-spacing: -0.01em;
 }
 .santinho-numero small { font-size: 0.42em; font-stretch: 80%; font-weight: 800; letter-spacing: 0; }
+/* a foto do candidato, colada no canto do santinho como a do material de campanha */
+.santinho-com-foto { display: flex; align-items: flex-start; gap: var(--m2); padding-right: var(--m2); }
+.santinho-com-foto > div { flex: 1; min-width: 0; }
+.santinho-foto {
+  flex: none; width: 6.5rem; aspect-ratio: 161 / 225; object-fit: cover; margin-top: 0.7rem;
+  border: 2.5px solid var(--tecla); border-radius: 4px; background: var(--visor);
+}
 .santinho-rotulo { display: block; padding: var(--m1) var(--m2) var(--m2); margin: 0; font-weight: 700; font-size: 1.02rem; line-height: 1.3; }
 .santinho-linhas { margin: 0; }
 .santinho-linhas div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--m2); border-top: 1.5px solid var(--tecla); padding: 0.55rem var(--m2); }
@@ -319,6 +326,8 @@ p, li { max-width: var(--medida); }
 .mapa-svg path[role="button"]:hover { filter: brightness(0.88); }
 .mapa-svg path:focus-visible { outline: none; stroke: var(--corrige); stroke-width: 3; }
 .mapa-svg .municipio.selecionado { stroke: var(--corrige); stroke-width: 2.5; }
+.mapa-svg .contornos path, .mapa-svg .contorno-foco { fill: none; pointer-events: none; }
+.mapa-svg .contorno-foco { stroke: var(--corrige); stroke-width: 3; }
 .mapa-grade.sem-mapa .legenda-mapa, .mapa-grade.sem-mapa .dica { display: none; }
 .coluna-santinho { position: sticky; top: var(--m2); }
 
@@ -382,6 +391,14 @@ p, li { max-width: var(--medida); }
 .resultados .santinho-faixa { font-size: 0.72rem; padding: 0.4rem 0.7rem; }
 .resultado-nome { font-weight: 850; font-stretch: 80%; font-size: 1.2rem; line-height: 1.15; padding: 0.6rem 0.7rem 0.2rem; }
 .resultado-meta { padding: 0 0.7rem 0.7rem; font-size: 0.9rem; color: var(--tinta-2); }
+.resultado-corpo { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.6rem 0.7rem 0.7rem; }
+.resultado-texto { display: flex; flex-direction: column; min-width: 0; }
+.resultado-corpo .resultado-nome, .resultado-corpo .resultado-meta { padding: 0; }
+.resultado-corpo .resultado-nome { margin-bottom: 0.2rem; }
+.resultado-foto {
+  flex: none; width: 3.4rem; aspect-ratio: 161 / 225; object-fit: cover;
+  border: 2px solid var(--tecla); border-radius: 3px; background: var(--visor);
+}
 
 #ficha { margin-top: var(--m6); padding-top: var(--m3); border-top: 3px solid var(--tecla); }
 .ficha-cabeca { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m4); align-items: start; }

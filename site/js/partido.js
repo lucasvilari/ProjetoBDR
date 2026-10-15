@@ -1,7 +1,7 @@
 // Página Partido: as três medidas de ideologia e os eleitos de cada partido atual.
 // Dados: partidos.json (gerado por gera_dados.py a partir do banco nacional).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261013';
+import { montaPagina, carregaDados, formata, comSeta, santinho } from './comum.js?v=20261015';
 
 montaPagina();
 
