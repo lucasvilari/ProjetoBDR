@@ -1,3 +1,4 @@
 psycopg[binary]>=3.2   # carga.py
 numpy>=1.26            # carga.py, etapa ideologia_coligacao
 pillow>=10             # print_sessao.py (prints das evidências)
+pytest>=8               # testes do gerador do site (testes/site)

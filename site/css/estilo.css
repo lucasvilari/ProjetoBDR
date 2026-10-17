@@ -1,4 +1,4 @@
-/* Tá no Olho do Povo: estilo comum às quatro páginas.
+/* Olho do Povo: estilo comum às quatro páginas.
    O corpo da urna (bege, teclas pretas em relevo, visor afundado) e o santinho: o cartãozinho de
    campanha que aqui carrega o número da pergunta, com a faixa verde do CONFIRMA no alto e o
    método e os limites no verso. Laranja do CORRIGE só para derrota. */
@@ -17,10 +17,11 @@
   --confirma-fundo: #cfeed9;
   --corrige: #f26522;
   --corrige-texto: #a8410b;
-  --esquerda: #5b3f99;      /* régua ideológica: roxo, bege, dourado; nunca as cores de vitória e derrota */
+  --esquerda: #a3182f;      /* régua ideológica: vermelho carmim, bege, azul; nunca as cores de vitória e derrota */
+  --esquerda-texto: #8a1426;
   --centro: #ddd0b4;
-  --direita: #b8860b;
-  --direita-texto: #725306;
+  --direita: #1f4fa3;
+  --direita-texto: #1f4fa3;
 
   --fonte: "Archivo", system-ui, sans-serif;
   /* módulo da tecla: tudo sai de múltiplos de 8px */
@@ -85,14 +86,16 @@ a:hover { text-decoration-thickness: 3px; }
   color: var(--tecla); text-decoration: none;
   font-weight: 800; font-stretch: 125%; font-size: 1.5rem; letter-spacing: 0.01em;
 }
+/* o logo: o olho cor de visor numa tecla preta da urna */
 .marca-tecla {
-  width: 2rem; height: 1.35rem; border-radius: 5px; background: var(--confirma);
-  border: 1px solid var(--tecla-borda); box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25), 0 2px 0 var(--tecla-borda);
+  width: 2.1rem; height: 1.45rem; border-radius: 5px; background: var(--tecla);
+  border: 1px solid var(--tecla-borda); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 2px 0 var(--tecla-borda);
   display: inline-flex; align-items: center; justify-content: center; padding-bottom: 2px;
 }
 .marca-tecla svg { width: 1.45rem; height: auto; }
 .nav { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .nav a { display: inline-block; padding: var(--m1) var(--m2); text-decoration: none; }
+.nav .nav-tecla { min-width: 2.6rem; text-align: center; padding-inline: 0.6rem; font-variant-numeric: tabular-nums; }
 
 .rodape { background: var(--urna-funda); border-top: 3px solid var(--tecla); margin-top: var(--m8); }
 .rodape-interno {
@@ -154,11 +157,15 @@ p, li { max-width: var(--medida); }
   font-weight: 900; font-stretch: 72%; font-size: 1.7rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.01em;
 }
 /* o número vai na caixa do santinho, como o número do candidato */
-.santinho-numero { display: block; padding: 0.7rem var(--m2) 0; }
+/* a fonte encolhe com a caixa e com a quantidade de caracteres (--n, posta pelo santinho()), para o número
+   nunca sair da caixa, mesmo longo (R$ 131.313.037) ou ao lado da foto */
+.santinho-numero { display: block; padding: 0.7rem var(--m2) 0; container-type: inline-size; }
 .santinho-numero span {
+  --tamanho: clamp(2.5rem, 5.4vw, 4.2rem);
   display: inline-block; max-width: 100%; white-space: nowrap;
   border: 2.5px solid var(--tecla); border-radius: 4px; background: #fff; padding: 0.08em 0.22em 0.04em;
-  font-size: clamp(2.5rem, 5.4vw, 4.2rem); font-weight: 900; font-stretch: 62%; line-height: 0.95; letter-spacing: -0.01em;
+  font-size: min(var(--tamanho), calc((100cqi - 6px) / (var(--n, 8) * 0.41 + 0.45))); font-weight: 900; font-stretch: 62%;
+  line-height: 0.95; letter-spacing: -0.01em;
 }
 .santinho-numero small { font-size: 0.42em; font-stretch: 80%; font-weight: 800; letter-spacing: 0; }
 /* a foto do candidato, colada no canto do santinho como a do material de campanha */
@@ -209,29 +216,63 @@ p, li { max-width: var(--medida); }
 
 /* ------------------------------------------------------------------ página inicial */
 
-.abertura {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--m3) var(--m6); align-items: start;
-  grid-template-areas: "titulo leque" "texto leque";
+/* abertura: o olho grande se abre no centro e voa até a tecla do logo */
+.abertura-olho {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+  background: rgb(232 220 196 / 0.96); cursor: pointer;
 }
-.abertura-titulo { grid-area: titulo; }
-.abertura-texto { grid-area: texto; }
-.leque { grid-area: leque; align-self: center; }
-.abertura h1 { margin: 0 0 var(--m2); }
-.abertura .lide { font-size: 1.25rem; font-weight: 600; margin: 0; max-width: 30ch; }
-.abertura-texto p { margin: 0 0 var(--m2); }
-/* o leque: cinco santinhos espalhados, tortos como na calçada, que se endireitam ao apontar */
-.leque { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--m3) var(--m2); }
-.leque .santinho { grid-column: span 2; text-decoration: none; color: inherit; }
-.leque .s4 { grid-column: 2 / span 2; }
-.leque .s5 { grid-column: 4 / span 2; }
-.leque .santinho-numero span { font-size: clamp(1.6rem, 2.3vw, 2.15rem); }
-.leque .santinho-rotulo { font-size: 0.92rem; }
-.leque a.santinho { transition: transform 260ms var(--sai); transform: rotate(var(--giro)); }
-.leque a.santinho:hover, .leque a.santinho:focus-visible { transform: rotate(0deg) translateY(-6px); }
-.leque a.santinho:focus-visible { outline-offset: 6px; }
-.leque .s1 { --giro: -2.5deg; } .leque .s2 { --giro: 1.5deg; } .leque .s3 { --giro: -1deg; }
-.leque .s4 { --giro: 2deg; } .leque .s5 { --giro: -1.8deg; }
-.autores { font-size: 0.95rem; }
+.olho-grande { width: min(60vw, 26rem); height: auto; transform-origin: center; }
+.olho-palpebra { transform-box: fill-box; transform-origin: center; }
+.marca-esperando .marca-tecla, .marca-tecla.marca-esperando { visibility: hidden; }
+
+
+/* a roda do oráculo: as dez perguntas sobre um círculo pontilhado em volta do olho */
+.oraculo { margin-top: var(--m2); }
+/* o título da página inicial é a pergunta da roda, no tamanho de um título de seção */
+.oraculo h1 { text-align: center; margin-bottom: var(--m1); font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 800; font-stretch: 118%; letter-spacing: 0; }
+.dica-roda { text-align: center; margin: 0 auto var(--m3); }
+.roda { position: relative; width: min(100%, 46rem); aspect-ratio: 1; margin: 0 auto; }
+.roda-anel { position: absolute; inset: 7%; border-radius: 50%; border: 2.5px dashed var(--tecla); opacity: 0.55; }
+.roda-centro {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 46%; display: grid; justify-items: center; gap: var(--m2); text-align: center;
+}
+.roda-olho { width: 9rem; height: auto; }
+#pupila { transition: transform 260ms var(--sai); }
+.roda-detalhe { display: grid; align-content: start; gap: 0.4rem; font-size: 0.95rem; line-height: 1.4; min-height: 9rem; }
+.roda-detalhe strong { font-size: 1.1rem; font-stretch: 108%; }
+.roda-como { color: var(--tinta-2); font-size: 0.88rem; }
+.roda-indisponivel { color: var(--tinta-2); font-style: italic; font-size: 0.88rem; }
+.roda-perguntas { list-style: none; margin: 0; padding: 0; }
+.roda-perguntas li { position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%); max-width: none; }
+.roda-pergunta {
+  display: inline-flex; align-items: center; gap: 0.45rem; max-width: 12.5rem;
+  font: inherit; font-size: 0.92rem; font-weight: 650; line-height: 1.2; text-align: left; text-decoration: none;
+  color: var(--visor); background: var(--tecla); border: 1px solid var(--tecla-borda); border-radius: 999px;
+  padding: 0.5rem 0.9rem 0.5rem 0.5rem; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 3px 0 var(--tecla-borda), 0 5px 8px rgb(60 40 10 / 0.25);
+  transition: transform 160ms var(--sai), background-color 120ms ease;
+}
+.roda-n {
+  flex: none; display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--visor); color: var(--tecla); font-weight: 850; font-size: 0.85rem;
+}
+.roda-perguntas li.ativa a.roda-pergunta { background: var(--confirma); color: var(--tecla); }
+.roda-pergunta:active { transform: translateY(2px); }
+.roda-pergunta[aria-disabled="true"] { background: var(--urna-funda); color: var(--tinta-2); box-shadow: none; border-style: dashed; cursor: default; }
+.roda-pergunta[aria-disabled="true"] .roda-n { background: var(--urna); color: var(--tinta-2); }
+.roda-perguntas li.ativa .roda-pergunta[aria-disabled="true"] { border-color: var(--tecla); }
+
+@media (max-width: 640px) {
+  .roda { aspect-ratio: auto; width: 100%; }
+  .roda-anel { display: none; }
+  .roda-centro { position: static; transform: none; width: 100%; margin-bottom: var(--m2); }
+  .roda-centro .roda-detalhe { display: none; }
+  .roda-perguntas { display: grid; gap: var(--m1); }
+  .roda-perguntas li { position: static; transform: none; }
+  .roda-pergunta { max-width: none; width: 100%; }
+  .roda-perguntas li > .roda-detalhe { display: grid; min-height: 0; text-align: left; padding: var(--m1) var(--m2) var(--m2); }
+}
 
 .fatos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--m3) var(--m4); margin: 0; }
 .fatos div { border-top: 1.5px solid var(--tecla); padding-top: var(--m1); }
@@ -358,12 +399,7 @@ p, li { max-width: var(--medida); }
 
 /* ------------------------------------------------------------------ página Partido */
 
-.medidas { margin: var(--m3) 0 0; }
-.graficos-lado { display: grid; grid-template-columns: minmax(0, 1fr) clamp(7.5rem, 30vw, 220px); gap: clamp(0.5rem, 2vw, 1.5rem); align-items: start; }
 .campo-largo { max-width: 16rem; margin-bottom: var(--m2); }
-.degrade { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
-.degrade i { display: inline-block; width: clamp(3rem, 14vw, 7rem); height: 0.8rem; border: 1px solid var(--tecla); border-radius: 3px;
-  background: linear-gradient(90deg, var(--esquerda), var(--centro) 50%, var(--direita)); }
 .detalhe-partido { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m4); align-items: start; }
 
 /* ------------------------------------------------------------------ página Político */
@@ -409,7 +445,7 @@ p, li { max-width: var(--medida); }
 /* ------------------------------------------------------------------ setas de direção ideológica */
 
 .seta { white-space: nowrap; font-weight: 650; }
-.seta-esq { color: var(--esquerda); }
+.seta-esq { color: var(--esquerda-texto); }
 .seta-dir { color: var(--direita-texto); }
 .seta i { display: inline-block; width: 0.85em; height: 0.7em; background: currentColor; vertical-align: 0; }
 .seta-esq i { margin-right: 0.3em;
@@ -457,18 +493,308 @@ p, li { max-width: var(--medida); }
 /* ------------------------------------------------------------------ telas estreitas */
 
 @media (max-width: 860px) {
-  .mapa-grade, .abertura, .detalhe-partido, .ficha-cabeca { grid-template-columns: minmax(0, 1fr); }
-  .abertura { grid-template-areas: "titulo" "leque" "texto"; }
+  .mapa-grade, .detalhe-partido, .ficha-cabeca { grid-template-columns: minmax(0, 1fr); }
   .coluna-santinho { position: static; }
-  .leque { grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); }
-  .leque .santinho, .leque .s4, .leque .s5 { grid-column: auto; }
 }
 @media (max-width: 560px) {
   main { padding-inline: var(--m2); }
   .controles { padding: var(--m2); }
-  .santinho-numero span { font-size: clamp(2.2rem, 11vw, 3rem); }
+  .santinho-numero span { --tamanho: clamp(2.2rem, 11vw, 3rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ------------------------------------------------------------------ peças das perguntas */
+
+.seletor { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1); margin: 0 0 var(--m3); }
+.seletor .campo { flex-direction: row; align-items: center; }
+.dispersao { margin-top: var(--m2); }
+.dispersao-frase { margin: 0 0 var(--m1); }
+.dispersao-frase strong { font-size: 1.1rem; }
+.cartao-carreira { display: inline-block; margin-top: var(--m2); text-decoration: none; }
+
+/* ------------------------------------------------------------------ pergunta 1: o plenário */
+
+.p1-grade { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(17rem, 1fr); gap: var(--m4); align-items: start; }
+.p1-lado { display: grid; gap: var(--m3); position: sticky; top: var(--m2); }
+.plenario.plenario-3d { position: relative; padding: 0; overflow: hidden; border-radius: 10px;
+  background: radial-gradient(120% 90% at 50% 100%, #f3ead6, #ddd0b4); }
+.plenario-3d canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+.plenario-3d canvas:active { cursor: grabbing; }
+.plenario-3d-total { position: absolute; left: var(--m2); bottom: var(--m1); margin: 0; font-size: 0.95rem; pointer-events: none; }
+.plenario-3d-total b { font-size: 1.6rem; font-weight: 900; font-stretch: 70%; }
+.moedas { margin: 0; }
+.moedas svg { display: block; width: 100%; max-width: 18rem; height: auto; margin: 0 auto; }
+.moedas-rotulo { font-size: 13px; font-weight: 700; fill: var(--tecla); }
+.moedas figcaption { display: grid; gap: 0.3rem; font-size: 0.92rem; color: var(--tinta-2); }
+.moedas figcaption b { color: var(--tecla); }
+.alternador { display: flex; gap: var(--m1); margin-bottom: var(--m3); }
+.alternador .botao[aria-pressed="true"] { background: var(--confirma); color: var(--tecla); }
+.alternador .botao[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.p1-politico { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m4); align-items: start; }
+.p1-cartao { display: grid; gap: var(--m2); }
+.p1-dispersao h3 { margin-top: 0; }
+@media (max-width: 860px) {
+  .p1-grade, .p1-politico { grid-template-columns: minmax(0, 1fr); }
+  .p1-lado { position: static; }
+}
+.plenario-svg circle.escolhida { stroke: var(--corrige); stroke-width: 2.5; }
+.plenario-svg circle[tabindex="0"]:focus-visible { outline: none; stroke: var(--corrige); stroke-width: 2.5; }
+.p1-titulo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--m1) var(--m2); }
+.p1-titulo .botao { white-space: nowrap; }
+.santinho-com-foto .santinho-numero span { --tamanho: clamp(1.6rem, 2.6vw, 2.4rem); }
+
+/* ------------------------------------------------------------------ pergunta 2: os cifrões */
+
+section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); }
+.cifrao-vazio, .cifrao-cheio { font: 900 34px var(--fonte); font-stretch: 70%; text-anchor: middle; }
+.cifrao-vazio { fill: var(--visor); stroke: var(--tecla); stroke-width: 1.2; }
+.cifrao-cheio { fill: var(--confirma); stroke: var(--tecla); stroke-width: 1.2; }
+.maiores-foto { width: 2.2rem; aspect-ratio: 161 / 225; object-fit: cover; border: 1.5px solid var(--tecla); border-radius: 3px; }
+.maiores-nome { font-weight: 700; min-width: 14rem; }
+@media (max-width: 640px) {
+}
+
+/* ------------------------------------------------------------------ pergunta 5: a régua do quociente */
+
+.regua { margin: var(--m2) 0; padding-bottom: var(--m1); }
+.regua-svg { display: block; }
+.regua-svg .coluna rect { stroke: var(--tecla); stroke-width: 1; cursor: pointer; }
+.regua-svg .coluna.pela-legenda rect { stroke-dasharray: 3 2; stroke-width: 2; fill-opacity: 0.55; }
+.regua-svg .coluna:focus-visible { outline: none; }
+.regua-svg .coluna:focus-visible rect, .regua-svg .coluna:hover rect { stroke: var(--corrige); stroke-width: 2.5; }
+.regua-svg .corte { fill: none; stroke: var(--urna); stroke-width: 3; }
+.coluna-valor { font-size: 10px; font-weight: 800; text-anchor: middle; fill: var(--tecla); }
+.linha-quociente { stroke: var(--tecla); stroke-width: 2; stroke-dasharray: 8 4; }
+.rotulo-quociente { font-size: 13px; font-weight: 800; fill: var(--tecla); paint-order: stroke; stroke: var(--urna); stroke-width: 4; }
+.unidade-rotulo { font-size: 11px; font-weight: 750; text-anchor: middle; fill: var(--tecla); }
+.unidade-conta { font-size: 10px; text-anchor: middle; fill: var(--tinta-2); }
+.gota { fill: var(--confirma); stroke: var(--tecla); stroke-width: 1; pointer-events: none; }
+.cartao-com-regua { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m3); align-items: start; margin-top: var(--m2); }
+@media (max-width: 760px) { .cartao-com-regua { grid-template-columns: minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------------ pergunta 7: o mapa pintado */
+
+.controles-vies { margin-bottom: var(--m1); }
+.controles .campo { max-width: 100%; min-width: 0; }
+.controles .campo select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+#tocar[aria-pressed="true"] { background: var(--confirma); color: var(--tecla); }
+.explica-regua { max-width: var(--medida); margin: 0 0 var(--m3); }
+.ponto-vies { display: inline-block; width: 0.55em; height: 0.55em; margin-right: 0.18em; border-radius: 50%;
+  background: var(--cor); border: 2px solid var(--tecla); vertical-align: 0.08em; }
+.quem-votos { list-style: none; padding: 0; margin: var(--m1) 0; display: grid; gap: 0.45rem; max-width: 46rem; }
+.quem-votos li { display: grid; grid-template-columns: 2.2rem minmax(10rem, 1.2fr) minmax(4rem, 1fr) 9.5rem; align-items: center;
+  gap: var(--m1); max-width: none; }
+.quem-foto { width: 2.2rem; aspect-ratio: 161 / 225; object-fit: cover; border: 1.5px solid var(--tecla); border-radius: 3px; }
+.quem-nome { font-weight: 700; font-size: 0.95rem; }
+.quem-barra { display: block; height: 0.95rem; background: var(--urna-funda); border-radius: 3px; overflow: hidden; }
+.quem-barra i { display: block; height: 100%; background: var(--cor); border-right: 1.5px solid var(--tecla); }
+.quem-votos-n { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.quem-votos-n small { display: block; font-weight: 600; color: var(--tinta-2); }
+.selo-partido { display: inline-block; padding: 0 0.4rem; border-radius: 3px; border: 1.5px solid var(--tecla); background: var(--cor);
+  font-size: 0.78rem; font-weight: 800; text-decoration: none; }
+.destaque-partido { margin: var(--m3) 0; scroll-margin-top: var(--m3); }
+.destaque-partido:empty { display: none; }
+.destaque-partido:focus { outline: none; }
+.destaque-partido > .detalhe-partido { padding: var(--m3); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
+.detalhe-partido-topo { display: flex; justify-content: space-between; align-items: center; gap: var(--m2); }
+.detalhe-partido-topo h3 { margin: 0; }
+.detalhe-partido-corpo { min-width: 0; }
+.tabela-compacta td, .tabela-compacta th { padding-block: 0.25rem; }
+@media (max-width: 640px) {
+  .quem-votos li { grid-template-columns: 2.2rem minmax(0, 1fr) 8rem; }
+  .quem-barra { grid-column: 2 / -1; grid-row: 2; }
+}
+
+/* ------------------------------------------------------------------ pergunta 8: a torneira */
+
+.tinta-publica { color: #1f6b5d; font-weight: 700; }
+.torneiras, .politicos-publicos { list-style: none; padding: 0; margin: var(--m2) 0 0; display: grid; gap: 0.5rem; }
+.torneira { display: grid; grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr) minmax(9rem, auto); align-items: center; gap: var(--m2); max-width: none; }
+.torneira-quem { display: flex; align-items: center; gap: var(--m1); font-weight: 700; font-size: 0.92rem; min-width: 0; }
+.torneira-foto { flex: none; width: 2.2rem; aspect-ratio: 161 / 225; object-fit: cover; border: 1.5px solid var(--tecla); border-radius: 3px; }
+.torneira-foto.anonima { background: var(--urna-funda); }
+.torneira-cano { display: flex; align-items: center; min-width: 0; }
+.bica { flex: none; width: 1.9rem; height: 1.65rem; fill: var(--tecla); margin-right: -0.6rem; position: relative; z-index: 1; }
+.torneira-agua { display: flex; height: 0.9rem; margin-top: 0.75rem; border: 1.5px solid var(--tecla); border-radius: 0 4px 4px 0;
+  overflow: hidden; transform-origin: left; min-width: 3px; }
+.torneira-agua i { display: block; height: 100%; }
+.torneira-n { font-variant-numeric: tabular-nums; }
+.torneira-n small { display: block; color: var(--tinta-2); font-weight: 600; white-space: nowrap; }
+.politico-publico { display: grid; grid-template-columns: 2.2rem 2.2rem minmax(0, 1fr) minmax(14rem, 22rem); align-items: center; gap: var(--m1) var(--m2); max-width: none;
+  padding: 0.4rem 0; border-bottom: 1px solid var(--urna-funda); }
+.torneira-partido { display: grid; grid-template-columns: 8rem minmax(0, 1fr) 11rem minmax(9rem, 13rem); align-items: center; gap: var(--m2); max-width: none; }
+.tp-sigla b { font-weight: 850; }
+.tp-pub b, .tp-taxa b { font-variant-numeric: tabular-nums; }
+.tp-pub small, .tp-taxa small { display: block; color: var(--tinta-2); font-weight: 600; white-space: nowrap; }
+.tp-taxa { display: grid; grid-template-columns: minmax(3rem, 1fr) auto; align-items: center; column-gap: 0.5rem; }
+.tp-taxa small { grid-column: 2; }
+.tp-taxa-barra { display: block; height: 0.8rem; background: var(--visor); border: 1.5px solid var(--tecla); border-radius: 3px; grid-row: 1 / 3; }
+.tp-taxa-barra i { display: block; height: 100%; background: var(--confirma); }
+.posicao { font-weight: 900; font-stretch: 72%; font-size: 1.2rem; }
+.politico-publico-nome { font-weight: 700; }
+.politico-publico-n { font-variant-numeric: tabular-nums; }
+.por-voto { display: block; color: #1f6b5d; font-size: 1.05rem; }
+@media (max-width: 720px) {
+  .torneira { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--urna-funda); }
+  .torneira-cano { grid-row: 3; }
+  .torneira-n { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6rem; padding-left: calc(2.2rem + var(--m1)); }
+  .politico-publico { grid-template-columns: 2rem 2.2rem minmax(0, 1fr); }
+  .torneira-partido { grid-template-columns: minmax(0, 1fr) auto; gap: 0.3rem var(--m1); }
+  .torneira-partido .torneira-cano { grid-column: 1 / -1; grid-row: 2; }
+  .tp-taxa { grid-column: 1 / -1; }
+  .politico-publico-n { grid-column: 2 / -1; }
+}
+
+/* ------------------------------------------------------------------ pergunta 9: a rua da campanha */
+
+.p9-escolha { display: flex; flex-wrap: wrap; align-items: end; gap: var(--m2) var(--m4); }
+.busca-curta { flex: 1 1 18rem; max-width: 30rem; margin: 0; }
+.busca-curta .apoio { margin: 0.3rem 0 0; font-size: 0.85rem; }
+.p9-pessoa { margin: var(--m2) 0 var(--m3); padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
+.p9-pessoa-topo { display: flex; align-items: center; gap: var(--m2); flex-wrap: wrap; }
+.p9-pessoa-topo > div { flex: 1 1 14rem; }
+.p9-pessoa-topo h2 { margin: 0; font-size: 1.3rem; }
+.p9-pessoa-topo p { margin: 0.2rem 0 0; }
+.p9-candidaturas { display: flex; flex-wrap: wrap; gap: var(--m1); margin-top: var(--m2); }
+.p9-candidaturas .botao { font-size: 0.85rem; padding: 0.4rem 0.7rem; }
+.p9-candidaturas .botao[aria-pressed="true"] { background: var(--confirma); color: var(--tecla); }
+.p9-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem); gap: var(--m4); align-items: start; margin-top: var(--m2); }
+.rua { overflow-x: auto; border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
+.rua-svg { display: block; width: 100%; min-width: 720px; height: auto; }
+.rua-svg .ceu { fill: var(--visor); }
+.rua-svg .predios { fill: #ece3cf; stroke: var(--urna-funda); stroke-width: 2; }
+.rua-svg .calcada { fill: var(--urna-funda); }
+.rua-svg .pista { fill: #5c5444; }
+.rua-svg .faixa-pista { stroke: var(--visor); stroke-width: 3; stroke-dasharray: 22 18; }
+.objeto-rua { cursor: default; outline: none; }
+.objeto-rua:hover .objeto-desenho, .objeto-rua:focus-visible .objeto-desenho { filter: drop-shadow(0 0 0.5px var(--corrige)) drop-shadow(0 3px 0 var(--corrige)); }
+.objeto-desenho { transform-box: fill-box; transform-origin: 50% 100%; }
+.objeto-rua.sem-gasto .objeto-desenho { opacity: 0.28; }
+.rotulo-rua { font-size: 12px; font-weight: 800; text-anchor: middle; fill: var(--tecla); paint-order: stroke; stroke: var(--visor); stroke-width: 4; }
+.valor-rua { font-size: 12px; font-weight: 650; text-anchor: middle; fill: var(--tinta-2); paint-order: stroke; stroke: var(--visor); stroke-width: 4; }
+.detalhe-rua { min-height: 3em; margin: var(--m1) 0 0; max-width: var(--medida); }
+.tv-caixa { min-width: 0; margin-bottom: var(--m3); }
+.tv { position: relative; max-width: 46rem; margin: 2.2rem auto 0; padding: 1rem; background: var(--tecla); border-radius: 18px;
+  box-shadow: 0 6px 0 #0d0c0a; }
+.tv-antena { position: absolute; left: 50%; top: -2.3rem; width: 0; height: 2.3rem; }
+.tv-antena::before, .tv-antena::after { content: ""; position: absolute; bottom: 0; left: -1.5px; width: 3px; height: 2.6rem;
+  background: var(--tecla); border-radius: 2px; transform-origin: 50% 100%; transform: rotate(-32deg); }
+.tv-antena::after { transform: rotate(32deg); }
+.tv-pes { position: absolute; bottom: -0.9rem; left: 18%; right: 18%; height: 0.9rem; border-left: 1.4rem solid var(--tecla); border-right: 1.4rem solid var(--tecla); }
+.tv-tela { background: var(--visor); border-radius: 12px; padding: var(--m2) var(--m3) var(--m3); min-height: 12rem;
+  box-shadow: inset 0 0 0 3px #3a362f, inset 0 0 30px rgba(34, 32, 28, 0.12); }
+.tv-titulo { margin: 0 0 var(--m1); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); text-align: center; }
+.nuvem { margin: 0; max-width: none; text-align: center; line-height: 1.15; font-weight: 800; font-stretch: 85%; }
+.nuvem span { display: inline-block; margin: 0.05em 0.25em; }
+.tv-vazia { text-align: center; color: var(--tinta-2); margin: var(--m3) 0 0; }
+.degrade-tv { display: inline-flex; align-items: center; gap: 0.4rem; }
+.degrade-tv i { display: inline-block; width: 5rem; height: 0.7rem; border: 1px solid var(--tecla); border-radius: 3px;
+  background: linear-gradient(90deg, #7a705c, #22201c); }
+@media (max-width: 860px) { .p9-grade { grid-template-columns: minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------------ pergunta 10: a linha do tempo de santinhos */
+
+.linha-cartoes { list-style: none; margin: var(--m2) 0 0; padding: var(--m1) 2px var(--m3); display: flex; gap: var(--m2);
+  overflow-x: auto; scroll-snap-type: x proximity; align-items: flex-start; position: relative; }
+.linha-cartoes::before { content: ""; position: absolute; left: 0; right: 0; top: 1.55rem; border-top: 3px dashed var(--urna-funda); z-index: 0; }
+.cartao-eleicao { flex: 0 0 13.5rem; max-width: none; scroll-snap-align: start; position: relative; z-index: 1;
+  background: var(--visor); border: 2px solid var(--tecla); border-radius: 8px; box-shadow: 0 3px 0 var(--tecla); display: flex; flex-direction: column; }
+.cartao-faixa { background: var(--confirma); color: var(--tecla); padding: 0.35rem 0.6rem; font-size: 0.78rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid var(--tecla); border-radius: 6px 6px 0 0; }
+.cartao-faixa b { font-size: 1rem; font-stretch: 80%; margin-right: 0.2rem; }
+.cartao-derrota .cartao-faixa { background: var(--corrige); }
+.cartao-neutro .cartao-faixa { background: var(--urna-funda); }
+.cartao-corpo { padding: 0.6rem; display: grid; gap: 0.35rem; align-content: start; justify-items: start; }
+.cartao-corpo .cartao-linhas { justify-self: stretch; }
+.cartao-foto { width: 4.2rem; aspect-ratio: 161 / 225; object-fit: cover; border: 1.5px solid var(--tecla); border-radius: 3px; display: block; }
+.cartao-onde { margin: 0; font-size: 0.88rem; }
+.cartao-votos { margin: 0; font-size: 0.85rem; }
+.cartao-votos strong { font-size: 1.45rem; font-weight: 900; font-stretch: 72%; }
+.cartao-linhas { margin: 0; display: grid; gap: 0.1rem; font-size: 0.8rem; }
+.cartao-linhas div { display: flex; justify-content: space-between; gap: 0.5rem; border-top: 1px dotted var(--urna-funda); padding-top: 0.1rem; }
+.cartao-linhas dt { color: var(--tinta-2); }
+.cartao-linhas dd { margin: 0; font-weight: 750; text-align: right; font-variant-numeric: tabular-nums; }
+.cartao-nota { margin: 0; font-size: 0.78rem; }
+.marco-2018 { flex: 0 0 9rem; max-width: none; align-self: stretch; min-height: 8rem; position: relative; z-index: 1; padding: 0.6rem 0.7rem; border: 2px dashed var(--tecla); border-radius: 8px;
+  background: var(--urna); font-size: 0.82rem; color: var(--tinta-2); }
+.marco-2018 b { display: block; font-size: 1.4rem; font-weight: 900; font-stretch: 72%; color: var(--tecla); }
+.dica-rolar { display: none; margin: 0; font-size: 0.85rem; }
+@media (max-width: 640px) { .dica-rolar { display: block; } }
+
+/* pergunta 1: o partido escolhido no plenário ou na legenda */
+.legenda-partidos li { cursor: pointer; }
+.legenda-partidos li.escolhido { outline: 3px solid var(--corrige); outline-offset: 1px; }
+.partido-escolhido { display: flex; align-items: center; gap: var(--m2); flex-wrap: wrap; margin: 0 0 var(--m1); }
+.partido-escolhido .botao { font-size: 0.85rem; padding: 0.3rem 0.7rem; }
+
+/* pergunta 8: os cifrões que o leitor preenche */
+.p8-escolha { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1) var(--m3); margin: var(--m2) 0 0; }
+.cifroes-escolha { width: min(100%, 26rem); cursor: pointer; border-radius: 8px; padding: 0.3rem; touch-action: manipulation; }
+.cifroes-escolha svg { display: block; width: 100%; height: auto; }
+.cifroes-escolha:focus-visible { outline: 3px solid var(--corrige); outline-offset: 3px; }
+.alvo-cifrao { fill: transparent; }
+.cifroes-escolha .cifrao-vazio, .cifroes-escolha .cifrao-cheio { font-size: 40px; pointer-events: none; }
+.cifrao-cheio.cifrao-publico { fill: #2e8b7a; }
+.p8-valor { margin: 0; font-size: 1.05rem; }
+.p8-valor b { font-size: 1.6rem; font-weight: 900; font-stretch: 72%; }
+.dica-cifroes { margin: 0.2rem 0 var(--m2); font-size: 0.88rem; }
+.p8-taxas { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--m2); max-width: 46rem; }
+.p8-taxa { display: grid; gap: 0.15rem; padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
+.p8-taxa-escolhida { box-shadow: 0 4px 0 var(--tecla); border-width: 3px; }
+.p8-taxa-titulo { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tinta-2); }
+.p8-taxa strong { font-size: 2.2rem; font-weight: 900; font-stretch: 72%; line-height: 1; }
+.p8-frase { margin: var(--m2) 0 0; max-width: var(--medida); }
+.p8-curva-titulo { margin: var(--m3) 0 0; font-weight: 750; }
+.eleitos-cifroes { list-style: none; padding: 0; margin: var(--m1) 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: 0.5rem var(--m2); }
+.eleitos-cifroes li { display: flex; align-items: center; gap: var(--m1); max-width: none; font-weight: 700; font-size: 0.92rem; }
+.eleitos-cifroes small { display: block; font-weight: 600; color: var(--tinta-2); }
+
+/* pergunta 2: o prédio do patrimônio */
+.p2-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem); gap: var(--m4); align-items: start; }
+.predio { --janela-apagada: #4a443a; --janela-acesa: var(--confirma); --rotulo: 11.5rem; --taxa: 6.5rem; min-width: 0; }
+.predio-telhado, .predio-chao { margin: 0 var(--taxa) 0 var(--rotulo); position: relative; }
+.predio-telhado { height: 0.9rem; background: var(--tecla); border-radius: 3px 3px 0 0; }
+.andar { display: grid; grid-template-columns: var(--rotulo) minmax(0, 1fr) var(--taxa); align-items: stretch; cursor: pointer; outline: none; }
+.andar.vazio { cursor: default; }
+.andar-rotulo { align-self: center; padding-right: var(--m2); text-align: right; font-weight: 700; font-size: 0.98rem; }
+.andar-janelas { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; padding: 0.6rem 0.65rem; min-height: 2.6rem;
+  background: var(--urna-funda); border-inline: 3px solid var(--tecla); border-top: 3px solid var(--tecla); }
+.janela { display: block; width: 0.95rem; height: 1.2rem; background: var(--janela-apagada); border-radius: 2px; cursor: pointer; }
+.janela:hover { outline: 2px solid var(--corrige); outline-offset: 1px; }
+.janela.acesa { background: var(--janela-acesa); box-shadow: 0 0 5px rgba(0, 166, 81, 0.55); }
+.andar-taxa { align-self: center; padding-left: var(--m2); display: grid; }
+.andar-taxa b { font-size: 1.6rem; font-weight: 900; font-stretch: 72%; line-height: 1.05; }
+.andar-taxa small { color: var(--tinta-2); font-size: 0.78rem; font-weight: 600; }
+.andar:hover .andar-janelas, .andar:focus-visible .andar-janelas { background: #e2d5b8; }
+.andar:focus-visible .andar-rotulo { outline: 3px solid var(--corrige); outline-offset: 2px; }
+.andar.escolhido .andar-rotulo { color: var(--tecla); text-decoration: underline 3px var(--corrige); text-underline-offset: 0.25em; }
+.predio-chao { height: 1.6rem; background: var(--tecla); display: flex; justify-content: center; align-items: flex-end; }
+.porta { width: 1.6rem; height: 1.25rem; background: var(--urna); border-radius: 3px 3px 0 0; }
+.predio-total { margin: var(--m2) 0 0 var(--rotulo); }
+.janela-detalhe { position: sticky; top: var(--m2); padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); min-height: 8rem; }
+.janela-detalhe p { margin: 0 0 0.4rem; }
+.janela-andar { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tinta-2); }
+.janela-pessoa { display: flex; gap: var(--m1); align-items: center; margin-bottom: var(--m1); }
+.janela-linhas { margin: 0; display: grid; gap: 0.15rem; }
+.janela-linhas div { display: flex; justify-content: space-between; gap: var(--m1); border-top: 1px dotted var(--urna-funda); padding-top: 0.15rem; }
+.janela-linhas dt { color: var(--tinta-2); }
+.janela-linhas dd { margin: 0; font-weight: 750; font-variant-numeric: tabular-nums; }
+.moradores { list-style: none; padding: 0; margin: var(--m1) 0 0; display: grid; gap: 0.4rem; }
+.moradores li { display: flex; align-items: center; gap: var(--m1); flex-wrap: wrap; max-width: none; }
+@media (max-width: 860px) {
+  .p2-grade { grid-template-columns: minmax(0, 1fr); }
+  .janela-detalhe { position: static; }
+}
+@media (max-width: 560px) {
+  .predio { --rotulo: 0rem; --taxa: 0rem; }
+  .andar { grid-template-columns: minmax(0, 1fr) auto; }
+  .andar-rotulo { grid-row: 1; text-align: left; padding: 0.4rem 0 0.2rem; }
+  .andar-taxa { grid-row: 1; grid-column: 2; display: flex; gap: 0.4rem; align-items: baseline; padding: 0.4rem 0 0.2rem; }
+  .andar-janelas { grid-column: 1 / -1; }
+  .janela { width: 0.8rem; height: 1rem; }
+  .predio-total { margin-left: 0; }
+}
+.seletor-nota { font-size: 0.9rem; font-weight: 650; color: var(--tinta-2); }

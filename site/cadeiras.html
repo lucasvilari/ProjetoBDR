@@ -3,48 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cadeiras · Tá no Olho do Povo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2300a651%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/estilo.css?v=20261015c">
-  <script type="module" src="js/cadeiras.js?v=20261015c"></script>
+  <title>Cadeiras · Olho do Povo</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <!-- endereço antigo: leva à página nova da pergunta, com o mesmo recorte -->
+  <script type="module">
+    import { destinoDe } from './js/lib/redirecionamentos.js?v=20261020';
+    const destino = destinoDe('cadeiras', location.hash);
+    document.getElementById('destino')?.setAttribute('href', destino);
+    location.replace(destino);
+  </script>
 </head>
-<body data-pagina="cadeiras">
-  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
-  <header class="topo"></header>
-
-  <main id="conteudo">
-    <div class="cabeca">
-      <h1>Cadeiras</h1>
-      <p class="apoio">Quantas cadeiras cada eleição pôs em disputa, quais partidos ficaram com elas e quanto custou
-        chegar até lá. Cada bolinha do plenário é uma cadeira (ou um grupo delas, quando são milhares), com os
-        partidos da esquerda para a direita.</p>
-    </div>
-
-    <form class="controles" id="controles">
-      <label class="campo"><span class="so-leitor">Ano</span> <select name="ano"></select></label>
-      <label class="campo"><span class="so-leitor">Cargo</span> <select name="cargo"></select></label>
-      <label class="campo"><span class="so-leitor">Lugar</span> <select name="onde"></select></label>
-      <label class="campo" id="campo-mun" hidden><span class="so-leitor">Município</span> <select name="mun"></select></label>
-    </form>
-
-    <div class="mapa-grade">
-      <section class="plenario-area" aria-labelledby="t-plenario">
-        <h2 id="t-plenario"></h2>
-        <div id="plenario" class="plenario"></div>
-        <p id="resumo-plenario" class="resumo-plenario"></p>
-        <ul id="legenda-partidos" class="legenda-partidos" aria-label="Cadeiras por partido"></ul>
-        <p id="nota-plenario" class="apoio dica"></p>
-      </section>
-      <aside class="coluna-santinho" aria-label="Quanto custa uma cadeira">
-        <div id="santinho"></div>
-      </aside>
-    </div>
-    <section class="painel" id="painel" aria-live="polite"></section>
+<body>
+  <main id="conteudo" class="redireciona">
+    <p>Esta página mudou de endereço. <a id="destino" href="pergunta-1.html">Ir para a página nova</a>.</p>
   </main>
-
-  <footer class="rodape"></footer>
 </body>
 </html>

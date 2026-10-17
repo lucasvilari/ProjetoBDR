@@ -16,7 +16,7 @@ Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 ├── crawler/     baixa das fontes só os arquivos que as perguntas usam (python -m crawler)
 ├── banco/       esquema, carga, validação e as 18 consultas das perguntas
 ├── scripts/     geração e restauração do dump do banco
-├── site/        site estático das perguntas 1, 2, 7, 8 e 10 (GitHub Pages)
+├── site/        Olho do Povo, o site estático das perguntas 1, 2, 5, 7, 8, 9 e 10 (GitHub Pages)
 └── docs/        página do modelo (D.E.R. e tabelas) e figuras do D.E.R.
 ```
 
@@ -103,9 +103,9 @@ em `banco/evidencias/`:
 cd banco && ./evidencias.sh
 ```
 
-O site em `site/` mostra as respostas de cinco perguntas (custo da cadeira, patrimônio,
-viés ideológico, dinheiro público e carreira dos políticos) a partir de arquivos gerados do
-banco; veja
+O site em `site/`, o Olho do Povo, mostra as respostas de sete perguntas (custo da cadeira,
+patrimônio, eleitos pela legenda, viés ideológico, dinheiro público, gastos com propaganda e
+carreira dos políticos), cada uma numa página própria, a partir de arquivos gerados do banco; veja
 `site/README.md`.
 
 As perguntas sobre ideologia usam três medidas por partido (especialistas,

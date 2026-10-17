@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patrimônio ajuda a eleger? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <script type="module" src="js/pergunta-2.js?v=20261020"></script>
+</head>
+<body data-pagina="pergunta-2">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Patrimônio ajuda a eleger?</h1>
+      <p class="apoio">Um prédio onde cada andar é uma faixa de patrimônio declarado ao TSE: no térreo, quem não declarou
+        bens; na cobertura, quem tem mais de R$ 5 milhões. Cada janela é um candidato, e as janelas acesas são os que se
+        elegeram. Passe o mouse numa janela para ver quem mora ali; clique num andar para ver os maiores patrimônios dele.</p>
+    </div>
+
+    <form class="seletor" id="recorte" aria-label="Escolher ano, cargo e lugar"></form>
+
+    <section aria-labelledby="t-predio">
+      <h2 id="t-predio"></h2>
+      <div class="p2-grade">
+        <div id="predio" class="predio" role="group" aria-label="Andares do prédio, do mais rico ao sem bens"></div>
+        <aside class="p2-lado">
+          <div id="janela" class="janela-detalhe" aria-live="polite"></div>
+        </aside>
+      </div>
+      <p id="nota-predio" class="apoio"></p>
+      <p class="apoio">Bens declarados ao TSE no registro da candidatura, somados por candidato, em reais de cada ano. A taxa
+        de vitória divide os eleitos de cada faixa pelos candidatos dela. A relação não é de causa e efeito: dinheiro,
+        viabilidade e já ocupar o cargo andam juntos. Consulta: <code>p02_taxa_por_patrimonio.sql</code>.</p>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-andar">
+      <h2 id="t-andar"></h2>
+      <div id="andar"></div>
+    </section>
+
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

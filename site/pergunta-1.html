@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quanto custa uma cadeira? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+                   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+  </script>
+  <script type="module" src="js/pergunta-1.js?v=20261020"></script>
+</head>
+<body data-pagina="pergunta-1">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Quanto custa uma cadeira?</h1>
+      <p class="apoio">Quantos tentaram, quantos conseguiram e quanto custou chegar lá. Cada cadeira do plenário é uma
+        vaga; em volta, a multidão de quem concorreu e não se elegeu. Clique numa cadeira para ver quem se sentou nela.</p>
+    </div>
+
+    <form class="seletor" id="recorte" aria-label="Escolher ano, cargo e lugar"></form>
+
+    <div class="p1-grade">
+      <section class="p1-cena plenario-area" aria-labelledby="t-plenario">
+        <div class="p1-titulo"><h2 id="t-plenario"></h2><button type="button" class="botao" id="vista" hidden>Ver em 2D</button></div>
+        <div id="plenario" class="plenario"></div>
+        <p id="resumo-plenario" class="resumo-plenario"></p>
+        <ul id="legenda-partidos" class="legenda-partidos" aria-label="Cadeiras por partido"></ul>
+        <p id="nota-plenario" class="apoio dica"></p>
+      </section>
+      <aside class="p1-lado" aria-label="Quanto custa uma cadeira">
+        <div id="santinho"></div>
+        <figure class="moedas" id="moedas"></figure>
+      </aside>
+    </div>
+
+    <section class="bloco" aria-labelledby="t-detalhe">
+      <h2 id="t-detalhe">Por partido ou por político</h2>
+      <div class="alternador" role="group" aria-label="Como ver as cadeiras">
+        <button type="button" class="botao" data-modo="partido" aria-pressed="true">Por partido</button>
+        <button type="button" class="botao" data-modo="politico" aria-pressed="false">Por político</button>
+      </div>
+      <p id="sem-lista" class="apoio" hidden>"Por político" mostra cada eleito de um estado (cargos estaduais e federais), de
+        um município (prefeito e vereador) ou da Presidência. Escolha um desses recortes para ver.</p>
+      <div id="detalhe" aria-live="polite"></div>
+    </section>
+
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

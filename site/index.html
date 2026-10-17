@@ -3,72 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tá no Olho do Povo: eleições brasileiras em dados abertos</title>
+  <title>Olho do Povo: eleições brasileiras em dados abertos</title>
   <meta name="description" content="Projeto de estudo de dados abertos das eleições brasileiras: custo das cadeiras, patrimônio, dinheiro público e a carreira de cada político.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2300a651%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/estilo.css?v=20261015c">
-  <script type="module" src="js/inicio.js?v=20261015c"></script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <script type="module" src="js/inicio.js?v=20261020"></script>
 </head>
 <body data-pagina="inicio">
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
   <header class="topo"></header>
 
+  <div class="abertura-olho" id="abertura-olho" aria-hidden="true">
+    <svg class="olho-grande" viewBox="0 0 240 140">
+      <g class="olho-palpebra">
+        <path d="M6 70C50 6 190 6 234 70C190 134 50 134 6 70Z" fill="#faf7ef" stroke="#22201c" stroke-width="5"/>
+        <circle cx="120" cy="70" r="34" fill="#22201c"/>
+        <circle cx="132" cy="58" r="10" fill="#faf7ef"/>
+      </g>
+    </svg>
+  </div>
+
   <main id="conteudo">
-    <section class="abertura" aria-labelledby="t-origem">
-      <div class="abertura-titulo">
-        <h1 id="t-origem">Tá no olho do povo</h1>
-        <p class="lide">Quanto custa uma cadeira, quem paga a campanha e para que lado cada lugar vota. Os números das eleições, com a conta à mostra.</p>
-      </div>
-      <nav class="leque" aria-label="As cinco perguntas">
-        <a class="santinho s1" href="cadeiras.html#ano=2022&amp;cargo=DEPUTADO+FEDERAL&amp;onde=BR">
-          <span class="santinho-carta"><span class="santinho-face">
-            <span class="santinho-faixa">Quanto custa uma cadeira</span>
-            <strong class="santinho-numero"><span>R$ 1.900.752</span></strong>
-            <span class="santinho-rotulo">gastou, em média, cada deputado federal eleito em 2022.</span>
-          </span></span>
-        </a>
-        <a class="santinho s2" href="mapa.html#pergunta=patrimonio&amp;ano=2022&amp;cargo=DEPUTADO+FEDERAL&amp;faixa=5">
-          <span class="santinho-carta"><span class="santinho-face">
-            <span class="santinho-faixa">Patrimônio e vitória</span>
-            <strong class="santinho-numero"><span>22,7%</span></strong>
-            <span class="santinho-rotulo">de quem declarou mais de R$ 5 milhões se elegeu deputado federal. Sem bens: 0,4%.</span>
-          </span></span>
-        </a>
-        <a class="santinho s3" href="mapa.html#pergunta=vies&amp;ano=2022">
-          <span class="santinho-carta"><span class="santinho-face">
-            <span class="santinho-faixa">Viés ideológico</span>
-            <strong class="santinho-numero"><span>6,56</span></strong>
-            <span class="santinho-rotulo">de 0 a 10: o voto para deputado em 2022 foi à direita, e Lula venceu com 50,9%.</span>
-          </span></span>
-        </a>
-        <a class="santinho s4" href="mapa.html#pergunta=dependencia&amp;ano=2022&amp;cargo=DEPUTADO+FEDERAL&amp;faixa=1">
-          <span class="santinho-carta"><span class="santinho-face">
-            <span class="santinho-faixa">Dinheiro público e vitória</span>
-            <strong class="santinho-numero"><span>12,4%</span></strong>
-            <span class="santinho-rotulo">de vitória para deputado com 50% a 75% da receita pública; com menos de 25%, 3,1%.</span>
-          </span></span>
-        </a>
-        <a class="santinho s5" href="politico.html">
-          <span class="santinho-carta"><span class="santinho-face">
-            <span class="santinho-faixa">A carreira de cada político</span>
-            <strong class="santinho-numero"><span>437.509</span></strong>
-            <span class="santinho-rotulo">políticos de seis estados e da Presidência, de 1998 a 2024.</span>
-          </span></span>
-        </a>
-      </nav>
-      <div class="abertura-texto">
-        <p>Este é um projeto de estudo de dados abertos, desenvolvido para a disciplina de Bancos de
-          Dados Relacionais do curso de Ciência da Computação. O objetivo é facilitar o acesso de
-          qualquer pessoa às informações das eleições: quanto custa uma cadeira, se patrimônio e
-          dinheiro público ajudam a eleger, para que lado cada lugar vota e como foi a carreira de
-          cada político.</p>
-        <p>Os dados vêm do TSE, do IBGE e de outras fontes públicas e foram reunidos num banco de
-          dados relacional. Cada número do site sai de uma consulta SQL publicada no repositório
-          do projeto, que qualquer pessoa pode conferir e refazer.</p>
-        <p class="apoio autores">Feito por Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.</p>
+    <section class="oraculo" id="oraculo" aria-labelledby="t-oraculo">
+      <h1 id="t-oraculo">O que você gostaria de saber?</h1>
+      <p class="apoio dica-roda">Aponte uma pergunta para ver o que ela responde e como é calculada.</p>
+      <div class="roda" id="roda">
+        <div class="roda-anel" aria-hidden="true"></div>
+        <div class="roda-centro">
+          <svg class="roda-olho" viewBox="0 0 160 96" aria-hidden="true">
+            <path d="M4 48C34 4 126 4 156 48C126 92 34 92 4 48Z" fill="#faf7ef" stroke="#22201c" stroke-width="4"/>
+            <g id="pupila"><circle cx="80" cy="48" r="22" fill="#22201c"/><circle cx="88" cy="40" r="6.5" fill="#faf7ef"/></g>
+          </svg>
+          <div class="roda-detalhe" id="detalhe" aria-live="polite"></div>
+        </div>
+        <ul class="roda-perguntas" id="perguntas"></ul>
       </div>
     </section>
 
@@ -85,7 +56,7 @@
         </div>
         <div>
           <dt>Período das carreiras</dt>
-          <dd>De 1998 a 2024. Antes de 1998 o TSE não publica o título eleitoral, que liga as candidaturas de uma mesma pessoa.</dd>
+          <dd>De 1994 a 2024. O TSE não publica candidatos antes de 1994. Em 1994 e 1996 não há título eleitoral, que liga as candidaturas de uma mesma pessoa: essas eleições entram pelo nome e pela data de nascimento, só para quem concorreu de novo de 1998 em diante.</dd>
         </div>
         <div>
           <dt>Gastos</dt>

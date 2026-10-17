@@ -3,34 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Político · Tá no Olho do Povo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2300a651%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/estilo.css?v=20261015c">
-  <script type="module" src="js/politico.js?v=20261015c"></script>
+  <title>Político · Olho do Povo</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <!-- endereço antigo: leva à página nova da pergunta, com o mesmo recorte -->
+  <script type="module">
+    import { destinoDe } from './js/lib/redirecionamentos.js?v=20261020';
+    const destino = destinoDe('politico', location.hash);
+    document.getElementById('destino')?.setAttribute('href', destino);
+    location.replace(destino);
+  </script>
 </head>
-<body data-pagina="politico">
-  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
-  <header class="topo"></header>
-
-  <main id="conteudo">
-    <h1>Político</h1>
-    <p class="apoio">Procure pelo nome de quem concorreu em Amapá, Mato Grosso do Sul, Minas Gerais,
-      Paraíba, Rondônia ou Roraima, ou à Presidência, para ver cada candidatura de 1998 a 2024.</p>
-
-    <form class="busca" role="search" id="form-busca">
-      <label for="campo-busca">Nome do político</label>
-      <input id="campo-busca" type="search" autocomplete="off" spellcheck="false"
-             placeholder="Ex.: Ricardo Coutinho" aria-describedby="busca-ajuda">
-      <p id="busca-ajuda" class="apoio">Digite ao menos três letras de qualquer palavra do nome.</p>
-    </form>
-    <div id="resultados" aria-live="polite"></div>
-
-    <article id="ficha" hidden></article>
+<body>
+  <main id="conteudo" class="redireciona">
+    <p>Esta página mudou de endereço. <a id="destino" href="pergunta-10.html">Ir para a página nova</a>.</p>
   </main>
-
-  <footer class="rodape"></footer>
 </body>
 </html>

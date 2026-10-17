@@ -1,12 +1,10 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-const PAGINAS = [
-  { id: 'cadeiras', rotulo: 'Cadeiras', href: 'cadeiras.html' },
-  { id: 'mapa', rotulo: 'Mapa', href: 'mapa.html' },
-  { id: 'partido', rotulo: 'Partido', href: 'partido.html' },
-  { id: 'politico', rotulo: 'Político', href: 'politico.html' },
-];
+import { PERGUNTAS } from './lib/perguntas.js?v=20261020';
+
+// a navegação são as teclas da urna: uma por pergunta respondida, com o título por extenso no rótulo
+const PAGINAS = PERGUNTAS.filter(p => p.href).map(p => ({ id: `pergunta-${p.n}`, rotulo: String(p.n), titulo: p.titulo, href: p.href }));
 
 const REPOSITORIO = 'https://github.com/lucasvilari/ProjetoBDR';
 
@@ -16,9 +14,10 @@ export function montaPagina() {
   const topo = document.querySelector('header.topo');
   topo.innerHTML = `
     <div class="topo-interno">
-      <a class="marca" href="index.html"><span class="marca-tecla" aria-hidden="true"><svg viewBox="0 0 24 14"><path d="M1 7C5 1 19 1 23 7C19 13 5 13 1 7Z" fill="#faf7ef" stroke="#22201c" stroke-width="1.3"/><circle cx="12" cy="7" r="3.7" fill="#22201c"/><circle cx="13.3" cy="5.7" r="1.2" fill="#faf7ef"/></svg></span>Tá no Olho do Povo</a>
+      <a class="marca" href="index.html"><span class="marca-tecla" aria-hidden="true"><svg viewBox="0 0 24 14"><path d="M1 7C5 1 19 1 23 7C19 13 5 13 1 7Z" fill="#faf7ef" stroke="#22201c" stroke-width="1.3"/><circle cx="12" cy="7" r="3.7" fill="#22201c"/><circle cx="13.3" cy="5.7" r="1.2" fill="#faf7ef"/></svg></span>Olho do Povo</a>
       <nav class="nav" aria-label="Seções do site">
-        ${PAGINAS.map(p => `<a href="${p.href}"${p.id === atual ? ' aria-current="page"' : ''}>${p.rotulo}</a>`).join('')}
+        <a class="nav-todas" href="index.html#oraculo"${atual === 'inicio' ? ' aria-current="page"' : ''}>Perguntas</a>
+        ${PAGINAS.map(p => `<a class="nav-tecla" href="${p.href}" title="${p.titulo}" aria-label="Pergunta ${p.rotulo}: ${p.titulo}"${p.id === atual ? ' aria-current="page"' : ''}>${p.rotulo}</a>`).join('')}
       </nav>
     </div>`;
   const rodape = document.querySelector('footer.rodape');
@@ -30,6 +29,12 @@ export function montaPagina() {
   document.addEventListener('click', viraSantinho);
 }
 
+/** Quantos caracteres o número do santinho ocupa (sem as marcações), para a fonte encolher e ele caber na caixa. */
+const tamanhoDoNumero = numero => {
+  const texto = String(numero);
+  return Math.max(4, texto.replace(/<[^>]*>/g, '').length + (texto.includes('<i') ? 1.5 : 0));
+};
+
 /** Um santinho: faixa (cargo, lugar, ano), o número da pergunta, o que ele mede, linhas de apoio e,
  *  no verso, como foi calculado e o que falta. `foto` é um <img> que vai ao lado do número. Devolve HTML. */
 export function santinho({ faixa, nome = '', numero, rotulo, linhas = [], verso, fonte = '', classe = '', foto = '' }) {
@@ -39,7 +44,7 @@ export function santinho({ faixa, nome = '', numero, rotulo, linhas = [], verso,
         <div class="santinho-faixa">${faixa}</div>
         ${nome ? `<span class="santinho-nome">${nome}</span>` : ''}
         ${foto ? '<div class="santinho-com-foto"><div>' : ''}
-        <strong class="santinho-numero"><span>${numero}</span></strong>
+        <strong class="santinho-numero"><span style="--n:${tamanhoDoNumero(numero)}">${numero}</span></strong>
         <p class="santinho-rotulo">${rotulo}</p>
         ${foto ? `</div>${foto}</div>` : ''}
         ${linhas.length ? `<dl class="santinho-linhas">${linhas.map(([r, v]) => `<div><dt>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
@@ -83,9 +88,12 @@ export const em = nome => `${PREPOSICAO[nome] ?? 'em'} ${nome}`;
 const cache = new Map();
 
 /** Lê um arquivo JSON de dados/, uma vez por página. */
+// a mesma versão do ?v= dos scripts: depois de publicar, o navegador não mistura script novo com dado velho
+const VERSAO = '20261020';
+
 export function carregaDados(caminho) {
   if (!cache.has(caminho)) {
-    cache.set(caminho, fetch(`dados/${caminho}`).then(r => {
+    cache.set(caminho, fetch(`dados/${caminho}?v=${VERSAO}`).then(r => {
       if (!r.ok) throw new Error(`dados/${caminho}: ${r.status}`);
       return r.json();
     }));
@@ -107,8 +115,27 @@ export function comSeta(v, centro = 5, casas = null) {
   return `<span class="seta" title="no centro">${txt}</span>`;
 }
 
+// código de cada eleição no DivulgaCandContas do TSE, de onde vêm as fotos
+// o código de cada eleição no DivulgaCandContas do TSE, que tem as fotos de 2004 em diante
+const ELEICAO_TSE = { 2004: 14431, 2006: 14423, 2008: 14422, 2010: 14417, 2012: 1699, 2014: 680, 2016: 2,
+  2018: 2022802018, 2020: 2030402020, 2022: 2040602022, 2024: 2045202024 };
+
+/** A foto do candidato no TSE ("ano/número do candidato no TSE/ue", de 2004 em diante). Sem foto, ou se o TSE
+ *  não responder, a imagem some; quando o TSE não tem a foto, ele manda uma silhueta. */
+export function fotoCandidato(chave, classe) {
+  if (!chave) return '';
+  const [ano, sq, ue] = chave.split('/');
+  if (!ELEICAO_TSE[ano]) return '';
+  return `<img class="${classe}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"
+    src="https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img/${ELEICAO_TSE[ano]}/${sq}/${ue}">`;
+}
+
+const fmtCentavos = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export const formata = {
   real: v => fmtReal.format(v),
+  /** Reais por voto: com centavos abaixo de R$ 100, onde os inteiros esconderiam a diferença. */
+  porVoto: v => (v < 100 ? fmtCentavos : fmtReal).format(v),
   numero: v => fmtNum.format(v),
   pct: v => `${fmtPct.format(v)}%`,
 };

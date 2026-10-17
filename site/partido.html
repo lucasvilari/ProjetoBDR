@@ -3,56 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Partido · Tá no Olho do Povo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2300a651%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/estilo.css?v=20261015c">
-  <script type="module" src="js/partido.js?v=20261015c"></script>
+  <title>Partido · Olho do Povo</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <!-- endereço antigo: leva à página nova da pergunta, com o mesmo recorte -->
+  <script type="module">
+    import { destinoDe } from './js/lib/redirecionamentos.js?v=20261020';
+    const destino = destinoDe('partido', location.hash);
+    document.getElementById('destino')?.setAttribute('href', destino);
+    location.replace(destino);
+  </script>
 </head>
-<body data-pagina="partido">
-  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
-  <header class="topo"></header>
-
-  <main id="conteudo">
-    <h1>Partido</h1>
-    <p class="apoio">Os partidos com candidatos em 2022 ou 2024 e três formas de medir onde cada um
-      fica entre a esquerda e a direita.</p>
-
-    <dl class="fatos medidas">
-      <div><dt>Especialistas</dt><dd>Nota de 0 (esquerda) a 10 (direita) dada por cientistas políticos em 2018 e 2022.</dd></div>
-      <div><dt>Alianças</dt><dd>Posição revelada pelas coligações para prefeito, na mesma escala. Só passa a acompanhar a ideologia a partir de 2020.</dd></div>
-      <div><dt>Câmara</dt><dd>Posição nas votações da Câmara dos Deputados, de −100 (esquerda) a +100 (direita); no gráfico, a barra cresce para o lado em que o partido fica. Mede sobretudo o alinhamento com o governo.</dd></div>
-    </dl>
-
-    <section class="bloco" aria-labelledby="t-espectro">
-      <h2 id="t-espectro">Especialistas e alianças</h2>
-      <p class="legenda-grafico">
-        <span class="chave" style="--cor:#22201c">especialistas, 2022</span>
-        <span class="chave chave-anel" style="--cor:#00a651">alianças, 2024</span>
-        <span class="degrade"><span>Câmara: esquerda −100</span><i aria-hidden="true"></i><span>+100 direita</span></span>
-      </p>
-      <div class="graficos-lado">
-        <div id="g-espectro" class="grafico"></div>
-        <div id="g-camara" class="grafico"></div>
-      </div>
-    </section>
-
-    <section class="bloco" aria-labelledby="t-detalhe">
-      <h2 id="t-detalhe">Um partido</h2>
-      <label class="campo campo-largo">Partido <select id="escolha"></select></label>
-      <div id="detalhe"></div>
-    </section>
-
-    <section class="bloco" aria-labelledby="t-tabela">
-      <h2 id="t-tabela">Todos os partidos</h2>
-      <p class="apoio">As setas mostram o lado de cada medida em relação ao centro: a que aponta para a esquerda marca esquerda, a que aponta para a direita marca direita. O centro é 5 nas
-        notas de 0 a 10 e 0 na régua da Câmara (−100 a +100).</p>
-      <div class="rolagem"><table class="tabela" id="tabela"></table></div>
-    </section>
+<body>
+  <main id="conteudo" class="redireciona">
+    <p>Esta página mudou de endereço. <a id="destino" href="pergunta-7.html">Ir para a página nova</a>.</p>
   </main>
-
-  <footer class="rodape"></footer>
 </body>
 </html>

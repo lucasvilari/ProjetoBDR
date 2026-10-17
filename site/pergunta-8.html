@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dinheiro público elege? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <script type="module" src="js/pergunta-8.js?v=20261020"></script>
+</head>
+<body data-pagina="pergunta-8">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Dinheiro público elege?</h1>
+      <p class="apoio">Boa parte do dinheiro das campanhas sai do fundo eleitoral e do Fundo Partidário, que são públicos.
+        Cada candidato é uma torneira: a barra é a receita da campanha, em <span class="tinta-publica">verde-água a parte
+        pública</span> e em bege a parte privada (doações e recursos do próprio candidato). Abaixo, quanto cada grau de
+        dependência do dinheiro público se elegeu, e quanto custou cada voto pago com ele.</p>
+    </div>
+
+    <form class="seletor" id="recorte" aria-label="Escolher ano, cargo e lugar"></form>
+
+    <section aria-labelledby="t-faixas">
+      <h2 id="t-faixas"></h2>
+      <div class="p8-escolha">
+        <div id="cifroes-escolha" class="cifroes-escolha" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="100"
+             aria-label="Parcela mínima de dinheiro público na receita"></div>
+        <p id="valor-escolha" class="p8-valor" aria-hidden="true"></p>
+      </div>
+      <p class="apoio dica-cifroes">Clique num cifrão (a metade esquerda vale meio cifrão) ou use as setas do teclado. Cada
+        cifrão é 10% da receita da campanha vinda de dinheiro público.</p>
+      <div id="resultado-cifroes" class="p8-resultado" aria-live="polite"></div>
+      <div id="curva" class="grafico"></div>
+      <div id="eleitos-cifroes"></div>
+      <p class="apoio">Dinheiro público é a receita vinda do fundo eleitoral e do Fundo Partidário; candidatos sem receita
+        declarada ficam de fora. A taxa de vitória divide os eleitos pelos candidatos. Consulta:
+        <code>p08_dependencia_publica.sql</code>.</p>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-torneiras">
+      <h2 id="t-torneiras">As torneiras: as 30 maiores receitas</h2>
+      <p class="legenda-grafico"><span class="chave" style="--cor:#2e8b7a">dinheiro público</span>
+        <span class="chave" style="--cor:#cbbd9d">dinheiro privado</span></p>
+      <ol id="torneiras" class="torneiras"></ol>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-partidos">
+      <h2 id="t-partidos">Por partido</h2>
+      <p class="apoio">Cada partido é uma torneira: a barra é a receita dos seus candidatos, com a parte pública na média da
+        parcela pública de cada um. Ao lado, quanto o partido elegeu. Os que mais dependem do dinheiro público vêm primeiro.</p>
+      <p class="legenda-grafico"><span class="chave" style="--cor:#2e8b7a">parcela pública média</span>
+        <span class="chave" style="--cor:#00a651">taxa de vitória</span></p>
+      <ol id="partidos" class="torneiras torneiras-partido"></ol>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-politicos">
+      <h2 id="t-politicos">Por político: quem mais recebeu dinheiro público</h2>
+      <p class="apoio">Os dez candidatos do recorte com mais dinheiro público e o custo de cada voto pago com ele: o dinheiro
+        público recebido dividido pelos votos.</p>
+      <ol id="politicos" class="politicos-publicos"></ol>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

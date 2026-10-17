@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Onde gastam em propaganda? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261020">
+  <script type="module" src="js/pergunta-9.js?v=20261020"></script>
+</head>
+<body data-pagina="pergunta-9">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Onde gastam em propaganda?</h1>
+      <p class="apoio">Uma rua em época de eleição. Cada objeto é um tipo de despesa declarada ao TSE, do tamanho do que se
+        gastou nele: santinhos, carro de som, adesivos, internet, TV e rádio, comícios, militância de rua, jornais. O que não é
+        propaganda (pessoal, advogados, contadores, combustível, aluguel) fica no comitê. Na TV, as palavras que mais
+        aparecem nas descrições das despesas.</p>
+    </div>
+
+    <div class="p9-escolha">
+      <form class="seletor" id="recorte" aria-label="Escolher ano, cargo e lugar"></form>
+      <form class="busca busca-curta" role="search" id="form-busca">
+        <label for="campo-busca">Ou procure um político</label>
+        <input id="campo-busca" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Ex.: Ricardo Coutinho" aria-describedby="busca-ajuda">
+        <p id="busca-ajuda" class="apoio">Quem concorreu de 2018 a 2024 nos seis estados do projeto, ou à Presidência.</p>
+      </form>
+    </div>
+    <div id="resultados" aria-live="polite"></div>
+    <div id="pessoa" class="p9-pessoa" hidden></div>
+
+    <section aria-labelledby="t-rua">
+      <h2 id="t-rua"></h2>
+      <div id="rua" class="rua"></div>
+      <p id="detalhe-rua" class="detalhe-rua" aria-live="polite"></p>
+      <div class="p9-grade">
+        <div id="tv" class="tv-caixa"></div>
+        <aside id="lado" class="p9-lado" aria-label="Gasto, votos e custo por voto"></aside>
+      </div>
+      <div id="lista-rua"></div>
+      <p class="apoio">Despesas declaradas pelos candidatos ao TSE, somadas por tipo. Cada objeto tem a área proporcional ao
+        valor. Palavras: as descrições das despesas, sem palavras curtas, números e palavras como "de" e "serviços"; o
+        tamanho é quantas vezes a palavra aparece, e a cor, quanto dinheiro passou pelas despesas com ela. Consultas:
+        <code>p09a_gasto_por_tipo.sql</code> e <code>p09b_nuvem_palavras.sql</code>.</p>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>
