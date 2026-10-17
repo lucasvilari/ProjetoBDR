@@ -1,6 +1,6 @@
 // A rua da campanha (pergunta 9): os desenhos dos objetos e a cena. Cada desenho ocupa uma caixa de 120 × 120
 // com o pé no centro de baixo (60, 120); a cena o escala para que a área acompanhe o valor gasto.
-import { OBJETOS } from './lib/propaganda.js?v=20261021';
+import { OBJETOS } from './lib/propaganda.js?v=20261022';
 
 const T = '#22201c', V = '#faf7ef', S = '#d8c9a9', M = '#b3a88f';
 const contorno = `stroke="${T}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;

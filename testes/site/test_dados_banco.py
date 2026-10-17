@@ -189,3 +189,20 @@ def test_chapas_somam_os_votos_validos(ue, ano, cargo):
     iu, iv = d['campos_eleito'].index('unidade'), d['campos_eleito'].index('votos')
     for u in {e[iu] for e in r['eleitos']}:
         assert por_unidade[u] >= sum(e[iv] for e in r['eleitos'] if e[iu] == u)
+
+
+@pytest.mark.banco
+def test_exemplos_das_palavras_contem_a_palavra():
+    """Cada exemplo de despesa de uma palavra da TV contém a palavra (Lula, 2022, e o recorte de João Pessoa, 2024)."""
+    pid = 269682
+    principal = json.loads((DADOS / f'propaganda/pessoas/{(pid - 1) // 1000}.json').read_text())
+    ex = json.loads((DADOS / f'propaganda/exemplos/pessoas/{(pid - 1) // 1000}.json').read_text())['pessoas'][str(pid)]['2022|PRESIDENTE']
+    palavras = [principal['palavras'][i] for i, _, _ in principal['pessoas'][str(pid)]['2022|PRESIDENTE']['palavras']]
+    recorte = json.loads((DADOS / 'propaganda/20516.json').read_text())['anos']['2024']['PREFEITO']['palavras']
+    ex_recorte = json.loads((DADOS / 'propaganda/exemplos/20516.json').read_text())['anos']['2024']['PREFEITO']
+    for ws, e in ((palavras, ex), ([w for w, _, _ in recorte], ex_recorte)):
+        assert len(e['por_palavra']) == len(ws)
+        assert all(e['por_palavra'])                                  # toda palavra tem ao menos um exemplo
+        for w, indices in zip(ws, e['por_palavra']):
+            assert all(w in gera_dados.palavras(e['descricoes'][i][0].rstrip('…')) or e['descricoes'][i][0].endswith('…')
+                       for i in indices)

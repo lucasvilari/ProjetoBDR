@@ -152,3 +152,31 @@ def test_liga_candidaturas_antigas():
     assert list(ligadas) == ['000000000001']
     [c] = ligadas['000000000001']
     assert (c['ano'], c['cargo'], c['situacao']) == (1994, 'GOVERNADOR', 'ELEITO')
+
+
+def test_exemplos_das_palavras():
+    """Para cada palavra escolhida, as duas despesas de maior valor que a contêm, sem repetir descrição; as
+    descrições vão para uma lista, e cada palavra guarda os índices delas, na ordem das palavras."""
+    ex = gera_dados.ExemplosDePalavras({'hosped', 'aereo'}, k=2)
+    ex.soma('HOSPED JOSE  15 A 18/09', 3810)
+    ex.soma('TRANSP.AEREO GRU/JOI', 26977)
+    ex.soma('HOSPEDAGEM e HOSPED ANA', 1743)
+    ex.soma('HOSPED JOSE  15 A 18/09', 100)          # mesma descrição, valor menor: não repete
+    ex.soma('HOSPED BARATO', 50)
+    descricoes, por_palavra = ex.saida(['aereo', 'hosped', 'outra'])
+    assert descricoes == [['TRANSP.AEREO GRU/JOI', 26977], ['HOSPED JOSE 15 A 18/09', 3810], ['HOSPEDAGEM e HOSPED ANA', 1743]]
+    assert por_palavra == [[0], [1, 2], []]
+
+
+def test_descricao_longa_e_cortada():
+    assert gera_dados.limpa_descricao('A' * 120) == 'A' * 89 + '…'
+    assert gera_dados.limpa_descricao('  ADESIVO   7·8X7·8 ') == 'ADESIVO 7·8X7·8'
+
+
+def test_exemplo_mostra_o_item_da_nota_com_a_palavra():
+    """Uma despesa junta os itens da nota com " | ": o exemplo de cada palavra é o item em que ela aparece."""
+    ex = gera_dados.ExemplosDePalavras({'cgh', 'aereo'}, k=2)
+    ex.soma('TRANSP AEREO FULANO AJU/REC | TRANSP AEREO BELTRANO CGH/BSB | OUTRO', 777067)
+    descricoes, por_palavra = ex.saida(['cgh', 'aereo'])
+    assert [descricoes[i][0] for i in por_palavra[0]] == ['TRANSP AEREO BELTRANO CGH/BSB']
+    assert [descricoes[i][0] for i in por_palavra[1]] == ['TRANSP AEREO FULANO AJU/REC']

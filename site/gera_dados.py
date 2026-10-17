@@ -1138,6 +1138,48 @@ class ContaPalavras:
         return [[w, f, round(self.valor[w])] for w, f in sorted(self.freq.items(), key=lambda x: (-x[1], x[0]))[:k]]
 
 
+LIMITE_DESCRICAO = 90                    # caracteres de cada descrição de exemplo
+
+
+def limpa_descricao(texto):
+    """A descrição de uma despesa com os espaços normalizados e cortada em LIMITE_DESCRICAO caracteres."""
+    texto = ' '.join((texto or '').split())
+    return texto if len(texto) <= LIMITE_DESCRICAO else texto[:LIMITE_DESCRICAO - 1] + '…'
+
+
+class ExemplosDePalavras:
+    """Para cada palavra de `alvos`, as k despesas de maior valor cuja descrição a contém, cada uma mostrada pelo item
+    da nota em que a palavra aparece (sem repetir texto): o que o site mostra quando o leitor clica numa palavra da TV.
+    O valor é o da despesa inteira."""
+    def __init__(self, alvos, k=2):
+        self.alvos, self.k, self.melhores = set(alvos), k, defaultdict(dict)    # palavra -> {descrição: valor}
+
+    def soma(self, descricao, valor):
+        achadas = set(palavras(descricao)) & self.alvos
+        if not achadas:
+            return
+        # a despesa junta os itens da nota com " | ": o exemplo de cada palavra é o item em que ela aparece
+        itens = [i for i in (descricao or '').split('|') if i.strip()] or [descricao]
+        for w in achadas:
+            texto = limpa_descricao(next((i for i in itens if w in palavras(i)), descricao))
+            m = self.melhores[w]
+            if valor > m.get(texto, -1):
+                m[texto] = valor
+            if len(m) > self.k:
+                del m[min(m, key=m.get)]
+
+    def saida(self, ordem):
+        """(descrições [[texto, valor]], índices das descrições de cada palavra, na ordem de `ordem`)."""
+        tabela, valores, por_palavra = Tabela(), {}, []
+        for w in ordem:
+            indices = []
+            for texto, v in sorted(self.melhores.get(w, {}).items(), key=lambda x: -x[1]):
+                indices.append(tabela(texto))
+                valores[texto] = max(valores.get(texto, 0), v)
+            por_palavra.append(indices)
+        return [[t, round(valores[t])] for t in tabela.lista], por_palavra
+
+
 SQL_PROPAGANDA = """
 SELECT v.ano, v.cargo, v.ue, CASE WHEN length(v.ue) = 2 THEN v.ue ELSE m.uf END AS uf,
        d.tipo, d.descricao, COUNT(*), SUM(d.valor)
@@ -1192,6 +1234,24 @@ def parte_propaganda(nacional, seis):
     recortes.clear()
     shutil.rmtree(DADOS / 'propaganda', ignore_errors=True)
 
+    # segunda leitura: os exemplos de cada palavra que foi para a TV, agora que se sabe quais são
+    log('propaganda: exemplos de despesa de cada palavra dos recortes')
+    exemplos = {(un, ano, cargo): ExemplosDePalavras(w for w, _, _ in r['palavras'])
+                for un, anos in por_ue.items() for ano, cargos in anos.items() for cargo, r in cargos.items()}
+    with nacional.cursor(name='propaganda_exemplos') as cur:
+        cur.itersize = 50_000
+        cur.execute(SQL_PROPAGANDA, params)
+        for ano, cargo, ue, uf, tipo, descricao, n, valor in cur:
+            for un in territorios_do_projeto(ue, uf):
+                ex = exemplos.get((un, ano, cargo))
+                if ex:
+                    ex.soma(descricao, float(valor))
+    exemplos_ue = defaultdict(lambda: defaultdict(dict))
+    for (un, ano, cargo), ex in exemplos.items():
+        descricoes, por_palavra = ex.saida([w for w, _, _ in por_ue[un][ano][cargo]['palavras']])
+        exemplos_ue[un][ano][cargo] = {'descricoes': descricoes, 'por_palavra': por_palavra}
+    exemplos.clear()
+
     log('propaganda: despesas de cada político dos seis estados e dos presidentes')
     pids = mapa_pid(seis)
     pessoas = defaultdict(lambda: {'gasto': Counter(), 'palavras': ContaPalavras()})
@@ -1207,18 +1267,41 @@ def parte_propaganda(nacional, seis):
     # cada arquivo de pessoas tem a sua lista de palavras, e cada pessoa guarda só o índice delas
     lotes = defaultdict(lambda: defaultdict(dict))
     vocab = defaultdict(Tabela)
+    topo_pessoa = {}
     for (pid, chave), r in pessoas.items():
         n = (pid - 1) // POR_ARQUIVO
+        topo_pessoa[(pid, chave)] = [w for w, _, _ in r['palavras'].top(PALAVRAS_PESSOA)]
         lotes[n][pid][chave] = {
             'gasto': [[i, round(v)] for i, v in sorted(r['gasto'].items(), key=lambda x: -x[1])],
             'palavras': [[vocab[n](w), f, v] for w, f, v in r['palavras'].top(PALAVRAS_PESSOA)]}
+    pessoas.clear()
+    log('propaganda: exemplos de despesa de cada palavra dos políticos')
+    exemplos = {k: ExemplosDePalavras(ws) for k, ws in topo_pessoa.items()}
+    with seis.cursor(name='propaganda_pessoas_exemplos') as cur:
+        cur.itersize = 50_000
+        cur.execute(SQL_PROPAGANDA_PESSOAS, {'anos': list(ANOS)})
+        for titulo, ano, cargo, tipo, descricao, n, valor in cur:
+            if titulo in pids:
+                ex = exemplos.get((pids[titulo][0], f'{ano}|{cargo}'))
+                if ex:
+                    ex.soma(descricao, float(valor))
+    exemplos_pessoas = defaultdict(lambda: defaultdict(dict))
+    for (pid, chave), ex in exemplos.items():
+        descricoes, por_palavra = ex.saida(topo_pessoa[(pid, chave)])
+        exemplos_pessoas[(pid - 1) // POR_ARQUIVO][pid][chave] = {'descricoes': descricoes, 'por_palavra': por_palavra}
+    exemplos.clear()
     for un, anos in por_ue.items():
         grava(f'propaganda/{un}.json', {'tipos': tipos.lista, 'anos': anos})
+    # os exemplos ficam em arquivos à parte, que o site só baixa quando o leitor clica numa palavra
+    for un, anos in exemplos_ue.items():
+        grava(f'propaganda/exemplos/{un}.json', {'anos': anos})
+    for n, lote in exemplos_pessoas.items():
+        grava(f'propaganda/exemplos/pessoas/{n}.json', {'pessoas': lote})
     maior = 0
     for n, lote in lotes.items():
         maior = max(maior, grava(f'propaganda/pessoas/{n}.json', {'tipos': tipos.lista, 'palavras': vocab[n].lista,
                                                                  'por_arquivo': POR_ARQUIVO, 'pessoas': lote}))
-    log(f'propaganda: {len(por_ue):,} recortes e {len(pessoas):,} candidaturas de {sum(map(len, lotes.values())):,} políticos; '
+    log(f'propaganda: {len(por_ue):,} recortes e {len(topo_pessoa):,} candidaturas de {sum(map(len, lotes.values())):,} políticos; '
         f'{tamanho_pasta(DADOS / "propaganda") / 1e6:.1f} MB, maior arquivo de pessoas {maior / 1e3:.0f} kB')
 
 

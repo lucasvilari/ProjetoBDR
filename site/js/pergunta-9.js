@@ -6,12 +6,12 @@
 // para cada candidatura dos políticos com nome), candidaturas/<ue>-<ano>.json (votos e gasto de cada candidato),
 // politicos/ (busca e carreira).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261021';
-import { ueDoRecorte } from './lib/recorte.js?v=20261021';
-import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261021';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261021';
-import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261021';
-import { cenaDaRua, CURTO } from './rua.js?v=20261021';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261022';
+import { ueDoRecorte } from './lib/recorte.js?v=20261022';
+import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261022';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261022';
+import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261022';
+import { cenaDaRua, CURTO } from './rua.js?v=20261022';
 
 montaPagina();
 
@@ -112,8 +112,13 @@ function desenhaRua({ valores, detalhes }) {
 }
 
 /** A TV: as palavras das descrições, do tamanho da frequência e da cor do dinheiro que passou por elas. */
-function desenhaTV(palavras, titulo) {
+let exemplosAtuais = null;      // (índice da palavra) -> promessa das despesas de exemplo dela
+
+/** A TV: as palavras das descrições, do tamanho da frequência e da cor do dinheiro que passou por elas. Cada palavra
+ *  é um botão que mostra, abaixo da TV, as despesas de maior valor em que ela aparece. */
+function desenhaTV(palavras, titulo, exemplos) {
   const caixa = document.getElementById('tv');
+  exemplosAtuais = exemplos;
   if (!palavras.length) {
     caixa.innerHTML = `<div class="tv"><div class="tv-tela"><p class="tv-titulo">${titulo}</p><p class="tv-vazia">Sem descrições de despesa.</p></div></div>`;
     return;
@@ -124,16 +129,36 @@ function desenhaTV(palavras, titulo) {
   const cor = v => d3.interpolateRgb('#7a705c', '#22201c')(tom(Math.max(1, v)));
   // ordem embaralhada (sempre a mesma), para as palavras grandes não ficarem todas juntas
   const mistura = w => [...w].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 9973, 7);
-  const ordem = [...palavras].sort((a, b) => mistura(a[0]) - mistura(b[0]));
-  caixa.innerHTML = `<div class="tv" role="img" aria-label="${titulo}: ${palavras.slice(0, 10).map(p => p[0]).join(', ')}">
+  const ordem = palavras.map((p, i) => [...p, i]).sort((a, b) => mistura(a[0]) - mistura(b[0]));
+  caixa.innerHTML = `<div class="tv">
     <span class="tv-antena" aria-hidden="true"></span>
     <div class="tv-tela"><p class="tv-titulo">${titulo}</p>
-      <p class="nuvem">${ordem.map(([w, f, v]) => `<span style="font-size:${(0.8 + 1.9 * Math.sqrt(f / fMax)).toFixed(2)}rem;color:${cor(v)}"
-        title="${w}: ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'}, ${formata.real(v)}">${w}</span>`).join(' ')}</p></div>
+      <p class="nuvem" role="group" aria-label="${titulo}">${ordem.map(([w, f, v, i]) => `<button type="button" class="palavra" data-i="${i}" aria-pressed="false"
+        style="font-size:${(0.8 + 1.9 * Math.sqrt(f / fMax)).toFixed(2)}rem;color:${cor(v)}"
+        title="${w}: ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'}">${w}</button>`).join(' ')}</p></div>
     <span class="tv-pes" aria-hidden="true"></span></div>
     <p class="legenda-grafico"><span>Tamanho: quantas vezes a palavra aparece.</span>
-      <span class="degrade-tv"><span>cor: menos dinheiro</span><i aria-hidden="true"></i><span>mais dinheiro</span></span></p>`;
+      <span class="degrade-tv"><span>cor: menos dinheiro</span><i aria-hidden="true"></i><span>mais dinheiro</span></span></p>
+    <div class="exemplos-palavra" id="exemplos-palavra" aria-live="polite">
+      <p class="apoio">Clique numa palavra para ver em que despesas ela aparece.</p></div>`;
+  caixa.dataset.palavras = JSON.stringify(palavras);
 }
+
+document.getElementById('tv').addEventListener('click', async e => {
+  const b = e.target.closest('.palavra');
+  if (!b || !exemplosAtuais) return;
+  const caixa = document.getElementById('tv');
+  caixa.querySelectorAll('.palavra').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  const [w, f] = JSON.parse(caixa.dataset.palavras)[Number(b.dataset.i)];
+  const alvo = document.getElementById('exemplos-palavra');
+  alvo.innerHTML = '<p class="apoio">Buscando as despesas…</p>';
+  const lista = await exemplosAtuais(Number(b.dataset.i));
+  if (b.getAttribute('aria-pressed') !== 'true') return;          // o leitor já clicou em outra palavra
+  alvo.innerHTML = `<p><b>“${w}”</b> aparece ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'} nas descrições das despesas.
+      ${lista.length ? `${lista.length === 1 ? 'A despesa de maior valor em que ela aparece' : 'As despesas de maior valor em que ela aparece'}
+      (o trecho da nota com a palavra e o valor da despesa inteira):` : ''}</p>
+    ${lista.length ? `<ul class="lista-exemplos">${lista.map(([texto, valor]) => `<li><span>${texto}</span><b>${formata.real(valor)}</b></li>`).join('')}</ul>` : ''}`;
+});
 
 // ---------------------------------------------------------------- gasto, votos e custo por voto
 
@@ -213,7 +238,13 @@ async function atualiza(r) {
     document.getElementById('detalhe-rua').innerHTML = `<span class="aviso-vazio">${pessoaAtual
       ? `${quem} não declarou despesas nesta candidatura.` : `Nenhuma despesa declarada para ${minusculo(r.cargo)} ${em(nome)} em ${r.ano}.`}</span>`;
   }
-  desenhaTV(dados.palavras, pessoaAtual ? `O que ${quem.split(' ')[0]} mais comprou` : 'O que mais aparece nas despesas');
+  // os exemplos de cada palavra só são baixados no primeiro clique
+  const exemplos = pessoaAtual
+    ? i => carregaDados(`propaganda/exemplos/pessoas/${Math.floor((pessoaAtual.pid - 1) / tabelas.por_arquivo)}.json`)
+      .then(a => a.pessoas[pessoaAtual.pid]?.[`${r.ano}|${r.cargo}`]).then(e => (e?.por_palavra[i] ?? []).map(j => e.descricoes[j])).catch(() => [])
+    : i => carregaDados(`propaganda/exemplos/${ue}.json`)
+      .then(a => a.anos[r.ano]?.[r.cargo]).then(e => (e?.por_palavra[i] ?? []).map(j => e.descricoes[j])).catch(() => []);
+  desenhaTV(dados.palavras, pessoaAtual ? `O que ${quem.split(' ')[0]} mais comprou` : 'O que mais aparece nas despesas', exemplos);
 
   const lado = document.getElementById('lado');
   const eu = pessoaAtual && cands.find(c => c.pid === pessoaAtual.pid);

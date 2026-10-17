@@ -59,7 +59,7 @@ site/
     ├── legenda/         pergunta 5: eleitos, quociente e votos de cada chapa por <unidade>.json, e resumo.json
     ├── vies/            pergunta 7: brasil.json e municipios/<UF>[-<cargo>].json
     ├── partidos.json    medidas de ideologia e eleitos por partido
-    ├── propaganda/      pergunta 9: <unidade>.json e pessoas/<n>.json
+    ├── propaganda/      pergunta 9: <unidade>.json, pessoas/<n>.json e exemplos/ (despesas de cada palavra da TV, baixadas só ao clicar)
     ├── geo/             contornos do IBGE (estados e municípios dos seis estados)
     └── politicos/       índice de busca, fichas e carreiras, em fatias
 ```

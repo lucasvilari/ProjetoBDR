@@ -6,13 +6,13 @@
 // dos eleitos por partido quando não há a lista de candidatos, como nos vereadores de um estado inteiro, e a
 // nota de cada partido em cada ano, inclusive dos que já não existem).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em } from './comum.js?v=20261021';
-import { corIdeologia, COR } from './lib/cores.js?v=20261021';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261021';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261021';
-import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261021';
-import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe } from './pecas.js?v=20261021';
-import { montaPlenario2D } from './plenario-2d.js?v=20261021';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em } from './comum.js?v=20261022';
+import { corIdeologia, COR } from './lib/cores.js?v=20261022';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261022';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261022';
+import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261022';
+import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe } from './pecas.js?v=20261022';
+import { montaPlenario2D } from './plenario-2d.js?v=20261022';
 
 montaPagina();
 
@@ -131,7 +131,7 @@ async function desenhaPlenario(dados) {
   marcaVista(false);
   if (podeUsar3D()) {
     try {
-      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261021');
+      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261022');
       cena = montaPlenario3D(alvo, dados, aoEscolher);
       marcaVista(true);
       if (partidoFixo != null) cena.destaca(partidoFixo);
