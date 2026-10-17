@@ -172,3 +172,20 @@ def test_carreira_comeca_em_1994_quando_o_nome_e_nascimento_batem():
         return json.loads((DADOS / f'politicos/carreira/{(pid - 1) // 1000}.json').read_text())[str(pid)][1]
     assert [t['cargos'][l[1]] for l in carreira(269682) if l[0] == 1994] == ['PRESIDENTE']
     assert [(t['cargos'][l[1]], l[2]) for l in carreira(364652) if l[0] == 1996] == [('VEREADOR', '20516')]
+
+
+@pytest.mark.banco
+@pytest.mark.parametrize('ue,ano,cargo', [('PB', '2022', 'DEPUTADO FEDERAL'), ('MG', '2018', 'DEPUTADO ESTADUAL'), ('41238', '2024', 'VEREADOR')])
+def test_chapas_somam_os_votos_validos(ue, ano, cargo):
+    """Os votos de cada chapa (nominais de todos os candidatos e de legenda) somam os votos válidos do recorte, e
+    cada chapa tem pelo menos os votos dos seus eleitos."""
+    d = json.loads((DADOS / f'legenda/{ue}.json').read_text())
+    r = d['anos'][ano][cargo]
+    # em 2018 o arquivo de votos por partido do TSE soma até 0,2% menos que o de apuração (19.829 de 10,1 milhões em
+    # MG, deputado estadual), sem descarte da carga que explique; de 2020 em diante os dois batem
+    tolerancia = 0.005 * r['validos'] if ano == '2018' else 0
+    assert abs(sum(n + leg for _, n, leg in r['chapas']) - r['validos']) <= tolerancia
+    por_unidade = {u: n for u, n, _ in r['chapas']}
+    iu, iv = d['campos_eleito'].index('unidade'), d['campos_eleito'].index('votos')
+    for u in {e[iu] for e in r['eleitos']}:
+        assert por_unidade[u] >= sum(e[iv] for e in r['eleitos'] if e[iu] == u)

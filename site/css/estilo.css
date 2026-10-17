@@ -557,21 +557,65 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 @media (max-width: 640px) {
 }
 
-/* ------------------------------------------------------------------ pergunta 5: a régua do quociente */
+/* ------------------------------------------------------------------ pergunta 5: os copos do quociente */
 
-.regua { margin: var(--m2) 0; padding-bottom: var(--m1); }
-.regua-svg { display: block; }
-.regua-svg .coluna rect { stroke: var(--tecla); stroke-width: 1; cursor: pointer; }
-.regua-svg .coluna.pela-legenda rect { stroke-dasharray: 3 2; stroke-width: 2; fill-opacity: 0.55; }
-.regua-svg .coluna:focus-visible { outline: none; }
-.regua-svg .coluna:focus-visible rect, .regua-svg .coluna:hover rect { stroke: var(--corrige); stroke-width: 2.5; }
-.regua-svg .corte { fill: none; stroke: var(--urna); stroke-width: 3; }
-.coluna-valor { font-size: 10px; font-weight: 800; text-anchor: middle; fill: var(--tecla); }
-.linha-quociente { stroke: var(--tecla); stroke-width: 2; stroke-dasharray: 8 4; }
-.rotulo-quociente { font-size: 13px; font-weight: 800; fill: var(--tecla); paint-order: stroke; stroke: var(--urna); stroke-width: 4; }
-.unidade-rotulo { font-size: 11px; font-weight: 750; text-anchor: middle; fill: var(--tecla); }
-.unidade-conta { font-size: 10px; text-anchor: middle; fill: var(--tinta-2); }
-.gota { fill: var(--confirma); stroke: var(--tecla); stroke-width: 1; pointer-events: none; }
+.copos { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--m2); margin: var(--m2) 0; }
+.chapa { flex: 0 1 auto; max-width: 100%; padding: var(--m1) var(--m2) var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: rgba(250, 247, 239, 0.45); }
+.chapa-topo { display: grid; gap: 0.1rem; margin-bottom: var(--m1); max-width: 34rem; }
+.chapa-topo b { font-size: 0.95rem; }
+.chapa-topo .apoio { font-size: 0.82rem; }
+.chapa-corpo { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--m1) var(--m2); }
+.jarra { margin: 0; width: 5rem; display: grid; justify-items: center; text-align: center; font-size: 0.72rem; font-weight: 750; line-height: 1.2; }
+.jarra-svg { width: 3.8rem; height: auto; }
+.fila-copos { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.4rem 0.2rem; }
+.fila-copos li { max-width: none; }
+.copo { display: grid; justify-items: center; gap: 0.15rem; width: 4.8rem; padding: 0.25rem 0.1rem; border: 0; border-radius: 6px;
+  background: none; color: inherit; font: inherit; cursor: pointer; }
+.copo:hover, .copo.escolhido { background: var(--visor); }
+.copo.escolhido { box-shadow: inset 0 0 0 2px var(--corrige); }
+.copo:focus-visible { outline: 3px solid var(--corrige); outline-offset: 1px; }
+.copo-svg { width: 3.4rem; height: auto; overflow: visible; }
+.copo-sobra { min-height: 1rem; font-size: 0.78rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+.copo-nome, .copo-sigla { max-width: 4.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copo-nome { display: grid; font-size: 0.72rem; font-weight: 700; line-height: 1.15; text-align: center; }
+.copo-nome span { overflow: hidden; text-overflow: ellipsis; }
+.copo-sigla { font-size: 0.66rem; font-weight: 850; padding: 0 0.25rem; border: 1px solid var(--tecla); border-radius: 3px; }
+.vidro { fill: none; stroke: var(--tecla); stroke-width: 2; stroke-linejoin: round; }
+.marca-quociente { stroke: var(--tecla); stroke-width: 1.4; stroke-dasharray: 3 2; }
+.liquido { transform-box: fill-box; transform-origin: 50% 100%; }
+.liquido-proprio { fill: #4a443a; }
+.liquido-puxadores { fill: #8f8470; }
+.liquido-chapa { fill: #d6c7a6; }
+.falta { stroke: var(--corrige); stroke-width: 2.5; stroke-dasharray: 3 2; }
+.chave-liquido.liquido-proprio::before { background: #4a443a; }
+.chave-liquido.liquido-puxadores::before { background: #8f8470; }
+.chave-liquido.liquido-chapa::before { background: #d6c7a6; }
+.chave-liquido::before { border-radius: 2px; }
+.chave-falta::before { width: 1rem; height: 0; border: 0; border-top: 2.5px dashed var(--corrige); border-radius: 0; background: none; vertical-align: 0.25rem; }
+.cartao-copo { margin-top: var(--m2); }
+.cartao-coluna { display: grid; gap: var(--m1); }
+.cartao-coluna .cartao-carreira { justify-self: stretch; text-align: center; }
+.copo-detalhe { min-width: 0; padding: var(--m2) var(--m3); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
+.copo-detalhe h3 { margin: 0 0 var(--m1); font-size: 1.15rem; }
+.copo-detalhe h4 { margin: var(--m2) 0 var(--m1); font-size: 0.95rem; }
+.barra-cadeira { position: relative; display: flex; height: 2.2rem; margin: var(--m2) 0 var(--m1); border: 2px solid var(--tecla); border-radius: 4px; background: var(--visor); }
+.barra-cadeira .segmento { display: block; height: 100%; }
+.barra-cadeira .segmento + .segmento { border-left: 2px solid var(--visor); }
+.segmento.liquido-proprio { background: #4a443a; }
+.segmento.liquido-puxadores { background: #8f8470; }
+.segmento.liquido-chapa { background: #d6c7a6; }
+.segmento.liquido-transborda { background: #6f675a; }
+.segmento.segmento-falta { background: var(--visor); outline: 2.5px dashed var(--corrige); outline-offset: -4px; }
+.marca-q { position: absolute; top: -0.5rem; bottom: -0.5rem; border-left: 2.5px dashed var(--tecla); }
+.marca-q span { position: absolute; top: -1.2rem; left: 0.3rem; font-size: 0.72rem; font-weight: 800; white-space: nowrap; }
+.barra-legenda, .encheu { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.3rem; }
+.barra-legenda li { display: grid; grid-template-columns: 1rem minmax(0, 1fr) auto auto; align-items: center; gap: 0.6rem; max-width: none; font-size: 0.92rem; }
+.barra-legenda i { display: block; width: 1rem; height: 1rem; border: 1.5px solid var(--tecla); border-radius: 2px; }
+.barra-legenda b { font-variant-numeric: tabular-nums; }
+.encheu { grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); font-size: 0.88rem; }
+.encheu li { display: flex; justify-content: space-between; gap: var(--m1); max-width: none; border-bottom: 1px dotted var(--urna-funda); }
+@media (max-width: 560px) { .barra-legenda li { grid-template-columns: 1rem minmax(0, 1fr) auto; } .barra-legenda li .apoio { grid-column: 2 / -1; } }
+.cartao-copo p { max-width: var(--medida); }
 .cartao-com-regua { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m3); align-items: start; margin-top: var(--m2); }
 @media (max-width: 760px) { .cartao-com-regua { grid-template-columns: minmax(0, 1fr); } }
 

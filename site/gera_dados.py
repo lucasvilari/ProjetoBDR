@@ -732,6 +732,34 @@ SELECT vg.cod_eleicao, vg.cargo, vg.ue, vg.qt_vagas FROM vaga vg JOIN eleicao e 
 WHERE vg.cargo = ANY(%(cargos)s) AND e.ano = ANY(%(anos)s)
 """
 
+# Os votos de cada chapa (partido, coligação ou federação) no 1º turno: os nominais de todos os seus candidatos e os
+# de legenda. É o que a chapa tem para encher as cadeiras; o que os eleitos não usaram vem dos colegas sem cadeira e
+# da legenda. A chapa de cada partido sai das candidaturas do mesmo ano, cargo e unidade eleitoral.
+SQL_LEGENDA_CHAPAS = """
+WITH votos AS (
+    SELECT vp.cod_eleicao, vp.cargo, CASE e.abrangencia WHEN 'MUNICIPAL' THEN vp.cod_tse ELSE m.uf::VARCHAR END AS ue,
+           vp.id_partido, SUM(vp.votos_nominais) AS nominais, SUM(vp.votos_legenda) AS legenda
+    FROM votos_part vp
+    JOIN eleicao e ON e.cod_eleicao = vp.cod_eleicao
+    JOIN municipio m ON m.cod_tse = vp.cod_tse
+    WHERE vp.turno = 1 AND vp.cargo = ANY(%(cargos)s) AND e.ano = ANY(%(anos)s)
+    GROUP BY 1, 2, 3, 4
+),
+chapas AS (
+    -- pelo número do partido, não pelo código nem pela sigla: em 2018 o Patriota é "PATRI" nos votos e
+    -- "PATRIOTA" nas candidaturas, com códigos diferentes no banco, mas o mesmo número 51
+    SELECT DISTINCT ON (v.cod_eleicao, v.cargo, v.ue, pa.numero) v.cod_eleicao, v.cargo, v.ue, pa.numero, pa.sigla, v.coligacao
+    FROM vw_candidatura v
+    JOIN partido pa ON pa.id_partido = v.id_partido
+    WHERE v.ano = ANY(%(anos)s) AND v.cargo = ANY(%(cargos)s)
+    ORDER BY v.cod_eleicao, v.cargo, v.ue, pa.numero, v.coligacao NULLS LAST
+)
+SELECT v.cod_eleicao, v.cargo, v.ue, COALESCE(c.sigla, pa.sigla), c.coligacao, v.nominais, v.legenda
+FROM votos v
+JOIN partido pa ON pa.id_partido = v.id_partido
+LEFT JOIN chapas c ON c.cod_eleicao = v.cod_eleicao AND c.cargo = v.cargo AND c.ue = v.ue AND c.numero = pa.numero
+"""
+
 
 def quociente_eleitoral(validos, vagas):
     """Votos válidos ÷ vagas, desprezada a fração igual ou inferior a meio: CEIL(v / vagas − 0,5),
@@ -751,6 +779,8 @@ def parte_legenda(conn):
         vagas_de = {(e, c, u): int(v) for e, c, u, v in cur.fetchall()}
         cur.execute(SQL_LEGENDA_ELEITOS, params)
         eleitos = cur.fetchall()
+        cur.execute(SQL_LEGENDA_CHAPAS, params)
+        votos_das_chapas = cur.fetchall()
     linhas = sorted(((ano, cargo, ue, validos_de[(ce, cargo, ue)], vagas_de[(ce, cargo, ue)], sq, titulo, sigla, coligacao,
                       situacao, votos)
                      for ce, ano, cargo, ue, sq, titulo, sigla, coligacao, situacao, votos in eleitos
@@ -770,6 +800,19 @@ def parte_legenda(conn):
         uf = ue if len(ue) == 2 else None
         resumo[(ano, cargo, uf or ue, sigla)][0] += 1
         resumo[(ano, cargo, uf or ue, sigla)][1] += int(votos) < recorte['quociente']
+    # os votos de cada chapa, nos recortes que têm eleitos: [unidade, nominais de todos os candidatos, legenda]
+    ano_de = {ce: ano for ce, ano, *_ in eleitos}
+    somas = defaultdict(lambda: [0, 0])
+    for ce, cargo, ue, sigla, coligacao, nominais, legenda in votos_das_chapas:
+        ano = ano_de.get(ce)
+        recorte = arquivos[ue]['anos'][ano].get(cargo) if ue in arquivos and ano in arquivos[ue]['anos'] else None
+        if recorte is None:
+            continue
+        x = somas[(ue, ano, cargo, arquivos[ue]['unidades'](unidade_de(coligacao, sigla)))]
+        x[0] += int(nominais); x[1] += int(legenda)
+    for (ue, ano, cargo, unidade), (nominais, legenda) in sorted(somas.items()):
+        arquivos[ue]['anos'][ano][cargo].setdefault('chapas', []).append([unidade, nominais, legenda])
+
     shutil.rmtree(DADOS / 'legenda', ignore_errors=True)
     for ue, arq in arquivos.items():
         grava(f'legenda/{ue}.json', {'anos': arq['anos'], 'unidades': arq['unidades'].lista,

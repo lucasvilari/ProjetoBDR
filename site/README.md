@@ -9,7 +9,7 @@ perguntas respondidas têm uma página cada, com uma visualização própria:
 | `index.html` | apresentação, fontes e a roda das perguntas | o olho que se abre e as dez perguntas em volta dele |
 | `pergunta-1.html` | Quanto custa uma cadeira? | o plenário em 3D (ou 2D) com a multidão de quem tentou, as moedas do gasto, por partido e por político |
 | `pergunta-2.html` | Patrimônio ajuda a eleger? | um prédio: cada andar uma faixa de patrimônio, cada janela um candidato, acesa quando se elegeu; os moradores de cada andar e patrimônio × votos |
-| `pergunta-5.html` | Quem entrou pela legenda? | a régua do quociente eleitoral, com os votos dos puxadores escorrendo para os colegas |
+| `pergunta-5.html` | Quem entrou pela legenda? | cada eleito é um copo cheio até o quociente: os puxadores transbordam, e a sobra deles e a jarra da chapa (colegas sem cadeira e legenda) enchem os copos dos outros |
 | `pergunta-7.html` | Para que lado se vota? | o mapa do vermelho (esquerda) ao azul (direita), por cargo e ano, nas duas réguas, com linha do tempo; e os partidos |
 | `pergunta-8.html` | Dinheiro público elege? | o leitor preenche dez cifrões com a parcela de dinheiro público e vê a taxa de vitória de quem tem pelo menos isso; cada candidato e cada partido como uma torneira |
 | `pergunta-9.html` | Onde gastam em propaganda? | a rua da campanha, com um objeto por tipo de despesa, e a TV com as palavras das despesas |
@@ -56,7 +56,7 @@ site/
     ├── candidaturas/    cada candidato de 2018 a 2024: <unidade>-<ano>.json
     ├── dependencia/     pergunta 8: candidatos e eleitos por fatia de 5% de dinheiro público
     ├── partidos-recorte/ pergunta 1: cadeiras, gasto e votos dos eleitos por partido, <BR ou UF>.json
-    ├── legenda/         pergunta 5: <unidade>.json e resumo.json
+    ├── legenda/         pergunta 5: eleitos, quociente e votos de cada chapa por <unidade>.json, e resumo.json
     ├── vies/            pergunta 7: brasil.json e municipios/<UF>[-<cargo>].json
     ├── partidos.json    medidas de ideologia e eleitos por partido
     ├── propaganda/      pergunta 9: <unidade>.json e pessoas/<n>.json

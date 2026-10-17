@@ -1,13 +1,15 @@
-// Pergunta 5: quem entrou pela legenda? Uma coluna por eleito, do tamanho dos votos dele, agrupadas pela
-// coligação ou federação que recebeu as cadeiras; a linha do quociente eleitoral atravessa tudo, e os
-// votos que sobram aos puxadores escorrem até os eleitos que ficaram abaixo dela.
+// Pergunta 5: quem entrou pela legenda? Cada eleito é um copo cuja borda é o quociente eleitoral, o preço de uma
+// cadeira em votos. Os copos ficam agrupados pela chapa (partido, coligação ou federação) que recebeu as cadeiras: os
+// puxadores transbordam, e a sobra deles enche os copos dos colegas; o que ainda falta vem da jarra da chapa (votos
+// dos colegas que não se elegeram e votos de legenda). Clicar num copo mostra o eleito e de onde veio cada voto.
 //
-// Dados: legenda/<ue>.json (eleitos, votos, quociente; UFs dos seis estados e seus municípios) e
-// legenda/resumo.json (eleitos e eleitos pela legenda por partido, ano, cargo e UF).
-import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261020';
-import { corIdeologia, COR } from './lib/cores.js?v=20261020';
-import { porLegenda, escoamento, resumoPorPartido } from './lib/quociente.js?v=20261020';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261020';
+// Dados: legenda/<ue>.json (eleitos, votos, quociente e os votos de cada chapa; UFs dos seis estados e seus
+// municípios) e legenda/resumo.json (eleitos e eleitos pela legenda por partido, ano, cargo e UF).
+import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261021';
+import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261021';
+import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261021';
+import { abreviaReais } from './lib/dinheiro.js?v=20261021';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261021';
 
 montaPagina();
 
@@ -17,7 +19,14 @@ const resumoSeis = await carregaDados('legenda/resumo.json');
 const nota = (sigla, ano) => partidos.find(p => p.sigla === sigla)?.especialistas[ano <= 2020 ? '2018' : '2022'] ?? null;
 const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const minusculo = c => c.toLowerCase();
-const curto = n => (n.length > 34 ? `${n.slice(0, 33)}…` : n);
+// votos abreviados: "1,5 mi", "184 mil" (a abreviação de reais, sem o "R$")
+const votosCurto = v => abreviaReais(v).replace('R$ ', '');
+/** O primeiro e o último nome (sem "de", "da"...), como o eleitor costuma conhecer: Nikolas Ferreira de Oliveira -> Nikolas Oliveira. */
+const primeiroEUltimo = n => {
+  const partes = (n ?? 'eleito').split(' ');
+  const ultimo = partes.slice(1).filter(p => p.length > 2).slice(-1)[0];
+  return ultimo ? [partes[0], ultimo] : [partes[0]];
+};
 let primeiraPintura = true;
 let atual = null;
 
@@ -32,78 +41,145 @@ async function nomeDe(r, ue) {
   return NOME_UF[ue];
 }
 
-// ---------------------------------------------------------------- a régua
+// ---------------------------------------------------------------- os copos
 
-/** Colunas em SVG, uma por eleito, agrupadas pela unidade, com a linha do quociente. Colunas muito altas
- *  (os puxadores de milhões de votos) são cortadas no topo da régua, com o valor escrito. */
-function desenhaRegua(rec, unidades, ano) {
-  const q = rec.quociente;
-  const eleitos = rec.eleitos.map(([pid, nome, sigla, unidade, votos, situacao, foto]) => ({ pid, nome, sigla, unidade, votos, situacao, foto }));
-  const grupos = [...new Set(eleitos.map(e => e.unidade))]
-    .map(u => ({ u, nome: unidades[u], eleitos: eleitos.filter(e => e.unidade === u).sort((a, b) => b.votos - a.votos) }))
-    .sort((a, b) => b.eleitos.length - a.eleitos.length);
-  const COL = 22, GAP = 4, ENTRE = 26, TOPO = 46, BASE = 84, ALT = 300;
-  const teto = Math.max(q * 2.4, ...eleitos.map(e => Math.min(e.votos, q * 2.4)));
-  const y = v => TOPO + ALT - (ALT * Math.min(v, teto)) / teto;
-  let x = 10;
-  const posX = new Map();
-  const blocos = grupos.map(g => {
-    const ini = x;
-    g.eleitos.forEach(e => { posX.set(e.pid ?? `${e.nome}`, x); x += COL + GAP; });
-    x += ENTRE - GAP;
-    return { ...g, ini, fim: x - ENTRE };
-  });
-  const largura = Math.max(x + 10, 320);
-  const colunas = blocos.flatMap(b => b.eleitos.map(e => {
-    const cx = posX.get(e.pid ?? `${e.nome}`), topo = y(e.votos), leg = porLegenda(e, q), cortada = e.votos > teto;
-    return `<g class="coluna${leg ? ' pela-legenda' : ''}" data-pid="${e.pid ?? ''}" tabindex="0" role="button"
-        aria-label="${e.nome ?? 'eleito'} (${e.sigla}): ${formata.numero(e.votos)} votos${leg ? ', pela legenda' : ''}">
-      <rect x="${cx}" y="${topo}" width="${COL}" height="${TOPO + ALT - topo}" fill="${corIdeologia(nota(e.sigla, ano))}"/>
-      ${cortada ? `<path d="M${cx} ${topo + 6} l${COL / 3} -6 l${COL / 3} 6 l${COL / 3} -6" class="corte"/>
-        <text x="${cx + COL / 2}" y="${topo - 6}" class="coluna-valor">${formata.numero(Math.round(e.votos / 1000))} mil</text>` : ''}
-      <title>${e.nome ?? 'eleito'} (${e.sigla}): ${formata.numero(e.votos)} votos${leg ? ' — abaixo do quociente' : ''}</title>
-    </g>`;
-  })).join('');
-  const rotulos = blocos.map(b => `<text x="${(b.ini + b.fim) / 2}" y="${TOPO + ALT + 18}" class="unidade-rotulo">${curto(b.nome)}</text>
-    <text x="${(b.ini + b.fim) / 2}" y="${TOPO + ALT + 34}" class="unidade-conta">${b.eleitos.length} ${b.eleitos.length === 1 ? 'eleito' : 'eleitos'}, ${b.eleitos.filter(e => porLegenda(e, q)).length} pela legenda</text>`).join('');
-  const yq = y(q);
-  return {
-    largura,
-    svg: `<svg viewBox="0 0 ${largura} ${TOPO + ALT + BASE}" width="${largura}" height="${TOPO + ALT + BASE}" class="regua-svg" role="group"
-        aria-label="Eleitos e o quociente eleitoral de ${formata.numero(q)} votos">
-      ${colunas}
-      <line x1="0" x2="${largura}" y1="${yq}" y2="${yq}" class="linha-quociente"/>
-      <text x="6" y="${yq - 8}" class="rotulo-quociente">quociente eleitoral: ${formata.numero(q)} votos</text>
-      ${rotulos}
-      <g class="gotas"></g>
-    </svg>`,
-    eleitos, posX, y, COL,
-  };
+const AC = 58;   // altura do copo até a borda, que é o quociente
+
+/** Um copo em SVG: os votos do próprio eleito (escuro), a sobra dos puxadores (médio) e a jarra da chapa (claro),
+ *  de baixo para cima; o puxador transborda acima da borda; o que faltou fica tracejado. */
+function svgCopo(c, id) {
+  const h = v => (AC * v) / atual.q;
+  const camadas = [['proprio', c.proprio], ['puxadores', c.dosPuxadores], ['chapa', c.daChapa]];
+  let base = 66;
+  const rects = camadas.filter(([, v]) => v > 0).map(([classe, v]) => {
+    const alt = h(v); base -= alt;
+    return `<rect class="liquido liquido-${classe}" x="0" y="${base.toFixed(2)}" width="40" height="${alt.toFixed(2)}"/>`;
+  }).join('');
+  const transborda = c.transborda > 0
+    ? `<path class="liquido liquido-proprio transbordo" d="M5 8 Q20 -${Math.min(10, 3 + Math.log10(1 + c.transborda / atual.q) * 12)} 35 8 Z"/>
+       <path class="liquido liquido-proprio escorre" d="M35 8 q4 1 4 6 v10 a1.6 1.6 0 0 1 -3.2 0 v-8 q0 -4 -3 -6 Z"/>` : '';
+  return `<svg viewBox="-2 -14 44 82" class="copo-svg" aria-hidden="true">
+    <clipPath id="vidro-${id}"><path d="M4 8 L36 8 L31 66 L9 66 Z"/></clipPath>
+    <g clip-path="url(#vidro-${id})">${rects}${c.vazio > 0 ? `<line class="falta" x1="0" x2="40" y1="${base.toFixed(2)}" y2="${base.toFixed(2)}"/>` : ''}</g>
+    ${transborda}
+    <path class="vidro" d="M4 8 L36 8 L31 66 L9 66 Z"/>
+    <path class="marca-quociente" d="M2 8 H38"/>
+  </svg>`;
 }
 
-/** As gotas: o excedente dos puxadores escorrendo até quem ficou abaixo da linha, uma vez, na primeira pintura. */
-function animaGotas(svg, desenho, q) {
-  const fluxos = escoamento(desenho.eleitos, q);
-  if (!fluxos.length) return;
-  const camada = svg.querySelector('.gotas');
-  const de = pid => desenho.eleitos.find(e => e.pid === pid);
-  fluxos.slice(0, 40).forEach((f, i) => {
-    const a = de(f.de), b = de(f.para);
-    if (!a || !b) return;
-    const x0 = desenho.posX.get(a.pid) + desenho.COL / 2, y0 = desenho.y(Math.min(a.votos, q * 2.4)) + 4;
-    const x1 = desenho.posX.get(b.pid) + desenho.COL / 2, y1 = desenho.y(b.votos) - 4;
-    const gota = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    gota.setAttribute('r', String(Math.max(3, Math.min(8, Math.sqrt(f.votos / q) * 10))));
-    gota.setAttribute('class', 'gota');
-    gota.setAttribute('cx', '0'); gota.setAttribute('cy', '0');
-    camada.append(gota);
-    const meio = Math.min(y0, y1) - 40;
-    gota.animate([
-      { transform: `translate(${x0}px, ${y0}px)`, opacity: 0 },
-      { transform: `translate(${(x0 + x1) / 2}px, ${meio}px)`, opacity: 1, offset: 0.45 },
-      { transform: `translate(${x1}px, ${y1}px)`, opacity: 0 },
-    ], { duration: 900, delay: i * 60, easing: 'cubic-bezier(0.33, 0, 0.2, 1)', fill: 'both' });
-  });
+/** A jarra de uma chapa: começa com os votos dos colegas sem cadeira e de legenda e esvazia o que deu aos copos. */
+function svgJarra(j) {
+  const nivel = j.inicio ? j.resta / j.inicio : 0;
+  return `<svg viewBox="0 0 48 70" class="jarra-svg" aria-hidden="true">
+    <clipPath id="jarra-${atual.chave}-${j.unidade}"><path d="M8 14 Q4 14 6 22 L8 64 Q8 68 12 68 L36 68 Q40 68 40 64 L42 22 Q44 14 40 14 Z"/></clipPath>
+    <rect class="liquido liquido-chapa jarra-nivel" clip-path="url(#jarra-${atual.chave}-${j.unidade})" x="0" y="${(14 + 54 * (1 - nivel)).toFixed(2)}" width="48" height="${(54 * nivel + 2).toFixed(2)}"/>
+    <path class="vidro" d="M8 14 Q4 14 6 22 L8 64 Q8 68 12 68 L36 68 Q40 68 40 64 L42 22 Q44 14 40 14 Z"/>
+    <path class="vidro" d="M40 22 Q50 26 46 40 Q44 46 40 46" fill="none"/>
+    <path class="vidro" d="M8 14 L4 8 L14 10" fill="none"/>
+  </svg>`;
+}
+
+function desenhaCopos(rec, unidades, ano) {
+  const q = rec.quociente;
+  const eleitos = rec.eleitos.map(([pid, nome, sigla, unidade, votos, situacao, foto]) => ({ pid, nome, sigla, unidade, votos, situacao, foto }));
+  const chapas = (rec.chapas ?? []).map(([unidade, nominais, legenda]) => ({ unidade, nominais, legenda }));
+  const { copos, jarras } = enchimento(eleitos, chapas, q);
+  atual.eleitos = eleitos; atual.copos = copos;
+  const grupos = [...new Set(eleitos.map(e => e.unidade))]
+    .map(u => ({ u, nome: unidades[u], eleitos: eleitos.filter(e => e.unidade === u).sort((a, b) => b.votos - a.votos),
+      chapa: chapas.find(c => c.unidade === u), jarra: { ...jarras.get(u), unidade: u } }))
+    .sort((a, b) => b.eleitos.length - a.eleitos.length || b.eleitos[0].votos - a.eleitos[0].votos);
+  return grupos.map(g => {
+    const legenda = g.eleitos.filter(e => porLegenda(e, q)).length;
+    return `<section class="chapa" aria-label="${g.nome}: ${g.eleitos.length} ${g.eleitos.length === 1 ? 'cadeira' : 'cadeiras'}">
+      <div class="chapa-topo"><b>${g.nome}</b>
+        <span class="apoio">${g.eleitos.length} ${g.eleitos.length === 1 ? 'cadeira' : 'cadeiras'}${legenda ? `, ${legenda} pela legenda` : ''}
+          ${g.chapa ? ` · ${votosCurto(g.chapa.nominais + g.chapa.legenda)} votos na chapa` : ''}</span></div>
+      <div class="chapa-corpo">
+        ${g.chapa ? `<figure class="jarra" title="Votos dos colegas sem cadeira e de legenda: ${formata.numero(g.jarra.inicio)}; sobraram ${formata.numero(g.jarra.resta)}">
+          ${svgJarra(g.jarra)}<figcaption>jarra: ${votosCurto(g.jarra.inicio)}<br><span class="apoio">${g.jarra.resta ? `sobrou ${votosCurto(g.jarra.resta)}` : 'esvaziou'}</span></figcaption></figure>` : ''}
+        <ol class="fila-copos">${g.eleitos.map((e, i) => {
+          const c = copos.get(e.pid);
+          const cor = corIdeologia(nota(e.sigla, ano));
+          return `<li><button type="button" class="copo${porLegenda(e, q) ? ' pela-legenda' : ''}${c.transborda ? ' puxador' : ''}" data-pid="${e.pid}"
+              aria-label="${e.nome ?? 'eleito'} (${e.sigla}): ${formata.numero(e.votos)} votos${c.transborda ? `, ${formata.numero(c.transborda)} acima do quociente` : `, ${formata.numero(q - e.votos)} abaixo do quociente`}">
+            ${c.transborda ? `<span class="copo-sobra">+${votosCurto(c.transborda)}</span>` : '<span class="copo-sobra"></span>'}
+            ${svgCopo(c, `${atual.chave}-${g.u}-${i}`)}
+            <span class="copo-nome">${primeiroEUltimo(e.nome).map(p => `<span>${p}</span>`).join('')}</span>
+            <span class="copo-sigla" style="background:${cor};color:${contraste(cor, '#ffffff') >= 4.5 ? '#fff' : COR.tecla}">${e.sigla}</span>
+          </button></li>`;
+        }).join('')}</ol>
+      </div>
+    </section>`;
+  }).join('');
+}
+
+/** Na primeira vez, os copos se enchem: primeiro os próprios votos, depois a sobra dos puxadores, por fim a jarra. */
+function animaCopos(caixa) {
+  const ordem = [['.liquido-proprio:not(.transbordo):not(.escorre)', 0], ['.transbordo, .escorre', 450], ['.liquido-puxadores', 650], ['.copo .liquido-chapa', 1050]];
+  for (const [seletor, atraso] of ordem) {
+    caixa.querySelectorAll(seletor).forEach((el, i) => el.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
+      { duration: 420, delay: atraso + Math.min(i, 30) * 18, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  }
+  caixa.querySelectorAll('.jarra-nivel').forEach(el => el.animate([{ transform: 'translateY(-60px)' }, { transform: 'translateY(0)' }],
+    { duration: 700, delay: 1050, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+}
+
+// ---------------------------------------------------------------- o eleito escolhido
+
+/** A cadeira de um eleito numa barra do tamanho do quociente: os próprios votos, a sobra de cada puxador, a jarra
+ *  da chapa e o que faltou. Para um puxador, a barra passa do quociente e lista os colegas que a sobra encheu. */
+function barraDaCadeira(e, c) {
+  const q = atual.q;
+  const nomeDoPid = p => atual.eleitos.find(x => x.pid === p)?.nome ?? 'um colega';
+  const pct = v => (100 * v) / q;
+  const segmentos = [
+    { classe: 'liquido-proprio', rotulo: 'votos do próprio eleito', votos: c.proprio },
+    ...c.fontes.filter(f => f.de !== 'chapa').map(f => ({ classe: 'liquido-puxadores', rotulo: `sobra de ${nomeDoPid(f.de)}`, votos: f.votos })),
+    ...(c.daChapa ? [{ classe: 'liquido-chapa', rotulo: 'jarra da chapa: colegas sem cadeira e legenda', votos: c.daChapa }] : []),
+    ...(c.vazio ? [{ classe: 'segmento-falta', rotulo: 'faltou: cadeira ganha nas sobras, por média', votos: c.vazio }] : []),
+  ];
+  // o puxador: a barra é o que ele teve, e o quociente fica marcado no meio dela
+  const total = c.transborda ? c.proprio + c.transborda : q;
+  const largura = v => (100 * v) / total;
+  const barra = c.transborda
+    ? `<span class="segmento liquido-proprio" style="width:${largura(q)}%"></span><span class="segmento liquido-transborda" style="width:${largura(c.transborda)}%"></span>`
+    : segmentos.map(s => `<span class="segmento ${s.classe}" style="width:${largura(s.votos)}%" title="${s.rotulo}: ${formata.numero(s.votos)}"></span>`).join('');
+  const encheu = c.transborda ? [...atual.copos].flatMap(([para, outro]) => outro.fontes.filter(f => f.de === e.pid)
+    .map(f => ({ nome: nomeDoPid(para), votos: f.votos }))) : [];
+  const linhas = c.transborda
+    ? [{ classe: 'liquido-proprio', rotulo: 'até o quociente', votos: q }, { classe: 'liquido-transborda', rotulo: 'transbordou para a chapa', votos: c.transborda }]
+    : segmentos;
+  return `<div class="barra-cadeira" role="img" aria-label="${linhas.map(l => `${l.rotulo}: ${formata.numero(l.votos)} votos`).join('; ')}">
+      ${barra}${c.transborda ? `<span class="marca-q" style="left:${largura(q)}%"><span>quociente</span></span>` : ''}</div>
+    <ul class="barra-legenda">${linhas.map(l => `<li><i class="segmento ${l.classe}"></i><span>${l.rotulo}</span>
+      <b>${formata.numero(l.votos)}</b><span class="apoio">${formata.pct(pct(l.votos))} do quociente</span></li>`).join('')}</ul>
+    ${encheu.length ? `<h4>A sobra encheu os copos de</h4><ul class="encheu">${encheu.map(x => `<li>${x.nome} <b>${formata.numero(x.votos)}</b></li>`).join('')}</ul>` : ''}`;
+}
+
+async function mostraCartao(pid) {
+  const caixa = document.getElementById('cartao-copo');
+  if (!pid || !atual) { caixa.innerHTML = ''; return; }
+  document.querySelectorAll('#copos .copo').forEach(b => b.classList.toggle('escolhido', b.dataset.pid === String(pid)));
+  const e = atual.eleitos.find(x => String(x.pid) === String(pid));
+  const c = atual.copos.get(e.pid);
+  const q = atual.q;
+  const emprestado = c.dosPuxadores + c.daChapa;
+  const texto = c.transborda
+    ? `Teve <b>${formata.numero(e.votos)}</b> votos, ${formata.numero(c.transborda)} acima do quociente de ${formata.numero(q)}: entraria sozinho, e a sobra encheu os copos dos colegas da chapa.`
+    : `Teve <b>${formata.numero(e.votos)}</b> votos, ${formata.numero(q - e.votos)} abaixo do quociente de ${formata.numero(q)}.
+      ${emprestado ? `${formata.pct((100 * emprestado) / q)} da cadeira veio de outros votos da chapa.` : ''}
+      ${c.vazio ? `Mesmo com eles faltaram ${formata.numero(c.vazio)}: a cadeira veio na distribuição das sobras, por média.` : ''}`;
+  const cands = await leCandidaturas(atual.ue, atual.r.ano);
+  const cand = cands.find(x => x.pid === Number(pid) && x.cargo === atual.r.cargo);
+  caixa.innerHTML = `<div class="cartao-com-regua">
+      ${cand ? `<div class="cartao-coluna">${cartaoPolitico(cand)}</div>` : ''}
+      <div class="copo-detalhe">
+        <h3>De onde veio a cadeira de ${e.nome ?? 'este eleito'}</h3>
+        <p>${texto}</p>
+        ${barraDaCadeira(e, c)}
+      </div>
+    </div>`;
 }
 
 // ---------------------------------------------------------------- tabela por partido
@@ -129,60 +205,44 @@ function tabelaPartidos(r, eleitos, q) {
 
 // ---------------------------------------------------------------- ciclo
 
-async function mostraCartao(pid) {
-  const caixa = document.getElementById('cartao-regua');
-  if (!pid || !atual) { caixa.innerHTML = ''; return; }
-  const cands = await leCandidaturas(atual.ue, atual.r.ano);
-  const c = cands.find(x => x.pid === Number(pid) && x.cargo === atual.r.cargo);
-  const e = atual.desenho.eleitos.find(x => String(x.pid) === String(pid));
-  caixa.innerHTML = c ? `<div class="cartao-com-regua">${cartaoPolitico(c)}
-      <p class="apoio">${e && porLegenda(e, atual.q) ? `Ficou ${formata.numero(atual.q - e.votos)} votos abaixo do quociente: a vaga veio dos votos que sobraram aos colegas da mesma ${atual.r.ano === 2018 ? 'coligação' : 'federação ou partido'} e dos votos de legenda.`
-        : `Teve ${formata.numero(e.votos - atual.q)} votos acima do quociente: entraria sozinho, e a sobra ajudou os colegas.`}</p></div>` : '';
-  caixa.querySelector('.botao')?.focus({ preventScroll: true });
-}
-
 let pedido = 0;
 async function atualiza(r) {
   const meu = ++pedido;
   const ue = ueDe(r);
-  const titulo = document.getElementById('t-regua');
-  const regua = document.getElementById('regua');
+  const titulo = document.getElementById('t-copos');
+  const caixa = document.getElementById('copos');
   const avisa = texto => {
-    titulo.textContent = ''; regua.innerHTML = `<p class="aviso-vazio">${texto}</p>`;
-    ['resumo-regua', 'legenda-regua', 'cartao-regua', 'tabela-legenda'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+    titulo.textContent = ''; caixa.innerHTML = `<p class="aviso-vazio">${texto}</p>`;
+    ['resumo-copos', 'legenda-copos', 'cartao-copo', 'tabela-legenda'].forEach(id => { document.getElementById(id).innerHTML = ''; });
     atual = null;
   };
-  if (!ue) {
-    avisa('Escolha um município: a câmara de vereadores é eleita município a município.');
-    return;
-  }
+  if (!ue) { avisa('Escolha um município: a câmara de vereadores é eleita município a município.'); return; }
   let dados;
   try { dados = await carregaDados(`legenda/${ue}.json`); } catch { dados = null; }
   if (meu !== pedido) return;
   const rec = dados?.anos?.[r.ano]?.[r.cargo];
   const nome = await nomeDe(r, ue);
   if (!rec) { avisa(`Não há eleição para ${minusculo(r.cargo)} ${em(nome)} em ${r.ano}.`); return; }
-  const desenho = desenhaRegua(rec, dados.unidades, r.ano);
-  atual = { r, ue, q: rec.quociente, desenho };
-  const pelaLegenda = desenho.eleitos.filter(e => porLegenda(e, rec.quociente)).length;
+  atual = { r, ue, q: rec.quociente, chave: `${ue}-${r.ano}` };
+  caixa.innerHTML = desenhaCopos(rec, dados.unidades, r.ano);
+  const pelaLegenda = atual.eleitos.filter(e => porLegenda(e, rec.quociente)).length;
   titulo.innerHTML = `<span class="sobre">${minusculo(r.cargo)} · ${nome} · ${r.ano}</span>
-    ${pelaLegenda} de ${desenho.eleitos.length} eleitos entraram pela legenda`;
-  document.getElementById('resumo-regua').innerHTML = `Quociente eleitoral: <b>${formata.numero(rec.quociente)}</b> votos
-    (${formata.numero(rec.validos)} votos válidos ÷ ${formata.numero(rec.vagas)} vagas). Colunas abaixo da linha, com contorno
-    tracejado, são eleitos pela legenda. Clique numa coluna para ver o eleito.`;
-  regua.innerHTML = desenho.svg;
-  document.getElementById('legenda-regua').innerHTML = `<span>Cor do partido pela nota dos especialistas: vermelho à esquerda, azul à direita.</span>
-    <span class="chave" style="--cor:${COR.centro}">eleito com os próprios votos</span>
-    <span class="chave chave-anel" style="--cor:${COR.tecla}">eleito pela legenda (contorno tracejado)</span>`;
-  document.getElementById('tabela-legenda').innerHTML = tabelaPartidos(r, desenho.eleitos, rec.quociente);
-  document.getElementById('cartao-regua').innerHTML = '';
-  if (primeiraPintura && !reduz()) animaGotas(regua.querySelector('svg'), desenho, rec.quociente);
+    ${pelaLegenda} de ${atual.eleitos.length} eleitos não encheram o copo sozinhos`;
+  document.getElementById('resumo-copos').innerHTML = `Preço de uma cadeira (quociente eleitoral): <b>${formata.numero(rec.quociente)}</b> votos
+    (${formata.numero(rec.validos)} votos válidos ÷ ${formata.numero(rec.vagas)} vagas). Clique num copo para ver de onde vieram os votos.`;
+  document.getElementById('legenda-copos').innerHTML = `
+    <span class="chave chave-liquido liquido-proprio">votos do próprio eleito</span>
+    <span class="chave chave-liquido liquido-puxadores">sobra dos puxadores da chapa</span>
+    <span class="chave chave-liquido liquido-chapa">jarra: colegas sem cadeira e legenda</span>
+    <span class="chave chave-falta">faltou (cadeira pelas sobras)</span>
+    <span>A sigla abaixo do copo tem a cor da posição do partido: vermelho à esquerda, azul à direita.</span>`;
+  document.getElementById('tabela-legenda').innerHTML = tabelaPartidos(r, atual.eleitos, rec.quociente);
+  document.getElementById('cartao-copo').innerHTML = '';
+  if (primeiraPintura && !reduz()) animaCopos(caixa);
   primeiraPintura = false;
 }
 
-const regua = document.getElementById('regua');
-regua.addEventListener('click', e => { const g = e.target.closest('.coluna'); if (g) mostraCartao(g.dataset.pid); });
-regua.addEventListener('keydown', e => { const g = e.target.closest('.coluna'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); mostraCartao(g.dataset.pid); } });
+document.getElementById('copos').addEventListener('click', e => { const b = e.target.closest('.copo'); if (b) mostraCartao(b.dataset.pid); });
 
 const brasil = await carregaDados('mapa/brasil.json');
 montaSeletor(document.getElementById('recorte'), {

@@ -6,12 +6,12 @@
 // para cada candidatura dos políticos com nome), candidaturas/<ue>-<ano>.json (votos e gasto de cada candidato),
 // politicos/ (busca e carreira).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261020';
-import { ueDoRecorte } from './lib/recorte.js?v=20261020';
-import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261020';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261020';
-import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261020';
-import { cenaDaRua, CURTO } from './rua.js?v=20261020';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261021';
+import { ueDoRecorte } from './lib/recorte.js?v=20261021';
+import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261021';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261021';
+import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261021';
+import { cenaDaRua, CURTO } from './rua.js?v=20261021';
 
 montaPagina();
 

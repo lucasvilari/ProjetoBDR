@@ -4,7 +4,7 @@
 // câmera e mostra quem está sentado ali.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { formata } from './comum.js?v=20261020';
+import { formata } from './comum.js?v=20261021';
 
 const MAX_MULTIDAO = 2400;
 const BEGE = new THREE.Color('#e8dcc4'), VISOR = new THREE.Color('#faf7ef');
