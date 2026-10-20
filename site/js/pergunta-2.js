@@ -94,6 +94,20 @@ function desenhaPredio() {
     : `Cada janela vale cerca de ${plural(passo, 'candidato', 'candidatos')}.${atual.cands.length ? '' : ` ${SEM_LISTA}`}`;
 }
 
+const FECHAR = '<button type="button" class="fecha-janela" aria-label="Fechar o cartão">×</button>';
+const estreito = () => matchMedia('(max-width: 860px)').matches;
+
+/** Leva o cartão até a altura da janela apontada, para ele acompanhar o andar conforme o leitor desce pelo prédio,
+ *  sem sair da coluna. Em tela estreita, onde a coluna fica abaixo do prédio, o cartão abre preso ao pé da tela. */
+function posicionaCartao(el) {
+  const caixa = document.getElementById('janela');
+  if (estreito()) { caixa.classList.add('aberto'); caixa.style.transform = ''; return; }
+  const lado = caixa.parentElement.getBoundingClientRect(), janela = el.getBoundingClientRect();
+  const alvo = janela.top - lado.top + janela.height / 2 - caixa.offsetHeight / 2;
+  const limite = Math.max(0, lado.height - caixa.offsetHeight);
+  caixa.style.transform = `translateY(${Math.round(Math.min(limite, Math.max(0, alvo)))}px)`;
+}
+
 /** O que aparece ao lado ao apontar uma janela: o candidato, ou o andar, quando a janela é um grupo. */
 function mostraJanela(el) {
   const caixa = document.getElementById('janela');
@@ -101,13 +115,14 @@ function mostraJanela(el) {
   const a = atual.andares[f];
   const c = el.dataset.k != null ? atual.porAndar?.[f]?.[Number(el.dataset.k)] : null;
   if (!c) {
-    caixa.innerHTML = `<p class="janela-andar">${FAIXAS[f]}</p>
+    caixa.innerHTML = `${FECHAR}<p class="janela-andar">${FAIXAS[f]}</p>
       <p><b>${formata.pct(taxa(a))}</b> se elegeram: ${plural(a.eleitos, 'eleito', 'eleitos')} de ${formata.numero(a.candidatos)}.</p>
       <p class="apoio">Esta janela vale cerca de ${plural(atual.passo, 'candidato', 'candidatos')}${el.classList.contains('acesa') ? ' que se elegeram' : ''}.</p>`;
+    posicionaCartao(el);
     return;
   }
   const porVoto = c.votos > 0 && c.patrimonio > 0 ? c.patrimonio / c.votos : null;
-  caixa.innerHTML = `<p class="janela-andar">${FAIXAS[f]}</p>
+  caixa.innerHTML = `${FECHAR}<p class="janela-andar">${FAIXAS[f]}</p>
     <div class="janela-pessoa">${c.nomeado ? fotoCandidato(c.foto, 'maiores-foto') : ''}
       <div><b>${nomeComLink(c)}</b> <span class="apoio">${c.sigla}</span> ${seloResultado(c)}</div></div>
     <dl class="janela-linhas">
@@ -115,7 +130,12 @@ function mostraJanela(el) {
       <div><dt>Votos</dt><dd>${c.votos > 0 ? formata.numero(c.votos) : 'sem votos'}</dd></div>
       ${porVoto == null ? '' : `<div><dt>Patrimônio por voto</dt><dd>${formata.porVoto(porVoto)}</dd></div>`}
     </dl>`;
+  posicionaCartao(el);
 }
+
+document.getElementById('janela').addEventListener('click', e => {
+  if (e.target.closest('.fecha-janela')) e.currentTarget.classList.remove('aberto');
+});
 
 // ---------------------------------------------------------------- o andar escolhido
 
@@ -186,7 +206,9 @@ async function atualiza(r) {
   const comGente = andares.filter(a => a.candidatos);
   if (!comGente.some(a => a.faixa === andarEscolhido)) andarEscolhido = comGente.at(-1)?.faixa ?? null;
   desenhaPredio();
-  document.getElementById('janela').innerHTML = '<p class="apoio">Passe o mouse ou toque numa janela para ver quem mora nela.</p>';
+  const cartao = document.getElementById('janela');
+  cartao.innerHTML = '<p class="apoio">Passe o mouse ou toque numa janela para ver quem mora nela.</p>';
+  cartao.style.transform = ''; cartao.classList.remove('aberto');
   if (andarEscolhido != null) desenhaAndar();
   else { document.getElementById('t-andar').textContent = 'Quem mora neste andar'; document.getElementById('andar').innerHTML = ''; }
 }
