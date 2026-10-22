@@ -5,12 +5,12 @@
 // Dados: mapa/brasil.json e mapa/municipios/UF.json (candidatos e eleitos por faixa, para todo recorte);
 // candidaturas/<ue>-<ano>.json (cada candidato, com patrimônio e votos, quando o recorte tem a lista).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261022';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261022';
-import { faixaDePatrimonio } from './lib/cifroes.js?v=20261022';
-import { agrupa } from './lib/plenario.js?v=20261022';
-import { janelasDoAndar, ordemDosAndares } from './lib/predio.js?v=20261022';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261022';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261107';
+import { faixaDePatrimonio } from './lib/cifroes.js?v=20261107';
+import { agrupa } from './lib/plenario.js?v=20261107';
+import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261107';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261107';
 
 montaPagina();
 
@@ -97,7 +97,7 @@ function desenhaPredio() {
 const FECHAR = '<button type="button" class="fecha-janela" aria-label="Fechar o cartão">×</button>';
 const estreito = () => matchMedia('(max-width: 860px)').matches;
 
-/** Leva o cartão até a altura da janela apontada, para ele acompanhar o andar conforme o leitor desce pelo prédio,
+/** Leva o cartão até a altura da janela clicada, para ele acompanhar o andar conforme o leitor desce pelo prédio,
  *  sem sair da coluna. Em tela estreita, onde a coluna fica abaixo do prédio, o cartão abre preso ao pé da tela. */
 function posicionaCartao(el) {
   const caixa = document.getElementById('janela');
@@ -108,7 +108,7 @@ function posicionaCartao(el) {
   caixa.style.transform = `translateY(${Math.round(Math.min(limite, Math.max(0, alvo)))}px)`;
 }
 
-/** O que aparece ao lado ao apontar uma janela: o candidato, ou o andar, quando a janela é um grupo. */
+/** O que aparece ao lado ao clicar numa janela: o candidato, ou o andar, quando a janela é um grupo. */
 function mostraJanela(el) {
   const caixa = document.getElementById('janela');
   const f = Number(el.dataset.f);
@@ -172,10 +172,13 @@ function escolheAndar(f) {
 }
 
 const predio = document.getElementById('predio');
-predio.addEventListener('pointerover', e => { const j = e.target.closest('.janela'); if (j) mostraJanela(j); });
 predio.addEventListener('click', e => {
   const j = e.target.closest('.janela');
-  if (j) mostraJanela(j);
+  if (j) {
+    predio.querySelectorAll('.janela.escolhida').forEach(x => x.classList.remove('escolhida'));
+    j.classList.add('escolhida');
+    mostraJanela(j);
+  }
   const andar = e.target.closest('.andar');
   if (andar) escolheAndar(Number(andar.dataset.f));
 });
@@ -207,11 +210,47 @@ async function atualiza(r) {
   if (!comGente.some(a => a.faixa === andarEscolhido)) andarEscolhido = comGente.at(-1)?.faixa ?? null;
   desenhaPredio();
   const cartao = document.getElementById('janela');
-  cartao.innerHTML = '<p class="apoio">Passe o mouse ou toque numa janela para ver quem mora nela.</p>';
+  cartao.innerHTML = '<p class="apoio">Clique numa janela para ver quem mora nela.</p>';
   cartao.style.transform = ''; cartao.classList.remove('aberto');
   if (andarEscolhido != null) desenhaAndar();
   else { document.getElementById('t-andar').textContent = 'Quem mora neste andar'; document.getElementById('andar').innerHTML = ''; }
 }
+
+// ---------------------------------------------------------------- moradores passando
+
+// de tempos em tempos, um morador atravessa algumas janelas de um andar: a silhueta só aparece no vidro, e some
+// atrás da parede entre uma janela e a outra
+const SILHUETA = '<svg viewBox="0 0 10 14" aria-hidden="true"><circle cx="5" cy="4.3" r="2.5"/><path d="M0.8 14 Q0.8 8.3 5 8.3 Q9.2 8.3 9.2 14 Z"/></svg>';
+let predioNaTela = false;
+new IntersectionObserver(([e]) => { predioNaTela = e.isIntersecting; }).observe(predio);
+
+function passeio() {
+  const andares = [...predio.querySelectorAll('.andar:not(.vazio) .andar-janelas')];
+  if (!andares.length) return;
+  const janelas = [...andares[Math.floor(Math.random() * andares.length)].querySelectorAll('.janela')];
+  const trecho = trechoDoPasseio(janelas.map(j => j.offsetTop), Math.random)?.map(k => janelas[k]);
+  if (!trecho) return;
+  // anda de uma ponta à outra da fileira, virada para onde vai. A silhueta tem 70% da largura da janela: entra toda
+  // escondida de um lado e sai toda pelo outro
+  const paraEsquerda = trecho[0].offsetLeft > trecho.at(-1).offsetLeft;
+  const duracao = 800 + Math.random() * 300, [de, ate] = paraEsquerda ? ['143%', '-100%'] : ['-100%', '143%'];
+  trecho.forEach((j, k) => {
+    const s = document.createElement('span');
+    s.className = `silhueta${paraEsquerda ? ' vira' : ''}`;
+    s.innerHTML = SILHUETA;
+    j.append(s);
+    s.animate([{ transform: `translateX(${de})` }, { transform: `translateX(${ate})` }],
+      { duration: duracao, delay: k * duracao * 0.78, easing: 'linear', fill: 'both' }).finished.then(() => s.remove(), () => s.remove());
+  });
+}
+// o prédio está sempre movimentado: cada morador atravessa a fileira inteira, então sempre há vários andando ao mesmo
+// tempo, em andares diferentes
+(function agenda() {
+  setTimeout(() => {
+    if (predioNaTela && !document.hidden && !reduz()) { passeio(); if (Math.random() < 0.15) passeio(); }
+    agenda();
+  }, 700 + Math.random() * 700);
+})();
 
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,

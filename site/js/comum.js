@@ -1,7 +1,7 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-import { PERGUNTAS } from './lib/perguntas.js?v=20261022';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261107';
 
 // a navegação são as teclas da urna: uma por pergunta respondida, com o título por extenso no rótulo
 const PAGINAS = PERGUNTAS.filter(p => p.href).map(p => ({ id: `pergunta-${p.n}`, rotulo: String(p.n), titulo: p.titulo, href: p.href }));
@@ -16,7 +16,7 @@ export function montaPagina() {
     <div class="topo-interno">
       <a class="marca" href="index.html"><span class="marca-tecla" aria-hidden="true"><svg viewBox="0 0 24 14"><path d="M1 7C5 1 19 1 23 7C19 13 5 13 1 7Z" fill="#faf7ef" stroke="#22201c" stroke-width="1.3"/><circle cx="12" cy="7" r="3.7" fill="#22201c"/><circle cx="13.3" cy="5.7" r="1.2" fill="#faf7ef"/></svg></span>Olho do Povo</a>
       <nav class="nav" aria-label="Seções do site">
-        <a class="nav-todas" href="index.html#oraculo"${atual === 'inicio' ? ' aria-current="page"' : ''}>Perguntas</a>
+        <a class="nav-todas" href="index.html"${atual === 'inicio' ? ' aria-current="page"' : ''}>Perguntas</a>
         ${PAGINAS.map(p => `<a class="nav-tecla" href="${p.href}" title="${p.titulo}" aria-label="Pergunta ${p.rotulo}: ${p.titulo}"${p.id === atual ? ' aria-current="page"' : ''}>${p.rotulo}</a>`).join('')}
       </nav>
     </div>`;
@@ -27,6 +27,45 @@ export function montaPagina() {
       <a href="${REPOSITORIO}">Código e consultas no GitHub</a>
     </div>`;
   document.addEventListener('click', viraSantinho);
+  apertaTeclas();
+  confereSePronta();
+}
+
+// as teclas afundam ao clique (css/estilo.css, :active); um clique rápido dura menos que a descida, e a tecla mal se
+// mexeria. A classe .apertada a mantém afundada por pelo menos APERTO_MIN, com o mouse, o dedo ou o teclado
+const TECLAS = '.nav a, .botao, .pergunta label, .roda-pergunta:not([aria-disabled="true"]), .ver-ceu';
+const APERTO_MIN = 110;
+function apertaTeclas() {
+  const aperta = tecla => {
+    const inicio = performance.now();
+    tecla.classList.add('apertada');
+    return () => setTimeout(() => tecla.classList.remove('apertada'), Math.max(0, APERTO_MIN - (performance.now() - inicio)));
+  };
+  document.addEventListener('pointerdown', e => {
+    const tecla = e.target.closest?.(TECLAS);
+    if (!tecla || e.button !== 0) return;
+    const solta = aperta(tecla);
+    const fim = () => { solta(); removeEventListener('pointerup', fim); removeEventListener('pointercancel', fim); };
+    addEventListener('pointerup', fim);
+    addEventListener('pointercancel', fim);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
+    const tecla = e.target.closest?.(TECLAS);
+    if (tecla) aperta(tecla)();
+  });
+}
+
+// a página está montada quando o topo já foi escrito e nenhum dado está chegando por dois quadros seguidos: aí o
+// olho do piscar entre páginas pode reabrir (js/transicao.js)
+let pendentes = 0, conferindo = false;
+function confereSePronta() {
+  if (conferindo) return;
+  conferindo = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    conferindo = false;
+    if (pendentes === 0) window.avisaPaginaPronta?.();
+  }));
 }
 
 /** Quantos caracteres o número do santinho ocupa (sem as marcações), para a fonte encolher e ele caber na caixa. */
@@ -89,14 +128,17 @@ const cache = new Map();
 
 /** Lê um arquivo JSON de dados/, uma vez por página. */
 // a mesma versão do ?v= dos scripts: depois de publicar, o navegador não mistura script novo com dado velho
-const VERSAO = '20261022';
+const VERSAO = '20261107';
 
 export function carregaDados(caminho) {
   if (!cache.has(caminho)) {
-    cache.set(caminho, fetch(`dados/${caminho}?v=${VERSAO}`).then(r => {
+    pendentes += 1;
+    const pedido = fetch(`dados/${caminho}?v=${VERSAO}`).then(r => {
       if (!r.ok) throw new Error(`dados/${caminho}: ${r.status}`);
       return r.json();
-    }));
+    });
+    pedido.finally(() => { pendentes -= 1; confereSePronta(); }).catch(() => {});
+    cache.set(caminho, pedido);
   }
   return cache.get(caminho);
 }

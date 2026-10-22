@@ -6,7 +6,7 @@
 //   politicos/fichas/N.json     nome, UF, último cargo, anos e vitórias, 2.000 por arquivo
 //   politicos/carreira/N.json   candidaturas, 1.000 políticos por arquivo
 // A busca baixa só as fatias e fichas necessárias; abrir um político baixa uma carreira.
-import { carregaDados, formata, fotoCandidato } from './comum.js?v=20261022';
+import { carregaDados, formata, fotoCandidato } from './comum.js?v=20261107';
 
 const LIMITE_RESULTADOS = 30;
 export const tabelasPoliticos = () => carregaDados('politicos/tabelas.json');

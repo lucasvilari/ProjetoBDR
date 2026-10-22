@@ -1,9 +1,9 @@
 // Página inicial: a abertura (o olho se abre e voa até o logo) e a roda do oráculo, com as dez
 // perguntas em volta do olho; apontar uma pergunta faz o olho olhar para ela e mostra o que ela
 // responde e como é calculada.
-import { montaPagina } from './comum.js?v=20261022';
-import { PERGUNTAS } from './lib/perguntas.js?v=20261022';
-import { posicoesNaRoda, olharPara } from './lib/roda.js?v=20261022';
+import { montaPagina } from './comum.js?v=20261107';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261107';
+import { posicoesNaRoda, olharPara } from './lib/roda.js?v=20261107';
 
 montaPagina();
 
@@ -29,6 +29,8 @@ function abertura() {
     if (acabou) return;
     acabou = true;
     marca.classList.remove('marca-esperando');
+    // pulando a abertura no meio, a tecla e o olhinho vão direto ao estado final, sem começar a surgir depois
+    [marca, marca.querySelector('svg')].forEach(el => el?.getAnimations().forEach(a => a.finish()));
     camada.remove();
     removeEventListener('keydown', fim); removeEventListener('pointerdown', fim);
   };
@@ -38,14 +40,25 @@ function abertura() {
     { duration: 900, easing: SAI, fill: 'both' });
   abre.finished.then(() => {
     if (acabou) return;
-    const de = olho.getBoundingClientRect(), para = marca.getBoundingClientRect();
+    // o olho grande voa até o olhinho da tecla (não até a tecla inteira), para pousar exatamente sobre ele
+    const olhinho = marca.querySelector('svg');
+    const de = olho.getBoundingClientRect(), para = olhinho.getBoundingClientRect();
     const escala = para.width / de.width;
     const dx = para.left + para.width / 2 - (de.left + de.width / 2);
     const dy = para.top + para.height / 2 - (de.top + de.height / 2);
+    const VOO = 700, ESPERA = 250;
     camada.animate([{ backgroundColor: 'rgb(232 220 196 / 0.96)' }, { backgroundColor: 'rgb(232 220 196 / 0)' }],
-      { duration: 700, delay: 250, easing: SAI, fill: 'forwards' });
+      { duration: VOO, delay: ESPERA, easing: SAI, fill: 'forwards' });
+    // a tecla preta surge nos últimos instantes do voo, crescendo de leve, em vez de aparecer de uma vez
+    marca.animate([{ opacity: 0, transform: 'scale(0.6)' }, { opacity: 1, transform: 'scale(1)' }],
+      { duration: 380, delay: ESPERA + VOO - 380, easing: SAI, fill: 'forwards' });
     olho.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${escala})` }],
-      { duration: 700, delay: 250, easing: SAI, fill: 'forwards' }).finished.then(fim, fim);
+      { duration: VOO, delay: ESPERA, easing: SAI, fill: 'forwards' }).finished.then(() => {
+      if (acabou) return;
+      // na chegada, o olho grande se desfaz enquanto o olhinho aparece no mesmo lugar: não fica quadro vazio
+      olho.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
+      olhinho.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, fill: 'forwards' }).finished.then(fim, fim);
+    }, fim);
   }, fim);
 }
 

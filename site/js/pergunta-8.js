@@ -8,12 +8,12 @@
 // candidaturas/<ue>-<ano>.json (cada candidato, com receita, receita pública e votos).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261022';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261022';
-import { COR } from './lib/cores.js?v=20261022';
-import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261022';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261022';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261022';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261107';
+import { COR } from './lib/cores.js?v=20261107';
+import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261107';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261107';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261107';
 
 montaPagina();
 
@@ -46,12 +46,20 @@ const BICA = `<svg class="bica" viewBox="0 0 30 26" aria-hidden="true">
   <rect x="9" y="1" width="10" height="3.5" rx="1.5"/><rect x="12.5" y="4" width="3" height="5"/>
   <path d="M2 9h17a7 7 0 0 1 7 7v1h-6v-1a2 2 0 0 0-2-2H2z"/><rect x="0" y="8" width="3" height="7" rx="1"/></svg>`;
 
-/** Faz as barras crescerem da esquerda, como água saindo da torneira, só na primeira pintura. */
+// as barras só se enchem quando aparecem na tela, como água saindo da torneira, em cascata
+const observador = 'IntersectionObserver' in window ? new IntersectionObserver(entradas => {
+  entradas.filter(e => e.isIntersecting).forEach((e, i) => {
+    observador.unobserve(e.target);
+    e.target.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+      { duration: 700, delay: 60 * i, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
+    e.target.classList.remove('a-encher');          // a animação segura o vazio até a vez desta barra
+  });
+}, { threshold: 0.6 }) : null;
+
+/** Marca as barras para encherem quando o leitor chegar até elas (sem animação com movimento reduzido). */
 function escorre(seletor, raiz) {
-  if (!primeiraPintura || reduz()) return;
-  raiz.querySelectorAll(seletor).forEach((el, i) => el.animate(
-    [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
-    { duration: 520, delay: 40 * i, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  if (reduz() || !observador) return;
+  raiz.querySelectorAll(seletor).forEach(el => { el.classList.add('a-encher'); observador.observe(el); });
 }
 
 // ---------------------------------------------------------------- os cifrões que o leitor preenche

@@ -9,10 +9,10 @@ perguntas respondidas têm uma página cada, com uma visualização própria:
 | `index.html` | apresentação, fontes e a roda das perguntas | o olho que se abre e as dez perguntas em volta dele |
 | `pergunta-1.html` | Quanto custa uma cadeira? | o plenário em 3D (ou 2D) com a multidão de quem tentou, as moedas do gasto, por partido e por político |
 | `pergunta-2.html` | Patrimônio ajuda a eleger? | um prédio: cada andar uma faixa de patrimônio, cada janela um candidato, acesa quando se elegeu; os moradores de cada andar e patrimônio × votos |
-| `pergunta-5.html` | Quem entrou pela legenda? | cada eleito é um copo cheio até o quociente: os puxadores transbordam, e a sobra deles e a jarra da chapa (colegas sem cadeira e legenda) enchem os copos dos outros |
+| `pergunta-5.html` | Quem entrou pela legenda? | cada eleito é um copo com os próprios votos, com a marca do quociente: os puxadores transbordam; ao esvaziar a jarra da chapa (colegas sem cadeira e legenda), ela e a sobra dos puxadores enchem os copos dos outros |
 | `pergunta-7.html` | Para que lado se vota? | o mapa do vermelho (esquerda) ao azul (direita), por cargo e ano, nas duas réguas, com linha do tempo; e os partidos |
 | `pergunta-8.html` | Dinheiro público elege? | o leitor preenche dez cifrões com a parcela de dinheiro público e vê a taxa de vitória de quem tem pelo menos isso; cada candidato e cada partido como uma torneira |
-| `pergunta-9.html` | Onde gastam em propaganda? | a rua da campanha, com um objeto por tipo de despesa, e a TV com as palavras das despesas |
+| `pergunta-9.html` | Onde gastam em propaganda? | a rua da campanha, com um objeto por tipo de despesa; a seta para o céu afasta a vista e mostra as nuvens, uma por palavra das despesas |
 | `pergunta-10.html` | Como foi a carreira de um político? | a linha do tempo com um santinho por eleição, de 1994 a 2024 (1994 e 1996 ligadas pelo nome e nascimento), com foto de 2004 em diante |
 
 Os dados cobrem os seis estados do projeto (Amapá, Mato Grosso do Sul, Minas Gerais, Paraíba,
@@ -37,6 +37,12 @@ número da pergunta na caixa e, no verso, como o número foi calculado e de qual
 cores têm papéis fixos (`js/lib/cores.js`): verde para vitória, laranja com "×" para derrota, vermelho
 para a esquerda e azul para a direita, e o verde-água do dinheiro público na pergunta 8.
 
+Entre uma página e outra, o olho pisca: o topo fica parado, e duas pálpebras escuras fecham sobre o resto da página e
+reabrem já na nova. É a
+transição nativa do navegador entre páginas do mesmo site (`@view-transition`, em `css/estilo.css`); nos navegadores que
+não a têm, e para quem pede menos movimento no sistema, a página só troca. Como o topo e o conteúdo são montados pelo
+JavaScript, `js/transicao.js` mantém o olho fechado até a página nova estar montada (no máximo 1,5 s).
+
 ## Estrutura
 
 ```
@@ -48,6 +54,7 @@ site/
 ├── js/comum.js                   cabeçalho, rodapé, santinho, leitura dos dados e formatos
 ├── js/pecas.js                   seletor de recorte, candidatos do recorte, dinheiro × votos, cartão de político
 ├── js/busca.js                   busca de políticos por nome e leitura da carreira
+├── js/transicao.js               segura o piscar entre páginas até a página nova estar montada
 ├── js/pergunta-N.js              uma por página (e plenario-2d.js, plenario-3d.js, rua.js)
 ├── js/lib/                       funções puras, testadas em testes/site/js
 ├── gera_dados.py                 gera dados/ a partir do banco
@@ -59,7 +66,7 @@ site/
     ├── legenda/         pergunta 5: eleitos, quociente e votos de cada chapa por <unidade>.json, e resumo.json
     ├── vies/            pergunta 7: brasil.json e municipios/<UF>[-<cargo>].json
     ├── partidos.json    medidas de ideologia e eleitos por partido
-    ├── propaganda/      pergunta 9: <unidade>.json, pessoas/<n>.json e exemplos/ (despesas de cada palavra da TV, baixadas só ao clicar)
+    ├── propaganda/      pergunta 9: <unidade>.json, pessoas/<n>.json e exemplos/ (despesas de cada palavra do céu, baixadas só ao clicar)
     ├── geo/             contornos do IBGE (estados e municípios dos seis estados)
     └── politicos/       índice de busca, fichas e carreiras, em fatias
 ```

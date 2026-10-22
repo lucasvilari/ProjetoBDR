@@ -4,7 +4,8 @@
 // câmera e mostra quem está sentado ali.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { formata } from './comum.js?v=20261022';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { formata } from './comum.js?v=20261107';
 
 const MAX_MULTIDAO = 2400;
 const BEGE = new THREE.Color('#e8dcc4'), VISOR = new THREE.Color('#faf7ef');
@@ -89,7 +90,35 @@ export function montaPlenario3D(alvo, dados, aoEscolher, { animar = true } = {})
     cadeiras.setColorAt(k, donos?.[k] != null ? VISOR : BEGE);
     sentados.setColorAt(k, coresBase[k]);
   });
-  cena.add(cadeiras, sentados);
+  // o paletó: o corpo na cor do partido; na frente, o V da camisa branca, a gravata escura, as lapelas (no tom mais
+  // escuro do partido) dos dois lados do V e dois botões. As peças já ficam no lugar certo em relação ao corpo, e
+  // cada uma recebe a mesma matriz do eleito
+  const rCorpo = tamanho * 0.42;
+  const gCamisa = new THREE.ConeGeometry(tamanho * 0.17, tamanho * 0.36, 3);
+  gCamisa.rotateX(Math.PI); gCamisa.scale(1, 1, 0.25); gCamisa.translate(0, tamanho * 0.17, rCorpo * 0.93);
+  const gGravata = new THREE.BoxGeometry(tamanho * 0.075, tamanho * 0.3, tamanho * 0.035);
+  gGravata.translate(0, tamanho * 0.09, rCorpo * 1.0);
+  const lapela = lado => {
+    const g = new THREE.BoxGeometry(tamanho * 0.07, tamanho * 0.4, tamanho * 0.03);
+    g.rotateZ(lado * 0.38); g.translate(lado * -tamanho * 0.115, tamanho * 0.15, rCorpo * 0.97);
+    return g;
+  };
+  const botao = y => new THREE.SphereGeometry(tamanho * 0.028, 8, 6).translate(0, y, rCorpo * 0.99);
+  const junta = partes => { const g = mergeGeometries(partes); partes.forEach(parte => parte.dispose()); return g; };
+  const gLapelas = junta([lapela(1), lapela(-1)]);
+  const gBotoes = junta([botao(-tamanho * 0.06), botao(-tamanho * 0.17)]);
+  const [, mCamisa] = guarda(gCamisa, new THREE.MeshStandardMaterial({ color: '#faf7ef', roughness: 0.7 }));
+  const [, mGravata] = guarda(gGravata, new THREE.MeshStandardMaterial({ color: '#22201c', roughness: 0.5 }));
+  const [, mLapelas] = guarda(gLapelas, new THREE.MeshStandardMaterial({ roughness: 0.55 }));
+  guarda(gBotoes, null);
+  const camisas = new THREE.InstancedMesh(gCamisa, mCamisa, pontos.length);
+  const gravatas = new THREE.InstancedMesh(gGravata, mGravata, pontos.length);
+  const lapelas = new THREE.InstancedMesh(gLapelas, mLapelas, pontos.length);
+  const botoes = new THREE.InstancedMesh(gBotoes, mGravata, pontos.length);
+  const corLapela = cor => cor.clone().lerp(new THREE.Color('#000000'), 0.35);
+  pontos.forEach((_, k) => lapelas.setColorAt(k, corLapela(coresBase[k])));
+  const roupa = [camisas, gravatas, lapelas, botoes];
+  cena.add(cadeiras, sentados, ...roupa);
 
   // a multidão dos que não se elegeram, em volta do plenário (atrás e dos lados, sem tapar a vista)
   const sorte = sorteio(total * 31 + pontos.length);
@@ -117,13 +146,22 @@ export function montaPlenario3D(alvo, dados, aoEscolher, { animar = true } = {})
     v.y = (t < 1 ? Math.sin(Math.PI * t) * 0.08 : 0) + fim.y * t + tamanho * 0.62;
     return v;
   };
+  // cada eleito olha para o centro do plenário (a mesa), de frente para a câmera
+  const cima = new THREE.Vector3(0, 1, 0);
+  const olhar = posAssento.map(v => new THREE.Quaternion().setFromAxisAngle(cima, Math.atan2(-v.x, -v.z)));
   function poePessoas(t) {
     posAssento.forEach((_, k) => {
       const escala = ocupados[k] ? 1 : 0;
-      m.compose(posPessoa(k, t), q, new THREE.Vector3(escala, escala, escala));
+      m.compose(posPessoa(k, t), olhar[k], new THREE.Vector3(escala, escala, escala));
       sentados.setMatrixAt(k, m);
+      for (const peca of roupa) peca.setMatrixAt(k, m);
     });
-    sentados.instanceMatrix.needsUpdate = true;
+    // os eleitos mudaram de lugar: a esfera que envolve todos eles (usada para saber se estão na tela e no clique)
+    // precisa ser refeita, senão quem chegou à cadeira fica fora dela e some com a câmera de perto
+    for (const malha of [sentados, ...roupa]) {
+      malha.instanceMatrix.needsUpdate = true;
+      malha.boundingSphere = null; malha.boundingBox = null;
+    }
   }
 
   // câmera e controles
@@ -211,8 +249,13 @@ export function montaPlenario3D(alvo, dados, aoEscolher, { animar = true } = {})
   return {
     escolhe,
     destaca(i) {
-      pontos.forEach((_, k) => sentados.setColorAt(k, i == null || donos?.[k] === i ? coresBase[k] : coresBase[k].clone().lerp(BEGE, 0.8)));
+      pontos.forEach((_, k) => {
+        const cor = i == null || donos?.[k] === i ? coresBase[k] : coresBase[k].clone().lerp(BEGE, 0.8);
+        sentados.setColorAt(k, cor);
+        lapelas.setColorAt(k, corLapela(cor));
+      });
       sentados.instanceColor.needsUpdate = true;
+      lapelas.instanceColor.needsUpdate = true;
       acorda();
     },
     volta() {

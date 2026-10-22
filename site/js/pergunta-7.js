@@ -8,9 +8,9 @@
 // O recorte (cargo, ano, régua, UF, município e partido em destaque) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261022';
-import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261022';
-import { leCandidaturas, UFS_PROJETO } from './pecas.js?v=20261022';
+import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
+import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261107';
+import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261107';
 
 montaPagina();
 
@@ -20,7 +20,8 @@ const [vies, geoEstados, { partidos, concordancia_coligacoes: concordancia }] = 
 const ANOS = [2018, 2020, 2022, 2024];
 const MUNICIPAIS = ['PREFEITO', 'VEREADOR'];
 // deputado distrital só existe no DF: entra no mapa de deputado estadual, no lugar do DF
-const CARGOS = vies.cargos.filter(c => c !== 'DEPUTADO DISTRITAL');
+// presidente (o padrão) primeiro; o combinado, que junta dois cargos, por último
+const CARGOS = [...vies.cargos.filter(c => c !== 'DEPUTADO DISTRITAL' && c !== 'COMBINADO'), 'COMBINADO'];
 const UMA_VAGA = ['PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'PREFEITO'];
 const ufsProjeto = new Set(UFS_PROJETO);
 const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -28,6 +29,8 @@ const ESTILO = { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background
 
 const anosDoCargo = c => (c === 'COMBINADO' ? ANOS : MUNICIPAIS.includes(c) ? [2020, 2024] : [2018, 2022]);
 const nomeCargo = c => (c === 'COMBINADO' ? 'combinado' : c.toLowerCase());
+// o 2º turno para presidente vem junto com os dados de todo cargo do ano, mas só faz sentido na eleição para presidente
+const segundoTurno = l => (estado.cargo === 'PRESIDENTE' ? l?.presidente?.segundo_turno ?? [] : []);
 /** O cargo cujos votos fazem o índice num ano: o combinado usa deputado federal nos anos gerais e vereador nos municipais. */
 const cargoDosVotos = (c, ano) => (c === 'COMBINADO' ? (ano % 4 === 2 ? 'deputado federal' : 'vereador') : c.toLowerCase());
 const slug = c => c.toLowerCase().replaceAll(' ', '-');
@@ -43,7 +46,7 @@ const form = document.getElementById('controles');
 
 // ---------------------------------------------------------------- estado e endereço
 
-const PADRAO = { cargo: 'COMBINADO', ano: 2022, regua: 'especialistas' };
+const PADRAO = { cargo: 'PRESIDENTE', ano: 2022, regua: 'especialistas' };
 const estado = { ...PADRAO, uf: null, mun: null, partido: null };
 
 function leEndereco() {
@@ -119,9 +122,16 @@ const EXPLICA = {
 };
 
 function montaControles() {
-  form.elements.cargo.innerHTML = CARGOS.map(c => `<option value="${c}"${c === estado.cargo ? ' selected' : ''}>${c === 'COMBINADO'
-    ? 'combinado (deputado federal e vereador)' : c.toLowerCase()}</option>`).join('');
-  form.elements.ano.innerHTML = anosDoCargo(estado.cargo).map(a => `<option${a === estado.ano ? ' selected' : ''}>${a}</option>`).join('');
+  const ativo = document.activeElement;
+  const foco = form.contains(ativo) ? ativo.name : null;
+  // as fileiras que não mudaram de opções ficam no lugar (a tecla clicada termina a animação de apertar)
+  trocaMantendoTeclas(document.getElementById('grupo-cargo'), grupoOpcoes('cargo', 'Cargo', CARGOS.map(c => [c, c === 'COMBINADO'
+    ? 'combinado (deputado federal e vereador)' : c.toLowerCase()]), estado.cargo));
+  trocaMantendoTeclas(document.getElementById('grupo-ano'), grupoOpcoes('ano', 'Ano', anosDoCargo(estado.cargo).map(a => [a, a]), estado.ano));
+  const anos = document.querySelector('#grupo-ano .teclas-opcoes');
+  if (tocar.parentNode !== anos) anos.append(tocar);    // a linha do tempo passa por estes anos
+  if (ativo === tocar) tocar.focus();
+  else if (foco) form.querySelector(`[name="${foco}"]:checked`)?.focus();
   form.elements.regua.value = estado.regua;
   document.getElementById('explica-regua').innerHTML = EXPLICA[estado.regua];
 }
@@ -282,7 +292,7 @@ async function desenhaSantinho(terr, nome) {
   const linhas = await Promise.all(anos.map(a => linhaDe(terr, estado.cargo, a)));
   const l = linhas[anos.indexOf(estado.ano)];
   const outra = estado.regua === 'camara' ? 'especialistas' : 'camara';
-  const st = l?.presidente?.segundo_turno ?? [];
+  const st = segundoTurno(l);
   const caixa = document.getElementById('pilha');
   const v = valor(l);
   caixa.innerHTML = `
@@ -370,7 +380,7 @@ async function desenhaPainel(terr, nome) {
   if (!l) { painel.innerHTML = `<p class="aviso-vazio">Não há votos para ${nomeCargo(estado.cargo)} ${em(nome)} em ${estado.ano}.</p>`; return; }
   const v = valor(l);
   const curto = ehMun ? (nome.length > 14 ? `${nome.slice(0, 13)}…` : nome.replace(/ \(..\)$/, '')) : terr === 'BR' ? 'Brasil' : terr;
-  const st = l.presidente?.segundo_turno ?? [];
+  const st = segundoTurno(l);
   const brAno = terr !== 'BR' ? await linhaDe('BR', estado.cargo, estado.ano) : null;
   const quem = await quemRecebeu(terr);
   if (meu !== pedido) return;

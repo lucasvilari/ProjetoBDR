@@ -65,11 +65,15 @@ a:hover { text-decoration-thickness: 3px; }
   color: var(--visor); background: var(--tecla);
   border: 1px solid var(--tecla-borda); border-radius: var(--raio);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 3px 0 var(--tecla-borda), 0 5px 8px rgb(60 40 10 / 0.25);
-  transition: transform 80ms, box-shadow 80ms;
+  transition: transform var(--solta), box-shadow var(--solta);
 }
-.nav a:active, .botao:active, .pergunta label:active {
-  transform: translateY(2px);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 0 var(--tecla-borda), 0 2px 3px rgb(60 40 10 / 0.25);
+/* a tecla afunda até encostar na base, rápido, e volta como mola, passando um pouco do lugar. A classe .apertada
+   (comum.js) a mantém afundada por um tempo mínimo, para um clique rápido também se ver */
+:root { --solta: 230ms cubic-bezier(0.3, 1.8, 0.5, 1); --afunda: 40ms ease-out; }
+.nav a:active, .botao:active, .pergunta label:active, .nav a.apertada, .botao.apertada, .pergunta label.apertada {
+  transform: translateY(3px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 0 0 var(--tecla-borda), 0 1px 2px rgb(60 40 10 / 0.25);
+  transition: transform var(--afunda), box-shadow var(--afunda);
 }
 .nav a[aria-current="page"], .pergunta label:has(input:checked) { background: var(--confirma); color: var(--tecla); }
 .botao { cursor: pointer; padding: var(--m1) var(--m2); }
@@ -223,7 +227,8 @@ p, li { max-width: var(--medida); }
 }
 .olho-grande { width: min(60vw, 26rem); height: auto; transform-origin: center; }
 .olho-palpebra { transform-box: fill-box; transform-origin: center; }
-.marca-esperando .marca-tecla, .marca-tecla.marca-esperando { visibility: hidden; }
+/* enquanto o olho grande voa, a tecla e o olhinho esperam invisíveis (a abertura os faz surgir aos poucos) */
+.marca-tecla.marca-esperando, .marca-tecla.marca-esperando svg { opacity: 0; }
 
 
 /* a roda do oráculo: as dez perguntas sobre um círculo pontilhado em volta do olho */
@@ -251,14 +256,18 @@ p, li { max-width: var(--medida); }
   color: var(--visor); background: var(--tecla); border: 1px solid var(--tecla-borda); border-radius: 999px;
   padding: 0.5rem 0.9rem 0.5rem 0.5rem; cursor: pointer;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 3px 0 var(--tecla-borda), 0 5px 8px rgb(60 40 10 / 0.25);
-  transition: transform 160ms var(--sai), background-color 120ms ease;
+  transition: transform var(--solta), box-shadow var(--solta), background-color 120ms ease;
 }
 .roda-n {
   flex: none; display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%;
   background: var(--visor); color: var(--tecla); font-weight: 850; font-size: 0.85rem;
 }
 .roda-perguntas li.ativa a.roda-pergunta { background: var(--confirma); color: var(--tecla); }
-.roda-pergunta:active { transform: translateY(2px); }
+.roda-pergunta:not([aria-disabled="true"]):is(:active, .apertada) {
+  transform: translateY(3px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 0 0 var(--tecla-borda), 0 1px 2px rgb(60 40 10 / 0.25);
+  transition: transform var(--afunda), box-shadow var(--afunda), background-color 120ms ease;
+}
 .roda-pergunta[aria-disabled="true"] { background: var(--urna-funda); color: var(--tinta-2); box-shadow: none; border-style: dashed; cursor: default; }
 .roda-pergunta[aria-disabled="true"] .roda-n { background: var(--urna); color: var(--tinta-2); }
 .roda-perguntas li.ativa .roda-pergunta[aria-disabled="true"] { border-color: var(--tecla); }
@@ -342,10 +351,6 @@ p, li { max-width: var(--medida); }
 
 /* ------------------------------------------------------------------ página Mapa */
 
-.controles { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1); margin: 0 0 var(--m3); }
-.controles .campo { flex-direction: row; align-items: center; }
-.controles fieldset { border: 0; padding: 0; margin: 0; }
-.controles legend { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.35rem; }
 .pergunta { display: flex; flex-wrap: wrap; gap: var(--m1); }
 .pergunta label { position: relative; cursor: pointer; padding: 0.55rem 0.85rem; font-size: 0.97rem; }
 .pergunta input { position: absolute; opacity: 0; pointer-events: none; }
@@ -399,7 +404,6 @@ p, li { max-width: var(--medida); }
 
 /* ------------------------------------------------------------------ página Partido */
 
-.campo-largo { max-width: 16rem; margin-bottom: var(--m2); }
 .detalhe-partido { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: var(--m4); align-items: start; }
 
 /* ------------------------------------------------------------------ página Político */
@@ -498,9 +502,25 @@ p, li { max-width: var(--medida); }
 }
 @media (max-width: 560px) {
   main { padding-inline: var(--m2); }
-  .controles { padding: var(--m2); }
   .santinho-numero span { --tamanho: clamp(2.2rem, 11vw, 3rem); }
 }
+
+/* ------------------------------------------------------------------ transição entre páginas
+   O olho do oráculo pisca: o topo (logo e teclas das perguntas) fica parado, e duas pálpebras escuras fecham sobre o
+   resto da página, de cima e de baixo, e reabrem já na página nova. É a transição nativa do navegador entre páginas do
+   mesmo site; onde ela não existe (ou para quem pede menos movimento), a página só troca. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
+::view-transition { background: var(--tecla); }
+/* o topo tem nome próprio: sai da imagem que pisca e fica por cima dela; só a tecla acesa troca, num esmaecer rápido */
+.topo { view-transition-name: topo; }
+::view-transition-group(topo) { animation-duration: 300ms; }
+::view-transition-old(root), ::view-transition-new(root) { mix-blend-mode: normal; }
+::view-transition-old(root) { animation: palpebra-fecha 320ms cubic-bezier(0.55, 0, 0.9, 0.4) both; }
+::view-transition-new(root) { animation: palpebra-abre 380ms cubic-bezier(0.1, 0.6, 0.3, 1) 360ms both; }
+@keyframes palpebra-fecha { from { clip-path: inset(0 0 0 0 round 0); } to { clip-path: inset(50% 0 50% 0 round 50%); } }
+@keyframes palpebra-abre { from { clip-path: inset(50% 0 50% 0 round 50%); } to { clip-path: inset(0 0 0 0 round 0); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -508,8 +528,23 @@ p, li { max-width: var(--medida); }
 
 /* ------------------------------------------------------------------ peças das perguntas */
 
-.seletor { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1); margin: 0 0 var(--m3); }
-.seletor .campo { flex-direction: row; align-items: center; }
+/* escolhas em fileiras de teclas: cada tipo (ano, cargo, estado...) na sua fileira, com o rótulo à esquerda */
+.seletor { display: grid; margin: 0 0 var(--m3); border-block: 2px solid var(--tecla); }
+.grupo-opcoes { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: center; gap: var(--m2); padding: 0.8rem 0; }
+.seletor > * + * { border-top: 1px dashed var(--linha); }
+.grupo-rotulo { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); }
+.teclas-opcoes { align-items: center; gap: 0.55rem; }
+.teclas-opcoes label { padding: 0.4rem 0.75rem; font-size: 0.92rem; white-space: nowrap; }
+.teclas-opcoes label::first-letter { text-transform: uppercase; }
+.teclas-opcoes .botao { padding: 0.4rem 0.75rem; font-size: 0.92rem; margin-left: var(--m1); }
+.grupo-opcoes .campo { flex-direction: row; }
+/* os eleitos de um recorte (até dezenas): uma tecla por nome, numa caixa que rola */
+.grupo-eleitos { grid-template-columns: minmax(0, 1fr); gap: var(--m1); margin-top: var(--m2); }
+.grupo-eleitos .teclas-opcoes { position: relative; max-height: 17rem; overflow-y: auto; padding: 2px 4px 10px 2px; align-content: flex-start; }
+.grupo-eleitos .teclas-opcoes label { white-space: normal; font-size: 0.85rem; padding: 0.35rem 0.6rem; }
+@media (max-width: 600px) {
+  .grupo-opcoes { grid-template-columns: minmax(0, 1fr); gap: var(--m1); }
+}
 .dispersao { margin-top: var(--m2); }
 .dispersao-frase { margin: 0 0 var(--m1); }
 .dispersao-frase strong { font-size: 1.1rem; }
@@ -565,8 +600,8 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .chapa-topo b { font-size: 0.95rem; }
 .chapa-topo .apoio { font-size: 0.82rem; }
 .chapa-corpo { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--m1) var(--m2); }
-.jarra { margin: 0; width: 5rem; display: grid; justify-items: center; text-align: center; font-size: 0.72rem; font-weight: 750; line-height: 1.2; }
-.jarra-svg { width: 3.8rem; height: auto; }
+.jarra { margin: 0; min-width: 5rem; display: grid; justify-items: center; text-align: center; font-size: 0.72rem; font-weight: 750; line-height: 1.2; }
+.jarra-svg { width: 3.8rem; height: auto; transform-origin: 88% 96%; }
 .fila-copos { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.4rem 0.2rem; }
 .fila-copos li { max-width: none; }
 .copo { display: grid; justify-items: center; gap: 0.15rem; width: 4.8rem; padding: 0.25rem 0.1rem; border: 0; border-radius: 6px;
@@ -583,13 +618,26 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .vidro { fill: none; stroke: var(--tecla); stroke-width: 2; stroke-linejoin: round; }
 .marca-quociente { stroke: var(--tecla); stroke-width: 1.4; stroke-dasharray: 3 2; }
 .liquido { transform-box: fill-box; transform-origin: 50% 100%; }
-.liquido-proprio { fill: #4a443a; }
-.liquido-puxadores { fill: #8f8470; }
-.liquido-chapa { fill: #d6c7a6; }
+/* as três origens dos votos, em cores que não se confundem com o bege do fundo nem com os papéis fixos das cores
+   (verde vitória, laranja derrota, vermelho e azul ideologia, verde-água dinheiro público): ameixa, orquídea (a sobra
+   dos puxadores, um tom claro dos votos deles) e âmbar */
+:root { --liq-proprio: #5b2457; --liq-puxadores: #cc8cc6; --liq-chapa: #eaa731; }
+.liquido-proprio { fill: var(--liq-proprio); }
+.liquido-puxadores { fill: var(--liq-puxadores); }
+.liquido-chapa { fill: var(--liq-chapa); }
 .falta { stroke: var(--corrige); stroke-width: 2.5; stroke-dasharray: 3 2; }
-.chave-liquido.liquido-proprio::before { background: #4a443a; }
-.chave-liquido.liquido-puxadores::before { background: #8f8470; }
-.chave-liquido.liquido-chapa::before { background: #d6c7a6; }
+/* a jarra começa cheia e os copos só com os votos de cada eleito; esvaziada, ela desce até o nível dela e os votos
+   emprestados entram nos copos, um copo depois do outro */
+.jarra-nivel { transform: scaleY(var(--nivel)); transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1); }
+.chapa.jarra-cheia .jarra-nivel { transform: scaleY(1); }
+.fila-copos .liquido-puxadores, .fila-copos .liquido-chapa, .fila-copos .falta {
+  transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms; transition-delay: calc(var(--i, 0) * 70ms); }
+.chapa.jarra-cheia .fila-copos .liquido-puxadores, .chapa.jarra-cheia .fila-copos .liquido-chapa { transform: scaleY(0); }
+.chapa.jarra-cheia .fila-copos .falta { opacity: 0; }
+.jarra-botao { margin-top: 0.4rem; font-size: 0.72rem; padding: 0.3rem 0.5rem; white-space: nowrap; }
+.chave-liquido.liquido-proprio::before { background: var(--liq-proprio); }
+.chave-liquido.liquido-puxadores::before { background: var(--liq-puxadores); }
+.chave-liquido.liquido-chapa::before { background: var(--liq-chapa); }
 .chave-liquido::before { border-radius: 2px; }
 .chave-falta::before { width: 1rem; height: 0; border: 0; border-top: 2.5px dashed var(--corrige); border-radius: 0; background: none; vertical-align: 0.25rem; }
 .cartao-copo { margin-top: var(--m2); }
@@ -601,10 +649,10 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .barra-cadeira { position: relative; display: flex; height: 2.2rem; margin: var(--m2) 0 var(--m1); border: 2px solid var(--tecla); border-radius: 4px; background: var(--visor); }
 .barra-cadeira .segmento { display: block; height: 100%; }
 .barra-cadeira .segmento + .segmento { border-left: 2px solid var(--visor); }
-.segmento.liquido-proprio { background: #4a443a; }
-.segmento.liquido-puxadores { background: #8f8470; }
-.segmento.liquido-chapa { background: #d6c7a6; }
-.segmento.liquido-transborda { background: #6f675a; }
+.segmento.liquido-proprio { background: var(--liq-proprio); }
+.segmento.liquido-puxadores { background: var(--liq-puxadores); }
+.segmento.liquido-chapa { background: var(--liq-chapa); }
+.segmento.liquido-transborda { background: var(--liq-puxadores); }   /* o que transborda vira a sobra dos puxadores */
 .segmento.segmento-falta { background: var(--visor); outline: 2.5px dashed var(--corrige); outline-offset: -4px; }
 .marca-q { position: absolute; top: -0.5rem; bottom: -0.5rem; border-left: 2.5px dashed var(--tecla); }
 .marca-q span { position: absolute; top: -1.2rem; left: 0.3rem; font-size: 0.72rem; font-weight: 800; white-space: nowrap; }
@@ -622,8 +670,6 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 /* ------------------------------------------------------------------ pergunta 7: o mapa pintado */
 
 .controles-vies { margin-bottom: var(--m1); }
-.controles .campo { max-width: 100%; min-width: 0; }
-.controles .campo select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 #tocar[aria-pressed="true"] { background: var(--confirma); color: var(--tecla); }
 .explica-regua { max-width: var(--medida); margin: 0 0 var(--m3); }
 .ponto-vies { display: inline-block; width: 0.55em; height: 0.55em; margin-right: 0.18em; border-radius: 50%;
@@ -665,6 +711,17 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .torneira-agua { display: flex; height: 0.9rem; margin-top: 0.75rem; border: 1.5px solid var(--tecla); border-radius: 0 4px 4px 0;
   overflow: hidden; transform-origin: left; min-width: 3px; }
 .torneira-agua i { display: block; height: 100%; }
+/* a barra espera vazia até aparecer na tela; depois a água corre devagar, do bico para a ponta */
+.torneira-agua.a-encher { transform: scaleX(0); }
+/* o brilho e a marola ficam só na água (o trecho de dinheiro público), não na parte privada da barra */
+.torneira-agua i:first-child { position: relative; overflow: hidden; }
+.torneira-agua i:first-child::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 60%; min-width: 1.5rem; pointer-events: none;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.32) 50%, rgb(255 255 255 / 0));
+  animation: correnteza 3.2s linear infinite; }
+.torneira-agua i:first-child::before { content: ""; position: absolute; left: 0; right: 0; top: 18%; height: 1.5px; pointer-events: none;
+  background: rgb(255 255 255 / 0.35); animation: marola 2.4s ease-in-out infinite alternate; }
+@keyframes correnteza { from { transform: translateX(-100%); } to { transform: translateX(230%); } }
+@keyframes marola { from { transform: translateY(0) scaleX(0.96); opacity: 0.5; } to { transform: translateY(2px) scaleX(1); opacity: 0.9; } }
 .torneira-n { font-variant-numeric: tabular-nums; }
 .torneira-n small { display: block; color: var(--tinta-2); font-weight: 600; white-space: nowrap; }
 .politico-publico { display: grid; grid-template-columns: 2.2rem 2.2rem minmax(0, 1fr) minmax(14rem, 22rem); align-items: center; gap: var(--m1) var(--m2); max-width: none;
@@ -694,7 +751,8 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 
 /* ------------------------------------------------------------------ pergunta 9: a rua da campanha */
 
-.p9-escolha { display: flex; flex-wrap: wrap; align-items: end; gap: var(--m2) var(--m4); }
+.p9-escolha { display: grid; gap: var(--m2); margin-bottom: var(--m4); }
+.p9-escolha .seletor { margin: 0; }
 .busca-curta { flex: 1 1 18rem; max-width: 30rem; margin: 0; }
 .busca-curta .apoio { margin: 0.3rem 0 0; font-size: 0.85rem; }
 .p9-pessoa { margin: var(--m2) 0 var(--m3); padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
@@ -720,32 +778,15 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .rotulo-rua { font-size: 12px; font-weight: 800; text-anchor: middle; fill: var(--tecla); paint-order: stroke; stroke: var(--visor); stroke-width: 4; }
 .valor-rua { font-size: 12px; font-weight: 650; text-anchor: middle; fill: var(--tinta-2); paint-order: stroke; stroke: var(--visor); stroke-width: 4; }
 .detalhe-rua { min-height: 3em; margin: var(--m1) 0 0; max-width: var(--medida); }
-.tv-caixa { min-width: 0; margin-bottom: var(--m3); }
-.tv { position: relative; max-width: 46rem; margin: 2.2rem auto 0; padding: 1rem; background: var(--tecla); border-radius: 18px;
-  box-shadow: 0 6px 0 #0d0c0a; }
-.tv-antena { position: absolute; left: 50%; top: -2.3rem; width: 0; height: 2.3rem; }
-.tv-antena::before, .tv-antena::after { content: ""; position: absolute; bottom: 0; left: -1.5px; width: 3px; height: 2.6rem;
-  background: var(--tecla); border-radius: 2px; transform-origin: 50% 100%; transform: rotate(-32deg); }
-.tv-antena::after { transform: rotate(32deg); }
-.tv-pes { position: absolute; bottom: -0.9rem; left: 18%; right: 18%; height: 0.9rem; border-left: 1.4rem solid var(--tecla); border-right: 1.4rem solid var(--tecla); }
-.tv-tela { background: var(--visor); border-radius: 12px; padding: var(--m2) var(--m3) var(--m3); min-height: 12rem;
-  box-shadow: inset 0 0 0 3px #3a362f, inset 0 0 30px rgba(34, 32, 28, 0.12); }
-.tv-titulo { margin: 0 0 var(--m1); font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); text-align: center; }
-.nuvem { margin: 0; max-width: none; text-align: center; line-height: 1.15; font-weight: 800; font-stretch: 85%; }
-.nuvem .palavra { display: inline-block; margin: 0.05em 0.2em; padding: 0 0.1em; border: 0; border-radius: 4px; background: none;
-  font: inherit; font-size: inherit; line-height: 1.15; cursor: pointer; }
-.nuvem .palavra:hover { background: var(--urna); }
-.nuvem .palavra:focus-visible { outline: 3px solid var(--corrige); outline-offset: 1px; }
-.nuvem .palavra[aria-pressed="true"] { background: var(--tecla); color: var(--visor) !important; }
-.exemplos-palavra { max-width: 46rem; margin: var(--m2) auto 0; padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
+.exemplos-palavra { max-width: 46rem; margin: var(--m2) 0 0; padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
 .exemplos-palavra p { margin: 0; max-width: none; }
 .lista-exemplos { list-style: none; padding: 0; margin: var(--m1) 0 0; display: grid; gap: 0.35rem; }
 .lista-exemplos li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--m2); max-width: none;
   padding-top: 0.35rem; border-top: 1px dotted var(--urna-funda); font-size: 0.92rem; }
 .lista-exemplos span { font-family: ui-monospace, monospace; font-size: 0.85rem; overflow-wrap: anywhere; }
 .lista-exemplos b { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.tv-vazia { text-align: center; color: var(--tinta-2); margin: var(--m3) 0 0; }
-.degrade-tv { display: inline-flex; align-items: center; gap: 0.4rem; }
+.degrade-tv { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.degrade-tv span { white-space: nowrap; }
 .degrade-tv i { display: inline-block; width: 5rem; height: 0.7rem; border: 1px solid var(--tecla); border-radius: 3px;
   background: linear-gradient(90deg, #7a705c, #22201c); }
 @media (max-width: 860px) { .p9-grade { grid-template-columns: minmax(0, 1fr); } }
@@ -820,6 +861,15 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .janela { display: block; width: 0.95rem; height: 1.2rem; background: var(--janela-apagada); border-radius: 2px; cursor: pointer; }
 .janela:hover { outline: 2px solid var(--corrige); outline-offset: 1px; }
 .janela.acesa { background: var(--janela-acesa); box-shadow: 0 0 5px rgba(0, 166, 81, 0.55); }
+/* um morador passando atrás do vidro: recortado pela janela, balançando a cada passo */
+.janela { position: relative; overflow: hidden; }
+/* o tronco passa da borda de baixo da janela, para o balanço do passo não mostrar onde ele acaba */
+.silhueta { position: absolute; left: 0; bottom: -2px; width: 70%; pointer-events: none; }
+.silhueta svg { display: block; width: 100%; height: auto; fill: #a3977d; animation: passo 0.32s ease-in-out infinite alternate; }
+.silhueta.vira svg { scale: -1 1; }
+.janela.acesa .silhueta svg { fill: rgb(0 60 28 / 0.75); }
+@keyframes passo { to { translate: 0 -0.5px; } }
+.janela.escolhida { outline: 3px solid var(--corrige); outline-offset: 1px; position: relative; z-index: 1; }
 .andar-taxa { align-self: center; padding-left: var(--m2); display: grid; }
 .andar-taxa b { font-size: 1.6rem; font-weight: 900; font-stretch: 72%; line-height: 1.05; }
 .andar-taxa small { color: var(--tinta-2); font-size: 0.78rem; font-weight: 600; }
@@ -863,3 +913,104 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
   .predio-total { margin-left: 0; }
 }
 .seletor-nota { font-size: 0.9rem; font-weight: 650; color: var(--tinta-2); }
+
+/* pergunta 9: o céu de palavras acima da rua */
+.rua-moldura { position: relative; }
+.ver-ceu { position: absolute; top: 0.6rem; left: 50%; z-index: 2; transform: translateX(-50%); padding: 0.35rem 0.95rem;
+  border: 2px solid var(--tecla); border-radius: 999px; background: var(--visor); box-shadow: 0 3px 0 var(--tecla);
+  font: inherit; font-size: 0.85rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.ver-ceu span { display: inline-block; animation: aponta 1.6s ease-in-out infinite; }
+.ver-ceu:hover { background: #fff; }
+.ver-ceu { transition: translate var(--solta), box-shadow var(--solta); }
+.ver-ceu:is(:active, .apertada) { translate: 0 3px; box-shadow: 0 0 0 var(--tecla); transition: translate var(--afunda), box-shadow var(--afunda); }
+.ver-ceu:focus-visible { outline: 3px solid var(--corrige); outline-offset: 2px; }
+@keyframes aponta { 50% { transform: translateY(-3px); } }
+@media (max-width: 600px) { .rua-moldura { display: flex; flex-direction: column; } .ver-ceu { position: static; order: -1; align-self: center; margin-bottom: var(--m1); transform: none; } }
+.ceu-nuvens { opacity: 0; transition: opacity 700ms ease 300ms; }
+.vendo-ceu .ceu-nuvens { opacity: 1; }
+.nuvem { cursor: pointer; outline: none; animation: deriva var(--d, 8s) ease-in-out var(--a, 0s) infinite alternate; }
+.rua-moldura:not(.vendo-ceu) .nuvem { animation-play-state: paused; }
+@keyframes deriva { from { transform: translate(-9px, 0); } to { transform: translate(9px, -6px); } }
+.nuvem-corpo { fill: #fffdf7; stroke: var(--tecla); stroke-width: 2.5; }
+.nuvem:hover .nuvem-corpo, .nuvem:focus-visible .nuvem-corpo { fill: #fff; stroke: var(--corrige); stroke-width: 4; }
+.nuvem.escolhida .nuvem-corpo { fill: var(--urna); stroke: var(--corrige); stroke-width: 4; }
+.nuvem-texto { text-anchor: middle; font-weight: 850; font-stretch: 85%; pointer-events: none; }
+.painel-palavras { min-width: 0; }
+.painel-palavras-titulo { margin: 0 0 var(--m1); font-size: 0.82rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-2); }
+
+/* pergunta 9: cada objeto da rua se mexe do seu jeito quando o mouse (ou o foco) chega nele. As peças (.pa) giram e
+   escalam em torno de si mesmas; as peças extras (confete, notas, balões, papéis caindo) só aparecem nessa hora */
+.objeto-rua .pa { transform-box: fill-box; transform-origin: 50% 50%; }
+.objeto-rua .pa-extra { opacity: 0; }
+.objeto-rua[data-objeto="comite"]:is(:hover, :focus-visible) .objeto-desenho { animation: respira 0.9s ease-in-out infinite; }
+@keyframes respira { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03, 0.98); } }
+
+/* santinhos: um balança, os pequenos caem do céu girando */
+.objeto-rua:is(:hover, :focus-visible) .pa-balanca { transform-origin: 50% 100%; animation: balanca 1.1s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-cai { animation: cai 1.8s ease-in var(--atraso, 0s) infinite; }
+@keyframes balanca { from { transform: rotate(-7deg); } to { transform: rotate(6deg); } }
+@keyframes cai { 0% { opacity: 0; transform: translate(0, -80px) rotate(0deg); } 15% { opacity: 1; }
+  80% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x, 0), 50px) rotate(var(--giro, 180deg)); } }
+
+/* adesivos: o redondo descola pela borda direita (com a sombra aparecendo) e cola de novo; o quadrado levanta a ponta */
+.objeto-rua:is(:hover, :focus-visible) .pa-descola { transform-origin: 0% 50%; animation: descola 2s ease-in-out infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-sombra-adesivo { animation: sombra-adesivo 2s ease-in-out infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-levanta { transform-origin: 0% 0%; animation: levanta 2s ease-in-out 0.5s infinite; }
+@keyframes descola { 0%, 12%, 88%, 100% { transform: none; } 40%, 60% { transform: translate(-2px, -6px) rotate(-8deg) scaleX(0.72) skewY(-10deg); } }
+@keyframes sombra-adesivo { 0%, 12%, 88%, 100% { opacity: 0; } 40%, 60% { opacity: 0.6; } }
+@keyframes levanta { 0%, 15%, 85%, 100% { transform: none; } 45%, 55% { transform: rotate(-9deg) scaleY(0.9); } }
+
+/* internet: o celular vibra, a bolinha de notificação salta e os balões sobem da tela */
+.objeto-rua:is(:hover, :focus-visible) .pa-vibra { animation: vibra 0.5s linear infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-badge { animation: badge 1s ease-out infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-balao { animation: balao 1.4s ease-out var(--atraso, 0s) infinite; }
+@keyframes vibra { 0%, 40%, 100% { transform: translateX(0) rotate(0); } 8%, 24% { transform: translateX(-3px) rotate(-2deg); }
+  16%, 32% { transform: translateX(3px) rotate(2deg); } }
+@keyframes badge { 0% { opacity: 0; transform: scale(0); } 25% { opacity: 1; transform: scale(1.3); } 40%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes balao { 0% { opacity: 0; transform: translateY(14px) scale(0.6); } 25% { opacity: 1; transform: translateY(0) scale(1); }
+  75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px); } }
+
+/* TV e rádio: o alto-falante pulsa e as notas musicais sobem balançando */
+.objeto-rua:is(:hover, :focus-visible) .pa-alto { animation: pulsa 0.45s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-nota { animation: nota 1.8s ease-out var(--atraso, 0s) infinite; }
+@keyframes pulsa { to { transform: scale(1.1); } }
+@keyframes nota { 0% { opacity: 0; transform: translate(0, 10px) rotate(0); } 20% { opacity: 1; }
+  50% { transform: translate(calc(var(--x, 0px) * 0.5), -30px) rotate(-10deg); } 80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x, 0px), -64px) rotate(10deg); } }
+
+/* comício: confete sai do palco, voa e cai girando */
+.objeto-rua:is(:hover, :focus-visible) .pa-confete { animation: confete 1.5s cubic-bezier(0.2, 0.7, 0.4, 1) var(--atraso, 0s) infinite; }
+@keyframes confete { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 8% { opacity: 1; }
+  55% { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--giro) * 0.5)); }
+  90% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(var(--dx) * 1.15), calc(var(--dy) + 40px)) rotate(var(--giro)); } }
+
+/* militância: um braço acena (gira no ombro, para cima e para baixo do lado de fora) e o outro ergue a bandeira: a mão
+   sobe do peito até a altura do ombro, e a bandeira sobe junto, tremulando */
+.objeto-rua:is(:hover, :focus-visible) .pa-acena { transform-origin: 100% 0%; animation: acena 0.5s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-ergue { transform-origin: 0% 0%; animation: ergue 0.9s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-bandeira { animation: bandeira 0.9s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-pano { transform-origin: 0% 50%; animation: pano 0.45s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-depois { animation-delay: -0.45s; }
+@keyframes acena { from { transform: rotate(55deg); } to { transform: rotate(95deg); } }
+@keyframes ergue { from { transform: rotate(0deg); } to { transform: rotate(-35deg); } }
+@keyframes bandeira { from { transform: translate(0, 0); } to { transform: translate(3px, -10px); } }
+@keyframes pano { from { transform: skewY(-8deg) scaleX(1); } to { transform: skewY(6deg) scaleX(0.9); } }
+
+/* jornal: uma página vira por cima da primeira, de um lado para o outro */
+.objeto-rua:is(:hover, :focus-visible) .pa-pagina { transform-origin: 0% 50%; animation: folheia 1.8s ease-in-out infinite; }
+@keyframes folheia { 0% { opacity: 1; transform: scaleX(1); } 45% { transform: scaleX(0.05) skewY(-12deg); }
+  50% { transform: scaleX(-0.05) skewY(12deg); } 90% { opacity: 1; transform: scaleX(-1); } 100% { opacity: 0; transform: scaleX(-1); } }
+
+/* carro de som: anda para a frente e para trás, sacode, as rodas giram, saem riscos de vento; na caixa do teto os
+   cones pulsam e saem ondas de som dos dois lados e notas musicais para cima */
+.objeto-rua[data-objeto="carro-de-som"]:is(:hover, :focus-visible) .objeto-desenho { animation: anda 2.4s ease-in-out infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-roda { animation: gira 0.6s linear infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-sacode { animation: sacode 0.3s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-vento { animation: vento 0.6s ease-out infinite; }
+.objeto-rua:is(:hover, :focus-visible) .pa-cone { animation: pulsa 0.25s ease-in-out infinite alternate; }
+.objeto-rua:is(:hover, :focus-visible) .pa-onda { animation: onda 0.9s ease-out var(--atraso, 0s) infinite; }
+@keyframes onda { 0% { opacity: 0; transform: translateX(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateX(calc(var(--lado) * 10px)); } }
+@keyframes anda { 0%, 100% { transform: translateX(-12px); } 50% { transform: translateX(12px); } }
+@keyframes gira { to { transform: rotate(360deg); } }
+@keyframes sacode { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+@keyframes vento { 0% { opacity: 0; transform: translateX(10px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateX(-14px); } }

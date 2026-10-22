@@ -1,10 +1,10 @@
 // Peças que as páginas das perguntas dividem: o seletor de recorte (ano, cargo, lugar), a leitura
 // dos candidatos de um recorte, o gráfico de dinheiro × votos e o cartão de um político.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261022';
-import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261022';
-import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261022';
-import { COR } from './lib/cores.js?v=20261022';
+import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261107';
+import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261107';
+import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261107';
+import { COR } from './lib/cores.js?v=20261107';
 
 export const UFS_PROJETO = ['AP', 'MG', 'MS', 'PB', 'RO', 'RR'];
 // a capital de cada estado, o município aberto quando a página precisa de um
@@ -12,6 +12,37 @@ const CAPITAIS = { AP: '06050', MG: '41238', MS: '90514', PB: '20516', RO: '0003
 const minusculo = c => c.toLowerCase();
 
 // ---------------------------------------------------------------- seletor de recorte
+
+/** Troca os filhos de `caixa` pelos do `html` novo, mas mantém no lugar cada fileira de teclas que continua com as
+ *  mesmas opções (só a marcada muda). Redesenhar a fileira inteira trocaria a tecla clicada por uma nova no meio da
+ *  animação de apertar, e a animação seria cortada. */
+export function trocaMantendoTeclas(caixa, html) {
+  const molde = document.createElement('template');
+  molde.innerHTML = html.trim();
+  const novos = [...molde.content.children];
+  novos.forEach((novo, i) => {
+    const velho = caixa.children[i];
+    const igual = velho?.dataset.opcoes && velho.dataset.opcoes === novo.dataset.opcoes;
+    if (igual) {
+      const marcada = novo.querySelector('input:checked')?.value;
+      velho.querySelectorAll('input').forEach(entrada => { entrada.checked = entrada.value === marcada; });
+    } else if (velho) velho.replaceWith(novo);
+    else caixa.append(novo);
+  });
+  while (caixa.children.length > novos.length) caixa.lastElementChild.remove();
+}
+
+/** Uma fileira de teclas, uma por opção, para escolher uma só (botões de rádio com cara de tecla). A fileira tem
+ *  o rótulo à esquerda; cada tipo de escolha fica na sua. `opcoes`: [[valor, texto]]; `atual`: o valor marcado. */
+export function grupoOpcoes(nome, rotulo, opcoes, atual, { extra = '', classe = '' } = {}) {
+  const id = `rotulo-${nome}`;
+  // data-opcoes diz quais teclas a fileira tem: com as mesmas, trocaMantendoTeclas a mantém no lugar
+  const assinatura = `${nome}:${opcoes.map(([v, t]) => `${v}=${t}`).join('|')}`.replace(/"/g, '&quot;');
+  return `<div class="grupo-opcoes ${classe}" role="radiogroup" aria-labelledby="${id}" data-opcoes="${assinatura}">
+    <span class="grupo-rotulo" id="${id}">${rotulo}</span>
+    <div class="pergunta teclas-opcoes">${opcoes.map(([v, t]) => `<label><input type="radio" name="${nome}" value="${v}"${String(v) === String(atual) ? ' checked' : ''}>${t}</label>`).join('')}${extra}</div>
+  </div>`;
+}
 
 /** Monta os seletores de ano, cargo e (se pedido) lugar dentro de `form`, lê o recorte do endereço,
  *  grava o recorte no endereço a cada mudança e chama aoMudar(recorte). Devolve { recorte(), muda(novo) }.
@@ -43,22 +74,22 @@ export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMu
     const municipios = r.uf && MUNICIPAIS.includes(r.cargo)
       ? Object.entries((await carregaDados(`mapa/municipios/${r.uf}.json`)).municipios).sort((a, b) => a[1].nome.localeCompare(b[1].nome))
       : [];
-    form.innerHTML = `
-      <label class="campo"><span class="so-leitor">Ano</span>
-        <select name="ano">${anos.map(a => `<option${a === r.ano ? ' selected' : ''}>${a}</option>`).join('')}</select></label>
-      <label class="campo"><span class="so-leitor">Cargo</span>
-        <select name="cargo">${cargosValidos(r.ano).map(c => `<option value="${c}"${c === r.cargo ? ' selected' : ''}>${minusculo(c)}</option>`).join('')}</select></label>
-      ${comLugar && r.cargo !== 'PRESIDENTE' ? `<label class="campo"><span class="so-leitor">Estado</span>
-        <select name="uf">${ufs.map(u => `<option value="${u}"${u === r.uf ? ' selected' : ''}>${NOME_UF[u]}</option>`).join('')}</select></label>` : ''}
-      ${comLugar && r.cargo === 'PRESIDENTE' ? '<span class="seletor-nota">eleição nacional: o Brasil inteiro</span>' : ''}
-      ${municipios.length ? `<label class="campo"><span class="so-leitor">Município</span>
-        <select name="mun">${municipioObrigatorio ? '' : '<option value="">todo o estado</option>'}${municipios.map(([cod, m]) => `<option value="${cod}"${cod === r.mun ? ' selected' : ''}>${m.nome}</option>`).join('')}</select></label>` : ''}`;
+    trocaMantendoTeclas(form, `
+      ${grupoOpcoes('ano', 'Ano', anos.map(a => [a, a]), r.ano)}
+      ${grupoOpcoes('cargo', 'Cargo', cargosValidos(r.ano).map(c => [c, minusculo(c)]), r.cargo)}
+      ${comLugar && r.cargo !== 'PRESIDENTE' ? grupoOpcoes('uf', 'Estado', ufs.map(u => [u, NOME_UF[u]]), r.uf) : ''}
+      ${comLugar && r.cargo === 'PRESIDENTE' ? '<div class="grupo-opcoes"><span class="grupo-rotulo">Lugar</span><span class="seletor-nota">eleição nacional: o Brasil inteiro</span></div>' : ''}
+      ${municipios.length ? `<div class="grupo-opcoes"><label class="grupo-rotulo" for="escolhe-mun">Município</label>
+        <span class="campo"><select name="mun" id="escolhe-mun">${municipioObrigatorio ? '' : '<option value="">todo o estado</option>'}${municipios.map(([cod, m]) => `<option value="${cod}"${cod === r.mun ? ' selected' : ''}>${m.nome}</option>`).join('')}</select></span></div>` : ''}`);
   }
 
   async function aplica(novo) {
     r = ajusta(novo);
     history.replaceState(null, '', `#${escreveRecorte(r)}`);
+    const foco = form.contains(document.activeElement) ? document.activeElement.name : null;
     await desenha();
+    // as teclas são redesenhadas: o foco volta para a escolhida do mesmo grupo
+    if (foco) form.querySelector(`[name="${foco}"]:checked, select[name="${foco}"]`)?.focus();
     aoMudar(r);
   }
 
@@ -110,8 +141,7 @@ export function dispersaoDinheiroVotos(linhas, { campo, largura, destaque = null
     caixa.innerHTML = `<p class="aviso-vazio">Poucos candidatos com ${ROTULO_CAMPO[campo]} e votos neste recorte para comparar.</p>`;
     return caixa;
   }
-  caixa.innerHTML = `<p class="dispersao-frase"><strong>${descreveCorrelacao(r)}</strong>
-    <span class="apoio">(correlação de Spearman ${String(r.toFixed(2)).replace('.', ',')}, ${formata.numero(comAmbos.length)} candidatos)</span></p>`;
+  caixa.innerHTML = `<p class="dispersao-frase"><strong>${descreveCorrelacao(r)}</strong></p>`;
   const ordenados = [...comAmbos].sort((a, b) => a.eleito - b.eleito);   // eleitos por cima
   caixa.append(Plot.plot({
     width: largura, height: Math.min(420, Math.max(260, largura * 0.55)), marginLeft: 64, marginBottom: 42,

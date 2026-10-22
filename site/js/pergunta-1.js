@@ -6,13 +6,13 @@
 // dos eleitos por partido quando não há a lista de candidatos, como nos vereadores de um estado inteiro, e a
 // nota de cada partido em cada ano, inclusive dos que já não existem).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em } from './comum.js?v=20261022';
-import { corIdeologia, COR } from './lib/cores.js?v=20261022';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261022';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261022';
-import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261022';
-import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe } from './pecas.js?v=20261022';
-import { montaPlenario2D } from './plenario-2d.js?v=20261022';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em } from './comum.js?v=20261107';
+import { corIdeologia, COR } from './lib/cores.js?v=20261107';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261107';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261107';
+import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261107';
+import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes } from './pecas.js?v=20261107';
+import { montaPlenario2D } from './plenario-2d.js?v=20261107';
 
 montaPagina();
 
@@ -131,7 +131,7 @@ async function desenhaPlenario(dados) {
   marcaVista(false);
   if (podeUsar3D()) {
     try {
-      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261022');
+      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261107');
       cena = montaPlenario3D(alvo, dados, aoEscolher);
       marcaVista(true);
       if (partidoFixo != null) cena.destaca(partidoFixo);
@@ -302,16 +302,28 @@ function desenhaDetalhe() {
   const doCargo = cands.filter(c => c.cargo === r.cargo);
   const eleitos = doCargo.filter(c => c.eleito).sort((a, b) => (b.votos ?? 0) - (a.votos ?? 0));
   const quem = escolhido?.candidato ?? null;
+  const cartao = quem ? cartaoPolitico(quem)
+    : `<p class="apoio">${dados?.ocupantes ? 'Clique numa cadeira do plenário, ou num dos eleitos abaixo, para ver quem se sentou nela.' : 'Escolha um dos eleitos abaixo para ver o cartão dele.'}</p>`;
+  // no mesmo recorte, trocar de eleito só muda o cartão e a tecla marcada: a lista e o gráfico ficam onde estão (e a
+  // tecla clicada termina a animação de apertar, em vez de ser trocada por outra)
+  if (desenhadoPara === atual && caixa.querySelector('.p1-politico')) {
+    caixa.querySelector('.p1-quem').innerHTML = cartao;
+    const marcada = String(eleitos.indexOf(quem));
+    caixa.querySelectorAll('.grupo-eleitos input').forEach(entrada => { entrada.checked = entrada.value === marcada; });
+    mostraMarcado(caixa.querySelector('.grupo-eleitos .teclas-opcoes'));
+    return;
+  }
+  desenhadoPara = atual;
   caixa.innerHTML = `<div class="p1-politico">
-      <div class="p1-cartao">${quem ? cartaoPolitico(quem)
-        : `<p class="apoio">${dados?.ocupantes ? 'Clique numa cadeira do plenário, ou escolha um eleito na lista, para ver quem se sentou nela.' : 'Escolha um eleito na lista para ver o cartão dele.'}</p>`}
-        <label class="campo campo-largo">Eleito <select id="escolhe-eleito"><option value="">escolher…</option>
-          ${eleitos.map((c, i) => `<option value="${i}"${c === quem ? ' selected' : ''}>${nomeDe(c)} (${c.sigla})</option>`).join('')}</select></label>
+      <div class="p1-cartao"><div class="p1-quem">${cartao}</div>
+        ${grupoOpcoes('eleito', `Os ${formata.numero(eleitos.length)} eleitos`, eleitos.map((c, i) => [i, `${nomeDe(c)} (${c.sigla})`]),
+          eleitos.indexOf(quem), { classe: 'grupo-eleitos' })}
       </div>
       <div class="p1-dispersao"><h3>Gasto e votos de todos os ${formata.numero(doCargo.length)} candidatos</h3></div>
     </div>`;
   caixa.querySelector('.p1-dispersao').append(dispersaoDinheiroVotos(doCargo, { campo: 'despesa', largura: Math.min(640, caixa.clientWidth || 600) }));
-  caixa.querySelector('#escolhe-eleito').addEventListener('change', e => {
+  mostraMarcado(caixa.querySelector('.grupo-eleitos .teclas-opcoes'));
+  caixa.querySelector('.grupo-eleitos').addEventListener('change', e => {
     const c = eleitos[Number(e.target.value)];
     if (!c) return;
     const k = dados?.ocupantes?.indexOf(c) ?? -1;
@@ -320,9 +332,18 @@ function desenhaDetalhe() {
   });
 }
 
+/** Rola a lista de eleitos até o marcado (por exemplo, escolhido numa cadeira do plenário), se ele estiver fora da vista. */
+function mostraMarcado(teclas) {
+  const marcado = teclas?.querySelector('input:checked')?.parentNode;
+  if (marcado && (marcado.offsetTop < teclas.scrollTop || marcado.offsetTop + marcado.offsetHeight > teclas.scrollTop + teclas.clientHeight)) {
+    teclas.scrollTop = marcado.offsetTop - (teclas.clientHeight - marcado.offsetHeight) / 2;
+  }
+}
+
 // ---------------------------------------------------------------- ciclo
 
 let pedido = 0;
+let desenhadoPara = null;   // o recorte (atual) cuja lista de eleitos está desenhada
 async function atualiza(r) {
   const meu = ++pedido;
   const [nome, doAno, cands] = await Promise.all([nomeLugar(r), custosDoAno(r), leCandidaturas(ueDoRecorte(r), r.ano)]);

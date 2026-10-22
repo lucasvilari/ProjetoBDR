@@ -5,11 +5,11 @@
 //
 // Dados: legenda/<ue>.json (eleitos, votos, quociente e os votos de cada chapa; UFs dos seis estados e seus
 // municípios) e legenda/resumo.json (eleitos e eleitos pela legenda por partido, ano, cargo e UF).
-import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261022';
-import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261022';
-import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261022';
-import { abreviaReais } from './lib/dinheiro.js?v=20261022';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261022';
+import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261107';
+import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261107';
+import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261107';
+import { abreviaReais } from './lib/dinheiro.js?v=20261107';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261107';
 
 montaPagina();
 
@@ -70,13 +70,15 @@ function svgCopo(c, id) {
 /** A jarra de uma chapa: começa com os votos dos colegas sem cadeira e de legenda e esvazia o que deu aos copos. */
 function svgJarra(j) {
   const nivel = j.inicio ? j.resta / j.inicio : 0;
-  return `<svg viewBox="0 0 48 70" class="jarra-svg" aria-hidden="true">
+  // desenhada espelhada: o bico fica do lado dos copos, para onde ela se inclina
+  return `<svg viewBox="0 0 48 70" class="jarra-svg" aria-hidden="true"><g transform="translate(48 0) scale(-1 1)">
     <clipPath id="jarra-${atual.chave}-${j.unidade}"><path d="M8 14 Q4 14 6 22 L8 64 Q8 68 12 68 L36 68 Q40 68 40 64 L42 22 Q44 14 40 14 Z"/></clipPath>
-    <rect class="liquido liquido-chapa jarra-nivel" clip-path="url(#jarra-${atual.chave}-${j.unidade})" x="0" y="${(14 + 54 * (1 - nivel)).toFixed(2)}" width="48" height="${(54 * nivel + 2).toFixed(2)}"/>
+    <rect class="liquido liquido-chapa jarra-nivel" clip-path="url(#jarra-${atual.chave}-${j.unidade})" x="0" y="14" width="48" height="56"
+      style="--nivel:${nivel.toFixed(3)}"/>
     <path class="vidro" d="M8 14 Q4 14 6 22 L8 64 Q8 68 12 68 L36 68 Q40 68 40 64 L42 22 Q44 14 40 14 Z"/>
     <path class="vidro" d="M40 22 Q50 26 46 40 Q44 46 40 46" fill="none"/>
     <path class="vidro" d="M8 14 L4 8 L14 10" fill="none"/>
-  </svg>`;
+  </g></svg>`;
 }
 
 function desenhaCopos(rec, unidades, ano) {
@@ -91,17 +93,21 @@ function desenhaCopos(rec, unidades, ano) {
     .sort((a, b) => b.eleitos.length - a.eleitos.length || b.eleitos[0].votos - a.eleitos[0].votos);
   return grupos.map(g => {
     const legenda = g.eleitos.filter(e => porLegenda(e, q)).length;
-    return `<section class="chapa" aria-label="${g.nome}: ${g.eleitos.length} ${g.eleitos.length === 1 ? 'cadeira' : 'cadeiras'}">
+    // a jarra começa cheia (os copos só com os votos de cada eleito); o leitor a esvazia nos copos
+    const comJarra = Boolean(g.chapa && (g.jarra.inicio || g.eleitos.some(e => copos.get(e.pid).dosPuxadores)));
+    return `<section class="chapa${comJarra ? ' jarra-cheia' : ''}" data-u="${g.u}" aria-label="${g.nome}: ${g.eleitos.length} ${g.eleitos.length === 1 ? 'cadeira' : 'cadeiras'}">
       <div class="chapa-topo"><b>${g.nome}</b>
         <span class="apoio">${g.eleitos.length} ${g.eleitos.length === 1 ? 'cadeira' : 'cadeiras'}${legenda ? `, ${legenda} pela legenda` : ''}
           ${g.chapa ? ` · ${votosCurto(g.chapa.nominais + g.chapa.legenda)} votos na chapa` : ''}</span></div>
       <div class="chapa-corpo">
         ${g.chapa ? `<figure class="jarra" title="Votos dos colegas sem cadeira e de legenda: ${formata.numero(g.jarra.inicio)}; sobraram ${formata.numero(g.jarra.resta)}">
-          ${svgJarra(g.jarra)}<figcaption>jarra: ${votosCurto(g.jarra.inicio)}<br><span class="apoio">${g.jarra.resta ? `sobrou ${votosCurto(g.jarra.resta)}` : 'esvaziou'}</span></figcaption></figure>` : ''}
+          ${svgJarra(g.jarra)}<figcaption>jarra: ${votosCurto(g.jarra.inicio)}<br><span class="apoio jarra-estado"
+            data-depois="${g.jarra.resta ? `sobrou ${votosCurto(g.jarra.resta)}` : 'esvaziou'}">${comJarra ? 'cheia' : g.jarra.resta ? `sobrou ${votosCurto(g.jarra.resta)}` : 'esvaziou'}</span></figcaption>
+          ${comJarra ? '<button type="button" class="botao jarra-botao" aria-pressed="false">Esvaziar a jarra</button>' : ''}</figure>` : ''}
         <ol class="fila-copos">${g.eleitos.map((e, i) => {
           const c = copos.get(e.pid);
           const cor = corIdeologia(nota(e.sigla, ano));
-          return `<li><button type="button" class="copo${porLegenda(e, q) ? ' pela-legenda' : ''}${c.transborda ? ' puxador' : ''}" data-pid="${e.pid}"
+          return `<li style="--i:${i}"><button type="button" class="copo${porLegenda(e, q) ? ' pela-legenda' : ''}${c.transborda ? ' puxador' : ''}" data-pid="${e.pid}"
               aria-label="${e.nome ?? 'eleito'} (${e.sigla}): ${formata.numero(e.votos)} votos${c.transborda ? `, ${formata.numero(c.transborda)} acima do quociente` : `, ${formata.numero(q - e.votos)} abaixo do quociente`}">
             ${c.transborda ? `<span class="copo-sobra">+${votosCurto(c.transborda)}</span>` : '<span class="copo-sobra"></span>'}
             ${svgCopo(c, `${atual.chave}-${g.u}-${i}`)}
@@ -114,15 +120,15 @@ function desenhaCopos(rec, unidades, ano) {
   }).join('');
 }
 
-/** Na primeira vez, os copos se enchem: primeiro os próprios votos, depois a sobra dos puxadores, por fim a jarra. */
+/** Na primeira vez, os copos se enchem com os votos de cada eleito, e os puxadores transbordam. A sobra dos puxadores
+ *  e a jarra só entram nos copos quando o leitor esvazia a jarra (ou quando a chapa não tem jarra). */
 function animaCopos(caixa) {
-  const ordem = [['.liquido-proprio:not(.transbordo):not(.escorre)', 0], ['.transbordo, .escorre', 450], ['.liquido-puxadores', 650], ['.copo .liquido-chapa', 1050]];
+  const ordem = [['.liquido-proprio:not(.transbordo):not(.escorre)', 0], ['.transbordo, .escorre', 450],
+    ['.chapa:not(.jarra-cheia) .liquido-puxadores', 650], ['.chapa:not(.jarra-cheia) .copo .liquido-chapa', 1050]];
   for (const [seletor, atraso] of ordem) {
     caixa.querySelectorAll(seletor).forEach((el, i) => el.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
       { duration: 420, delay: atraso + Math.min(i, 30) * 18, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
   }
-  caixa.querySelectorAll('.jarra-nivel').forEach(el => el.animate([{ transform: 'translateY(-60px)' }, { transform: 'translateY(0)' }],
-    { duration: 700, delay: 1050, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
 }
 
 // ---------------------------------------------------------------- o eleito escolhido
@@ -242,7 +248,24 @@ async function atualiza(r) {
   primeiraPintura = false;
 }
 
-document.getElementById('copos').addEventListener('click', e => { const b = e.target.closest('.copo'); if (b) mostraCartao(b.dataset.pid); });
+document.getElementById('copos').addEventListener('click', e => {
+  const b = e.target.closest('.copo');
+  if (b) { mostraCartao(b.dataset.pid); return; }
+  // esvaziar a jarra enche os copos com a sobra dos puxadores e os votos da chapa; encher de novo desfaz a distribuição
+  const botao = e.target.closest('.jarra-botao');
+  if (!botao) return;
+  const chapa = botao.closest('.chapa');
+  const cheia = chapa.classList.toggle('jarra-cheia');
+  botao.setAttribute('aria-pressed', String(!cheia));
+  botao.textContent = cheia ? 'Esvaziar a jarra' : 'Encher de novo';
+  const estado = chapa.querySelector('.jarra-estado');
+  estado.textContent = cheia ? 'cheia' : estado.dataset.depois;
+  // a jarra se inclina para os copos enquanto o líquido passa (para despejar ou, ao encher de novo, para receber)
+  if (!reduz()) {
+    chapa.querySelector('.jarra-svg').animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(30deg)', offset: 0.22 },
+      { transform: 'rotate(30deg)', offset: 0.72 }, { transform: 'rotate(0deg)' }], { duration: 1500, easing: 'ease-in-out' });
+  }
+});
 
 const brasil = await carregaDados('mapa/brasil.json');
 montaSeletor(document.getElementById('recorte'), {

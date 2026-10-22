@@ -6,12 +6,12 @@
 // para cada candidatura dos políticos com nome), candidaturas/<ue>-<ano>.json (votos e gasto de cada candidato),
 // politicos/ (busca e carreira).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261022';
-import { ueDoRecorte } from './lib/recorte.js?v=20261022';
-import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261022';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261022';
-import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261022';
-import { cenaDaRua, CURTO } from './rua.js?v=20261022';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
+import { ueDoRecorte } from './lib/recorte.js?v=20261107';
+import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261107';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261107';
+import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261107';
+import { cenaDaRua, ceuDePalavras, VISTAS, CURTO } from './rua.js?v=20261107';
 
 montaPagina();
 
@@ -81,9 +81,28 @@ function porObjeto(gasto, tipos) {
   return { valores, detalhes };
 }
 
-function desenhaRua({ valores, detalhes }) {
+// a cor das palavras no céu: do cinza (pouco dinheiro) à tecla (muito), em escala logarítmica
+function corDasPalavras(palavras) {
+  const vs = palavras.map(p => p[2]).filter(v => v > 0);
+  const tom = d3.scaleLog().domain([Math.max(1, d3.min(vs) ?? 1), Math.max(2, d3.max(vs) ?? 2)]).range([0, 1]).clamp(true);
+  return v => d3.interpolateRgb('#7a705c', '#22201c')(tom(Math.max(1, v)));
+}
+
+function desenhaRua({ valores, detalhes }, palavras, exemplos, titulo) {
   const caixa = document.getElementById('rua');
-  caixa.innerHTML = cenaDaRua(valores, compacto);
+  exemplosAtuais = exemplos;
+  palavrasAtuais = palavras;
+  caixa.innerHTML = cenaDaRua(valores, compacto, ceuDePalavras(palavras, corDasPalavras(palavras)));
+  vaiPara('rua', false);
+  const seta = document.getElementById('ver-ceu');
+  seta.hidden = !palavras.length;
+  document.getElementById('painel-palavras').innerHTML = palavras.length
+    ? `<p class="painel-palavras-titulo">${titulo}</p>
+      <p class="apoio">Suba ao céu pela seta acima da rua: cada nuvem é uma palavra das descrições das despesas, do tamanho de
+        quantas vezes ela aparece. Clique numa nuvem para ver em que despesas ela entra.</p>
+      <p class="legenda-grafico"><span class="degrade-tv"><span>cor da palavra: menos dinheiro</span><i aria-hidden="true"></i><span>mais dinheiro</span></span></p>
+      <div id="exemplos-palavra"></div>`
+    : `<p class="painel-palavras-titulo">${titulo}</p><p class="apoio">Sem descrições de despesa.</p>`;
   const total = d3.sum(Object.values(valores));
   const texto = id => {
     const o = OBJETOS.find(x => x.id === id), v = valores[id] ?? 0;
@@ -113,51 +132,53 @@ function desenhaRua({ valores, detalhes }) {
 
 /** A TV: as palavras das descrições, do tamanho da frequência e da cor do dinheiro que passou por elas. */
 let exemplosAtuais = null;      // (índice da palavra) -> promessa das despesas de exemplo dela
+let palavrasAtuais = [];
+let vista = 'rua';
 
-/** A TV: as palavras das descrições, do tamanho da frequência e da cor do dinheiro que passou por elas. Cada palavra
- *  é um botão que mostra, abaixo da TV, as despesas de maior valor em que ela aparece. */
-function desenhaTV(palavras, titulo, exemplos) {
-  const caixa = document.getElementById('tv');
-  exemplosAtuais = exemplos;
-  if (!palavras.length) {
-    caixa.innerHTML = `<div class="tv"><div class="tv-tela"><p class="tv-titulo">${titulo}</p><p class="tv-vazia">Sem descrições de despesa.</p></div></div>`;
-    return;
-  }
-  const fMax = d3.max(palavras, p => p[1]);
-  const vs = palavras.map(p => p[2]).filter(v => v > 0);
-  const tom = d3.scaleLog().domain([Math.max(1, d3.min(vs) ?? 1), Math.max(2, d3.max(vs) ?? 2)]).range([0, 1]).clamp(true);
-  const cor = v => d3.interpolateRgb('#7a705c', '#22201c')(tom(Math.max(1, v)));
-  // ordem embaralhada (sempre a mesma), para as palavras grandes não ficarem todas juntas
-  const mistura = w => [...w].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 9973, 7);
-  const ordem = palavras.map((p, i) => [...p, i]).sort((a, b) => mistura(a[0]) - mistura(b[0]));
-  caixa.innerHTML = `<div class="tv">
-    <span class="tv-antena" aria-hidden="true"></span>
-    <div class="tv-tela"><p class="tv-titulo">${titulo}</p>
-      <p class="nuvem" role="group" aria-label="${titulo}">${ordem.map(([w, f, v, i]) => `<button type="button" class="palavra" data-i="${i}" aria-pressed="false"
-        style="font-size:${(0.8 + 1.9 * Math.sqrt(f / fMax)).toFixed(2)}rem;color:${cor(v)}"
-        title="${w}: ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'}">${w}</button>`).join(' ')}</p></div>
-    <span class="tv-pes" aria-hidden="true"></span></div>
-    <p class="legenda-grafico"><span>Tamanho: quantas vezes a palavra aparece.</span>
-      <span class="degrade-tv"><span>cor: menos dinheiro</span><i aria-hidden="true"></i><span>mais dinheiro</span></span></p>
-    <div class="exemplos-palavra" id="exemplos-palavra" aria-live="polite">
-      <p class="apoio">Clique numa palavra para ver em que despesas ela aparece.</p></div>`;
-  caixa.dataset.palavras = JSON.stringify(palavras);
+/** Leva a cena de uma vista à outra animando o viewBox: a rua de perto, ou afastada com o céu de nuvens em cima. */
+function vaiPara(destino, animar = true) {
+  const svg = document.querySelector('#rua .rua-svg');
+  const seta = document.getElementById('ver-ceu');
+  vista = destino;
+  document.querySelector('.rua-moldura').classList.toggle('vendo-ceu', destino === 'ceu');
+  seta.setAttribute('aria-pressed', String(destino === 'ceu'));
+  seta.innerHTML = destino === 'ceu' ? '<span aria-hidden="true">↓</span> De volta à rua'
+    : '<span aria-hidden="true">↑</span> As palavras das despesas, no céu';
+  svg?.querySelectorAll('.nuvem').forEach(n => n.setAttribute('tabindex', destino === 'ceu' ? '0' : '-1'));
+  if (!svg) return;
+  const de = svg.getAttribute('viewBox').split(' ').map(Number), para = VISTAS[destino];
+  if (!animar || reduz()) { svg.setAttribute('viewBox', para.join(' ')); return; }
+  const inicio = performance.now(), DURA = 1100;
+  const suave = t => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+  const passo = agora => {
+    const t = Math.min(1, (agora - inicio) / DURA), k = suave(t);
+    svg.setAttribute('viewBox', de.map((v, i) => (v + (para[i] - v) * k).toFixed(2)).join(' '));
+    if (t < 1 && vista === destino) requestAnimationFrame(passo);
+  };
+  requestAnimationFrame(passo);
 }
 
-document.getElementById('tv').addEventListener('click', async e => {
-  const b = e.target.closest('.palavra');
-  if (!b || !exemplosAtuais) return;
-  const caixa = document.getElementById('tv');
-  caixa.querySelectorAll('.palavra').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  const [w, f] = JSON.parse(caixa.dataset.palavras)[Number(b.dataset.i)];
+document.getElementById('ver-ceu').addEventListener('click', () => vaiPara(vista === 'ceu' ? 'rua' : 'ceu'));
+
+/** Clicar (ou Enter) numa nuvem mostra as despesas de maior valor em que a palavra aparece. */
+async function abreNuvem(nuvem) {
+  if (!exemplosAtuais) return;
+  document.querySelectorAll('#rua .nuvem').forEach(x => x.classList.toggle('escolhida', x === nuvem));
+  const i = Number(nuvem.dataset.i);
+  const [w, f] = palavrasAtuais[i];
   const alvo = document.getElementById('exemplos-palavra');
   alvo.innerHTML = '<p class="apoio">Buscando as despesas…</p>';
-  const lista = await exemplosAtuais(Number(b.dataset.i));
-  if (b.getAttribute('aria-pressed') !== 'true') return;          // o leitor já clicou em outra palavra
-  alvo.innerHTML = `<p><b>“${w}”</b> aparece ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'} nas descrições das despesas.
+  const lista = await exemplosAtuais(i);
+  if (!nuvem.classList.contains('escolhida')) return;          // o leitor já clicou em outra nuvem
+  alvo.innerHTML = `<div class="exemplos-palavra"><p><b>“${w}”</b> aparece ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'} nas descrições das despesas.
       ${lista.length ? `${lista.length === 1 ? 'A despesa de maior valor em que ela aparece' : 'As despesas de maior valor em que ela aparece'}
       (o trecho da nota com a palavra e o valor da despesa inteira):` : ''}</p>
-    ${lista.length ? `<ul class="lista-exemplos">${lista.map(([texto, valor]) => `<li><span>${texto}</span><b>${formata.real(valor)}</b></li>`).join('')}</ul>` : ''}`;
+    ${lista.length ? `<ul class="lista-exemplos">${lista.map(([texto, valor]) => `<li><span>${texto}</span><b>${formata.real(valor)}</b></li>`).join('')}</ul>` : ''}</div>`;
+}
+document.getElementById('rua').addEventListener('click', e => { const n = e.target.closest('.nuvem'); if (n) abreNuvem(n); });
+document.getElementById('rua').addEventListener('keydown', e => {
+  const n = e.target.closest('.nuvem');
+  if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abreNuvem(n); }
 });
 
 // ---------------------------------------------------------------- gasto, votos e custo por voto
@@ -233,18 +254,19 @@ async function atualiza(r) {
   const quem = pessoaAtual ? pessoaAtual.nome : nome;
   document.getElementById('t-rua').innerHTML = `<span class="sobre">${minusculo(r.cargo)} · ${nome} · ${r.ano}</span>
     A rua ${pessoaAtual ? `de ${quem}` : em(nome).replace(/^(em|no|na|nos|nas) /, m => ({ 'em ': 'de ', 'no ': 'do ', 'na ': 'da ', 'nos ': 'dos ', 'nas ': 'das ' })[m])}`;
-  desenhaRua(porObjeto(dados.gasto, dados.tipos));
-  if (!total) {
-    document.getElementById('detalhe-rua').innerHTML = `<span class="aviso-vazio">${pessoaAtual
-      ? `${quem} não declarou despesas nesta candidatura.` : `Nenhuma despesa declarada para ${minusculo(r.cargo)} ${em(nome)} em ${r.ano}.`}</span>`;
-  }
+
   // os exemplos de cada palavra só são baixados no primeiro clique
   const exemplos = pessoaAtual
     ? i => carregaDados(`propaganda/exemplos/pessoas/${Math.floor((pessoaAtual.pid - 1) / tabelas.por_arquivo)}.json`)
       .then(a => a.pessoas[pessoaAtual.pid]?.[`${r.ano}|${r.cargo}`]).then(e => (e?.por_palavra[i] ?? []).map(j => e.descricoes[j])).catch(() => [])
     : i => carregaDados(`propaganda/exemplos/${ue}.json`)
       .then(a => a.anos[r.ano]?.[r.cargo]).then(e => (e?.por_palavra[i] ?? []).map(j => e.descricoes[j])).catch(() => []);
-  desenhaTV(dados.palavras, pessoaAtual ? `O que ${quem.split(' ')[0]} mais comprou` : 'O que mais aparece nas despesas', exemplos);
+  desenhaRua(porObjeto(dados.gasto, dados.tipos), dados.palavras, exemplos,
+    pessoaAtual ? `O que ${quem.split(' ')[0]} mais comprou` : 'O que mais aparece nas despesas');
+  if (!total) {
+    document.getElementById('detalhe-rua').innerHTML = `<span class="aviso-vazio">${pessoaAtual
+      ? `${quem} não declarou despesas nesta candidatura.` : `Nenhuma despesa declarada para ${minusculo(r.cargo)} ${em(nome)} em ${r.ano}.`}</span>`;
+  }
 
   const lado = document.getElementById('lado');
   const eu = pessoaAtual && cands.find(c => c.pid === pessoaAtual.pid);
