@@ -1151,7 +1151,7 @@ class ExemplosDePalavras:
     """Para cada palavra de `alvos`, as k despesas de maior valor cuja descrição a contém, cada uma mostrada pelo item
     da nota em que a palavra aparece (sem repetir texto): o que o site mostra quando o leitor clica numa palavra da TV.
     O valor é o da despesa inteira."""
-    def __init__(self, alvos, k=2):
+    def __init__(self, alvos, k=3):
         self.alvos, self.k, self.melhores = set(alvos), k, defaultdict(dict)    # palavra -> {descrição: valor}
 
     def soma(self, descricao, valor):

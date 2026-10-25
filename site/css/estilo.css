@@ -778,13 +778,30 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .rotulo-rua { font-size: 12px; font-weight: 800; text-anchor: middle; fill: var(--tecla); paint-order: stroke; stroke: var(--visor); stroke-width: 4; }
 .valor-rua { font-size: 12px; font-weight: 650; text-anchor: middle; fill: var(--tinta-2); paint-order: stroke; stroke: var(--visor); stroke-width: 4; }
 .detalhe-rua { min-height: 3em; margin: var(--m1) 0 0; max-width: var(--medida); }
-.exemplos-palavra { max-width: 46rem; margin: var(--m2) 0 0; padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
-.exemplos-palavra p { margin: 0; max-width: none; }
-.lista-exemplos { list-style: none; padding: 0; margin: var(--m1) 0 0; display: grid; gap: 0.35rem; }
-.lista-exemplos li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--m2); max-width: none;
-  padding-top: 0.35rem; border-top: 1px dotted var(--urna-funda); font-size: 0.92rem; }
-.lista-exemplos span { font-family: ui-monospace, monospace; font-size: 0.85rem; overflow-wrap: anywhere; }
-.lista-exemplos b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* pergunta 9: o detalhe de uma nuvem é uma notinha fiscal, com as bordas de cima e de baixo serrilhadas */
+.nota-fiscal { --dente: 8px; max-width: 26rem; margin: var(--m2) 0 0; padding: calc(var(--m2) + var(--dente)) var(--m2);
+  background: #fffefa; color: var(--tecla); font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-size: 0.84rem; line-height: 1.45;
+  filter: drop-shadow(0 4px 6px rgb(60 40 10 / 0.22));
+  --serra: conic-gradient(from -45deg at 50% var(--dente), #000 90deg, #0000 0) 50% 0 / calc(2 * var(--dente)) 51% repeat-x,
+           conic-gradient(from 135deg at 50% calc(100% - var(--dente)), #000 90deg, #0000 0) 50% 100% / calc(2 * var(--dente)) 51% repeat-x,
+           linear-gradient(#000 0 0) 0 var(--dente) / 100% calc(100% - 2 * var(--dente)) no-repeat;
+  -webkit-mask: var(--serra); mask: var(--serra);
+  transform-origin: 50% 0; animation: imprime 420ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+@keyframes imprime { from { clip-path: inset(0 0 100% 0); transform: translateY(-6px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+.nota-fiscal p { margin: 0; max-width: none; }
+.nota-cabeca { display: grid; justify-items: center; text-align: center; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--tecla); }
+.nota-cabeca b { font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.nota-cabeca span { font-size: 0.75rem; text-transform: uppercase; color: var(--tinta-2); }
+.nota-palavra { padding: 0.5rem 0; text-transform: uppercase; }
+.nota-legenda, .nota-rodape { display: flex; justify-content: space-between; gap: var(--m1); text-transform: uppercase; font-size: 0.72rem; color: var(--tinta-2);
+  border-top: 1px dashed var(--tecla); padding-top: 0.35rem; }
+.nota-itens { list-style: none; margin: 0.3rem 0 0.5rem; padding: 0; display: grid; gap: 0.45rem; }
+.nota-itens li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 var(--m1); align-items: baseline; max-width: none; }
+.nota-n { color: var(--tinta-2); }
+.nota-texto { overflow-wrap: anywhere; }
+.nota-itens b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.nota-rodape { padding: 0.45rem 0 0.2rem; font-size: 0.84rem; color: var(--tecla); border-top-style: double; border-top-width: 3px; }
+.nota-pe { margin-top: 0.4rem !important; text-align: center; font-size: 0.7rem; color: var(--tinta-2); }
 .degrade-tv { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .degrade-tv span { white-space: nowrap; }
 .degrade-tv i { display: inline-block; width: 5rem; height: 0.7rem; border: 1px solid var(--tecla); border-radius: 3px;

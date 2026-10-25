@@ -6,12 +6,12 @@
 // para cada candidatura dos políticos com nome), candidaturas/<ue>-<ano>.json (votos e gasto de cada candidato),
 // politicos/ (busca e carreira).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
-import { ueDoRecorte } from './lib/recorte.js?v=20261107';
-import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261107';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261107';
-import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261107';
-import { cenaDaRua, ceuDePalavras, VISTAS, CURTO } from './rua.js?v=20261107';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
+import { ueDoRecorte } from './lib/recorte.js?v=20261109';
+import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261109';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261109';
+import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261109';
+import { cenaDaRua, ceuDePalavras, VISTAS, CURTO } from './rua.js?v=20261109';
 
 montaPagina();
 
@@ -170,10 +170,16 @@ async function abreNuvem(nuvem) {
   alvo.innerHTML = '<p class="apoio">Buscando as despesas…</p>';
   const lista = await exemplosAtuais(i);
   if (!nuvem.classList.contains('escolhida')) return;          // o leitor já clicou em outra nuvem
-  alvo.innerHTML = `<div class="exemplos-palavra"><p><b>“${w}”</b> aparece ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'} nas descrições das despesas.
-      ${lista.length ? `${lista.length === 1 ? 'A despesa de maior valor em que ela aparece' : 'As despesas de maior valor em que ela aparece'}
-      (o trecho da nota com a palavra e o valor da despesa inteira):` : ''}</p>
-    ${lista.length ? `<ul class="lista-exemplos">${lista.map(([texto, valor]) => `<li><span>${texto}</span><b>${formata.real(valor)}</b></li>`).join('')}</ul>` : ''}</div>`;
+  // o detalhe da nuvem é uma notinha fiscal: cada despesa em que a palavra aparece é um item, com o valor da despesa
+  alvo.innerHTML = `<div class="nota-fiscal" role="group" aria-label="Despesas com a palavra ${w}">
+    <p class="nota-cabeca"><b>Olho do Povo</b><span>cupom de despesas de campanha</span></p>
+    <p class="nota-palavra">palavra: <b>“${w}”</b></p>
+    ${lista.length ? `<p class="nota-legenda"><span>trecho da nota</span><span>valor</span></p>
+    <ol class="nota-itens">${lista.map(([texto, valor], k) => `<li><span class="nota-n">${String(k + 1).padStart(3, '0')}</span>
+      <span class="nota-texto">${texto}</span><b>${formata.real(valor)}</b></li>`).join('')}</ol>` : '<p class="nota-legenda">nenhuma despesa a mostrar</p>'}
+    <p class="nota-rodape"><span>aparece</span><b>${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'}</b></p>
+    <p class="nota-pe">${lista.length > 1 ? 'as despesas de maior valor com a palavra' : 'a despesa de maior valor com a palavra'}; o valor é o da despesa inteira</p>
+  </div>`;
 }
 document.getElementById('rua').addEventListener('click', e => { const n = e.target.closest('.nuvem'); if (n) abreNuvem(n); });
 document.getElementById('rua').addEventListener('keydown', e => {

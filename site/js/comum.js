@@ -1,7 +1,7 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-import { PERGUNTAS } from './lib/perguntas.js?v=20261107';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261109';
 
 // a navegação são as teclas da urna: uma por pergunta respondida, com o título por extenso no rótulo
 const PAGINAS = PERGUNTAS.filter(p => p.href).map(p => ({ id: `pergunta-${p.n}`, rotulo: String(p.n), titulo: p.titulo, href: p.href }));
@@ -128,7 +128,7 @@ const cache = new Map();
 
 /** Lê um arquivo JSON de dados/, uma vez por página. */
 // a mesma versão do ?v= dos scripts: depois de publicar, o navegador não mistura script novo com dado velho
-const VERSAO = '20261107';
+const VERSAO = '20261109';
 
 export function carregaDados(caminho) {
   if (!cache.has(caminho)) {

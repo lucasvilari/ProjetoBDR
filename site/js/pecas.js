@@ -1,10 +1,10 @@
 // Peças que as páginas das perguntas dividem: o seletor de recorte (ano, cargo, lugar), a leitura
 // dos candidatos de um recorte, o gráfico de dinheiro × votos e o cartão de um político.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261107';
-import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261107';
-import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261107';
-import { COR } from './lib/cores.js?v=20261107';
+import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261109';
+import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261109';
+import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261109';
+import { COR } from './lib/cores.js?v=20261109';
 
 export const UFS_PROJETO = ['AP', 'MG', 'MS', 'PB', 'RO', 'RR'];
 // a capital de cada estado, o município aberto quando a página precisa de um

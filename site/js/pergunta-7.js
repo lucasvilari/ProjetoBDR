@@ -8,9 +8,9 @@
 // O recorte (cargo, ano, régua, UF, município e partido em destaque) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
-import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261107';
-import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261107';
+import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
+import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261109';
+import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261109';
 
 montaPagina();
 

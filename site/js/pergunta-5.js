@@ -5,11 +5,11 @@
 //
 // Dados: legenda/<ue>.json (eleitos, votos, quociente e os votos de cada chapa; UFs dos seis estados e seus
 // municípios) e legenda/resumo.json (eleitos e eleitos pela legenda por partido, ano, cargo e UF).
-import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261107';
-import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261107';
-import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261107';
-import { abreviaReais } from './lib/dinheiro.js?v=20261107';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261107';
+import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261109';
+import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261109';
+import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261109';
+import { abreviaReais } from './lib/dinheiro.js?v=20261109';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261109';
 
 montaPagina();
 

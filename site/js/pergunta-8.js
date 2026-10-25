@@ -8,12 +8,12 @@
 // candidaturas/<ue>-<ano>.json (cada candidato, com receita, receita pública e votos).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261107';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261107';
-import { COR } from './lib/cores.js?v=20261107';
-import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261107';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261107';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261107';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261109';
+import { COR } from './lib/cores.js?v=20261109';
+import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261109';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261109';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261109';
 
 montaPagina();
 
