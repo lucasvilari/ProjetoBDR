@@ -1,7 +1,7 @@
 // O oráculo: um olho flutuante, no canto da tela, que acompanha o ponteiro. Clicado, abre um painel que lê o que a
 // página mostra agora (o retrato: o recorte escolhido, os números calculados e o que o leitor abriu) e pede uma
 // interpretação desses dados à função do oráculo na Cloudflare (pasta oraculo/ do repositório), que responde aos poucos.
-import { retratoEmTexto } from './lib/retrato.js?v=20261156';
+import { retratoEmTexto } from './lib/retrato.js?v=20261157';
 
 let montaRetrato = null;
 

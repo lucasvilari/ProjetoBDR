@@ -6,14 +6,14 @@
 // dos eleitos por partido quando não há a lista de candidatos, como nos vereadores de um estado inteiro, e a
 // nota de cada partido em cada ano, inclusive dos que já não existem).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { comparacao } from './lib/retrato.js?v=20261156';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261156';
-import { corIdeologia, COR } from './lib/cores.js?v=20261156';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261156';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261156';
-import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261156';
-import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes, AVISO_CONTAS_2026 } from './pecas.js?v=20261156';
-import { montaPlenario2D } from './plenario-2d.js?v=20261156';
+import { comparacao } from './lib/retrato.js?v=20261157';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
+import { corIdeologia, COR } from './lib/cores.js?v=20261157';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261157';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261157';
+import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261157';
+import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes, AVISO_CONTAS_2026 } from './pecas.js?v=20261157';
+import { montaPlenario2D } from './plenario-2d.js?v=20261157';
 
 montaPagina();
 
@@ -30,6 +30,7 @@ let modo = 'partido';            // o que o painel de detalhe mostra
 let atual = null;                // { r, nome, custo, lista, cands, dados } do recorte desenhado
 let escolhido = null;            // a cadeira escolhida: { assento, partido, candidato }
 let partidoFixo = null;          // o partido escolhido (pela cadeira ou pela legenda), aceso no plenário
+let pidDoLink = null;            // o candidato pedido no endereço (pid, de um link da cabine): abre uma vez, na chegada
 
 // ---------------------------------------------------------------- leitura do recorte
 
@@ -132,7 +133,7 @@ async function desenhaPlenario(dados) {
   marcaVista(false);
   if (podeUsar3D()) {
     try {
-      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261156');
+      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261157');
       cena = montaPlenario3D(alvo, dados, aoEscolher);
       marcaVista(true);
       if (partidoFixo != null) cena.destaca(partidoFixo);
@@ -388,10 +389,15 @@ async function atualiza(r) {
   atual = { r, nome, custo, lista, cands, dados: total ? dadosDoPlenario(total, lista, cands, custo, r) : null };
   escolhido = null;
   partidoFixo = null;
+  const doLink = pidDoLink ? cands.find(c => c.pid === pidDoLink && c.cargo === r.cargo) : null;
+  pidDoLink = null;
+  if (doLink) escolhido = { assento: null, partido: null, candidato: doLink };
   await desenhaTopo();
   desenhaSantinho();
   desenhaMoedas();
-  desenhaDetalhe();
+  if (!doLink) { desenhaDetalhe(); return; }
+  mudaModo('politico');
+  document.getElementById('detalhe').scrollIntoView({ block: 'start' });
 }
 
 // ---------------------------------------------------------------- o retrato para o oráculo
@@ -468,6 +474,7 @@ registraRetrato(() => {
   };
 });
 
+pidDoLink = Number(new URLSearchParams(location.hash.slice(1)).get('pid')) || null;
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,
   aviso: AVISO_CONTAS_2026,

@@ -1318,6 +1318,17 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .cabine-estado:empty { display: none; }
 .cabine-resposta { margin-inline: auto; line-height: 1.6; white-space: pre-wrap; max-width: var(--medida); }
 .cabine-resposta:empty { display: none; }
-.cabine-fontes h2 { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); margin: 0 0 0.3rem; }
-.cabine-fontes ul { margin: 0; padding-left: 1.2rem; }
+/* os cartões abaixo da resposta: um por político ou lugar, com os links das perguntas já no recorte dele */
+.cabine-cartoes h2 { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-2); margin: 0 0 0.5rem; }
+.cabine-cartoes-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--m2); }
+.cabine-cartao { background: var(--papel); border: 2px solid var(--tecla); border-radius: 6px; box-shadow: var(--sombra-papel); overflow: hidden; }
+.cabine-cartao .santinho-faixa { font-size: 0.72rem; padding: 0.4rem 0.7rem; }
+.cabine-cartao-quem { display: flex; gap: 0.6rem; align-items: center; padding: 0.6rem 0.7rem 0.3rem; }
+.cabine-cartao-quem b { display: block; line-height: 1.2; }
+.cabine-cartao-quem span { display: block; font-size: 0.82rem; color: var(--tinta-2); }
+.cabine-cartao-foto { width: 2.8rem; height: 3.5rem; object-fit: cover; border-radius: 4px; border: 1.5px solid var(--tecla); flex: none; }
+.cabine-cartao ul { list-style: none; margin: 0; padding: 0.2rem 0.7rem 0.7rem; display: grid; gap: 0.15rem; font-size: 0.9rem; }
+.cabine-cartao li a::before { content: "→ "; }
 @media (max-width: 600px) { .cabine { padding: var(--m2); } }
+/* o candidato aberto por um link da cabine, nas listas das perguntas 2 e 8 */
+.moradores li.destacado, .torneiras li.destacado { background: var(--ouro-fundo); outline: 2.5px solid var(--ouro-escuro); outline-offset: 2px; border-radius: 6px; }

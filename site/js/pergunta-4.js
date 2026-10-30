@@ -7,14 +7,14 @@
 // de quem recebeu os votos em cada município) e escolaridade/estados.json (os mesmos níveis nas 27 UFs, no texto que
 // aparece ao passar o ponteiro pelo mini mapa).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261156';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261156';
-import { comparacao } from './lib/retrato.js?v=20261156';
-import { forcaDaRelacao } from './lib/dinheiro.js?v=20261156';
-import { quintis } from './lib/indices.js?v=20261156';
-import { janelasDoAndar } from './lib/predio.js?v=20261156';
-import { NOMES_NIVEIS, nivelEmPalavras, taxa, pearson } from './lib/escolaridade.js?v=20261156';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261156';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261157';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261157';
+import { comparacao } from './lib/retrato.js?v=20261157';
+import { forcaDaRelacao } from './lib/dinheiro.js?v=20261157';
+import { quintis } from './lib/indices.js?v=20261157';
+import { janelasDoAndar } from './lib/predio.js?v=20261157';
+import { NOMES_NIVEIS, nivelEmPalavras, taxa, pearson } from './lib/escolaridade.js?v=20261157';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261157';
 
 montaPagina();
 

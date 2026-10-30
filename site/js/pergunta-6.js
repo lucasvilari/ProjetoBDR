@@ -7,15 +7,15 @@
 // Dados: idade/idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos, parcela de
 // votantes até 34 anos e idade média de quem recebeu os votos para prefeito e vereador, em 2020 e 2024).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261156';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261156';
-import { comparacao } from './lib/retrato.js?v=20261156';
-import { corIdeologia } from './lib/cores.js?v=20261156';
-import { forcaDaRelacao } from './lib/dinheiro.js?v=20261156';
-import { quintis } from './lib/indices.js?v=20261156';
-import { pearson } from './lib/escolaridade.js?v=20261156';
-import { trocas, alternancia } from './lib/idade.js?v=20261156';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261156';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261157';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261157';
+import { comparacao } from './lib/retrato.js?v=20261157';
+import { corIdeologia } from './lib/cores.js?v=20261157';
+import { forcaDaRelacao } from './lib/dinheiro.js?v=20261157';
+import { quintis } from './lib/indices.js?v=20261157';
+import { pearson } from './lib/escolaridade.js?v=20261157';
+import { trocas, alternancia } from './lib/idade.js?v=20261157';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261157';
 
 montaPagina();
 

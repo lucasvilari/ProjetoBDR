@@ -5,13 +5,13 @@
 // Dados: mapa/brasil.json e mapa/municipios/UF.json (candidatos e eleitos por faixa, para todo recorte);
 // candidaturas/<ue>-<ano>.json (cada candidato, com patrimônio e votos, quando o recorte tem a lista).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { comparacao } from './lib/retrato.js?v=20261156';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261156';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261156';
-import { faixaDePatrimonio } from './lib/cifroes.js?v=20261156';
-import { agrupa } from './lib/plenario.js?v=20261156';
-import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261156';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261156';
+import { comparacao } from './lib/retrato.js?v=20261157';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261157';
+import { faixaDePatrimonio } from './lib/cifroes.js?v=20261157';
+import { agrupa } from './lib/plenario.js?v=20261157';
+import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261157';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261157';
 
 montaPagina();
 
@@ -28,6 +28,8 @@ let primeiraPintura = true;
 let atual = null;               // { r, nome, andares, cands, passo, porAndar } do recorte desenhado
 let andarEscolhido = null;
 let janelaAberta = null;        // { f, c }: o andar e o candidato (ou null, se a janela é um grupo) da janela clicada
+let pidDoLink = null;           // o candidato pedido no endereço (pid, de um link da cabine): abre uma vez, na chegada
+let destaque = null;            // esse candidato, marcado na lista do andar
 
 async function nomeLugar(r) {
   const t = territorio(r);
@@ -154,13 +156,27 @@ function desenhaAndar() {
   }
   const ordem = [...pessoas].sort((x, y) => (y.patrimonio ?? 0) - (x.patrimonio ?? 0) || (y.votos ?? 0) - (x.votos ?? 0));
   const mostrados = ordem.slice(0, 10);
+  if (destaque && ordem.includes(destaque) && !mostrados.includes(destaque)) mostrados.push(destaque);
   caixa.innerHTML = `<p>${formata.pct(taxa(a))} deste andar se elegeram (${plural(a.eleitos, 'eleito', 'eleitos')} de ${formata.numero(a.candidatos)}).
       ${andarEscolhido === 0 ? 'Quem não declarou bens, pelos votos:' : 'Os maiores patrimônios:'}</p>
-    <ul class="moradores">${mostrados.map(c => `<li>${c.nomeado ? fotoCandidato(c.foto, 'maiores-foto') : ''}
+    <ul class="moradores">${mostrados.map(c => `<li${c === destaque ? ' class="destacado"' : ''}>${c.nomeado ? fotoCandidato(c.foto, 'maiores-foto') : ''}
       <span class="maiores-nome">${nomeComLink(c)} <span class="apoio">${c.sigla}</span></span>
       <span class="maiores-dados">${c.patrimonio > 0 ? `<b>${formata.real(c.patrimonio)}</b> · ` : ''}${c.votos > 0 ? `${formata.numero(c.votos)} votos` : 'sem votos'}
         · ${seloResultado(c)}</span></li>`).join('')}</ul>
     ${ordem.length > mostrados.length ? `<p class="apoio">E mais ${formata.numero(ordem.length - mostrados.length)} neste andar.</p>` : ''}`;
+}
+
+/** Abre o candidato pedido no endereço: a janela dele (quando cada janela é alguém) e o andar, com ele marcado. */
+function abreDoLink(pid) {
+  const c = atual.cands.find(x => x.pid === pid);
+  if (!c) return;
+  destaque = c;
+  const f = faixaDePatrimonio(c.patrimonio);
+  escolheAndar(f);
+  const k = atual.porAndar?.[f]?.indexOf(c) ?? -1;
+  const janela = k >= 0 ? predio.querySelector(`.janela[data-f="${f}"][data-k="${k}"]`) : null;
+  if (janela) { janela.classList.add('escolhida'); mostraJanela(janela); }
+  (janela ?? document.querySelector('#andar .destacado') ?? document.getElementById('andar')).scrollIntoView({ block: 'center' });
 }
 
 function escolheAndar(f) {
@@ -208,6 +224,7 @@ async function atualiza(r) {
   const passo = porAndar ? 1 : agrupa(d3.sum(andares, a => a.candidatos), MAX_JANELAS);
   atual = { r, nome, andares, cands, passo, porAndar };
   janelaAberta = null;
+  destaque = null;
   document.getElementById('t-predio').innerHTML = `<span class="sobre">${minusculo(r.cargo)} · ${nome} · ${r.ano}</span>
     Quem se elegeu em cada andar de patrimônio`;
   const comGente = andares.filter(a => a.candidatos);
@@ -218,6 +235,7 @@ async function atualiza(r) {
   cartao.style.transform = ''; cartao.classList.remove('aberto');
   if (andarEscolhido != null) desenhaAndar();
   else { document.getElementById('t-andar').textContent = 'Quem mora neste andar'; document.getElementById('andar').innerHTML = ''; }
+  if (pidDoLink) { abreDoLink(pidDoLink); pidDoLink = null; }
 }
 
 // ---------------------------------------------------------------- moradores passando
@@ -313,6 +331,7 @@ registraRetrato(() => {
   };
 });
 
+pidDoLink = Number(new URLSearchParams(location.hash.slice(1)).get('pid')) || null;
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,
   municipioObrigatorio: true,

@@ -8,13 +8,13 @@
 // candidaturas/<ue>-<ano>.json (cada candidato, com receita, receita pública e votos).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { comparacao } from './lib/retrato.js?v=20261156';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261156';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261156';
-import { COR } from './lib/cores.js?v=20261156';
-import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261156';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261156';
-import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261156';
+import { comparacao } from './lib/retrato.js?v=20261157';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261157';
+import { COR } from './lib/cores.js?v=20261157';
+import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261157';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261157';
+import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261157';
 
 montaPagina();
 
@@ -67,6 +67,7 @@ function escorre(seletor, raiz) {
 
 let meios = 15;                 // a escolha: meios cifrões (cada um, 5% de dinheiro público); 15 = 75%
 let estado = null;              // { fatias, cands, nome, r } do recorte desenhado
+let pidDoLink = null;           // o candidato pedido no endereço (pid, de um link da cabine): marcado uma vez, na chegada
 const caixaCifroes = document.getElementById('cifroes-escolha');
 const L = 34, A = 46;
 const rotuloEscolha = m => (m === 0 ? 'qualquer parcela de dinheiro público' : m === 20 ? 'campanha toda com dinheiro público'
@@ -170,15 +171,18 @@ function desenhaResultado() {
     : `<p class="apoio">Ninguém se elegeu com ${aPartirDe(pct)} de dinheiro público neste recorte.</p>`;
 }
 
-function desenhaTorneiras(lista, cands) {
-  const maiores = cands.filter(c => c.receita > 0).sort((a, b) => b.receita - a.receita).slice(0, 30);
+function desenhaTorneiras(lista, cands, destaque = null) {
+  const ordem = cands.filter(c => c.receita > 0).sort((a, b) => b.receita - a.receita);
+  const maiores = ordem.slice(0, 30);
+  // o candidato pedido no endereço entra no fim da lista, se não estiver entre as 30 maiores receitas
+  if (destaque && ordem.includes(destaque) && !maiores.includes(destaque)) maiores.push(destaque);
   if (!maiores.length) { lista.innerHTML = '<li class="aviso-vazio">Nenhum candidato com receita declarada neste recorte.</li>'; return; }
   const maior = maiores[0].receita;
   lista.innerHTML = maiores.map(c => {
     const pub = parcela(c);
-    return `<li class="torneira">
+    return `<li class="torneira${c === destaque ? ' destacado' : ''}">
       <span class="torneira-quem">${c.nomeado ? fotoCandidato(c.foto, 'torneira-foto') : '<span class="torneira-foto anonima" aria-hidden="true"></span>'}
-        <span>${c.pid ? `<a href="pergunta-10.html#${c.pid}">${c.nome}</a>` : nomeDe(c)}
+        <span>${c === destaque && !ordem.slice(0, 30).includes(c) ? `<span class="apoio">${ordem.indexOf(c) + 1}º</span> ` : ''}${c.pid ? `<a href="pergunta-10.html#${c.pid}">${c.nome}</a>` : nomeDe(c)}
           <span class="apoio">${c.sigla}</span>${c.eleito ? ' <span class="selo selo-vitoria">eleito</span>' : ''}</span></span>
       <span class="torneira-cano">${BICA}<span class="torneira-agua" style="width:${(100 * c.receita) / maior}%"
           role="img" aria-label="${formata.real(c.receita)} de receita, ${formata.pct(pub)} pública">
@@ -249,7 +253,10 @@ async function atualiza(r) {
   if (!cands.length) {
     for (const id of ['torneiras', 'politicos', 'partidos']) document.getElementById(id).innerHTML = `<li>${vazio}</li>`;
   } else {
-    desenhaTorneiras(document.getElementById('torneiras'), cands);
+    const doLink = pidDoLink ? cands.find(c => c.pid === pidDoLink) : null;
+    pidDoLink = null;
+    desenhaTorneiras(document.getElementById('torneiras'), cands, doLink);
+    if (doLink) (document.querySelector('#torneiras .destacado') ?? document.getElementById('torneiras')).scrollIntoView({ block: 'center' });
     porPartido(cands, document.getElementById('partidos'));
     porPolitico(document.getElementById('politicos'), cands);
   }
@@ -302,6 +309,7 @@ registraRetrato(() => {
   };
 });
 
+pidDoLink = Number(new URLSearchParams(location.hash.slice(1)).get('pid')) || null;
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,
   municipioObrigatorio: true,

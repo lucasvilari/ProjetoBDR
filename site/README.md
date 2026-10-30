@@ -73,7 +73,11 @@ pedidos à função: no primeiro, a IA só transforma a pergunta num pedido de d
 conferido pela função; a página busca esses dados nos mesmos arquivos de `dados/`, monta o retrato e, no segundo
 pedido, a IA responde com ele. Por isso cada pergunta da cabine conta duas vezes no limite por minuto. Entre a pergunta
 e a resposta fica um olho: fechado enquanto o oráculo espera e pensa, aberto quando ele responde; quando não há
-resposta, a pupila sobe até sumir. Abaixo da resposta ficam os links para as páginas que têm os mesmos números.
+resposta, a pupila sobe até sumir. Abaixo da resposta fica um cartão para cada político ou município de que ela fala
+(os pedidos, a eleição e os candidatos que a resposta cita pelo nome), com links para as perguntas já no recorte dele:
+carreira, gasto, patrimônio, dinheiro público e propaganda de um candidato; índices, escolaridade, prefeitos e voto de
+um município. Os links são montados pela página, com os códigos dos dados, e não pela IA. As perguntas 1, 2, 8 e 9
+abrem direto no candidato que vem no endereço (`pid`).
 
 ## Estrutura
 

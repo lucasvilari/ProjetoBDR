@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normaliza, achaMunicipios, escolhePolitico, resumoCarreira, votacao } from '../../../site/js/lib/cabine.js';
+import { normaliza, achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from '../../../site/js/lib/cabine.js';
 
 const LISTA = [['20516', 'João Pessoa', 'PB'], ['19011', 'Campina Grande', 'PB'], ['41238', 'Belo Horizonte', 'MG'],
   ['90514', 'Campo Grande', 'MS'], ['20001', 'Santa Luzia', 'PB'], ['41002', 'Santa Luzia', 'MG']];
@@ -58,4 +58,40 @@ test('votacao ordena pelos votos e dá a porcentagem de cada um nos dois turnos'
   assert.deepEqual(linhas.map(l => l.nome), ['A', 'B', 'C']);
   assert.deepEqual(linhas.map(l => l.pct), [60, 30, 10]);
   assert.deepEqual(linhas.map(l => l.pct2t), [60, 40, null]);
+});
+
+test('citados acha os nomes que a resposta cita: o nome inteiro ou duas palavras dele', () => {
+  const texto = 'Luiz Inácio Lula da Silva (PT) teve 51,8%, contra 48,2% de Flavio Bolsonaro (PL).';
+  const nomes = ['LUIZ INÁCIO LULA DA SILVA', 'FLAVIO NANTES BOLSONARO', 'JAIR MESSIAS BOLSONARO', 'Belo Horizonte'];
+  assert.deepEqual(citados(texto, nomes), ['LUIZ INÁCIO LULA DA SILVA', 'FLAVIO NANTES BOLSONARO']);
+  assert.deepEqual(citados('Em Belo Horizonte, o voto...', nomes), ['Belo Horizonte']);
+  assert.deepEqual(citados('Macapá cresceu.', ['Macapá']), ['Macapá']);
+});
+
+test('linksDoCandidato leva à carreira e, de 2018 em diante nos seis estados ou para presidente, às páginas do recorte', () => {
+  const presidente = linksDoCandidato({ pid: 7, ano: 2026, cargo: 'PRESIDENTE', uf: null, mun: null });
+  assert.deepEqual(presidente.map(l => l.href), [
+    'pergunta-10.html#7',
+    'pergunta-1.html#ano=2026&cargo=PRESIDENTE&pid=7',
+    'pergunta-2.html#ano=2026&cargo=PRESIDENTE&pid=7',
+    'pergunta-8.html#ano=2026&cargo=PRESIDENTE&pid=7',
+    'pergunta-9.html#ano=2026&cargo=PRESIDENTE&pid=7',
+  ]);
+  const prefeito = linksDoCandidato({ pid: 3, ano: 2024, cargo: 'PREFEITO', uf: 'AP', mun: '06050' });
+  assert.equal(prefeito[1].href, 'pergunta-1.html#ano=2024&cargo=PREFEITO&uf=AP&mun=06050&pid=3');
+  const deputado = linksDoCandidato({ pid: 4, ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG', mun: '41238' });
+  assert.equal(deputado[1].href, 'pergunta-1.html#ano=2022&cargo=DEPUTADO+FEDERAL&uf=MG&pid=4');
+  assert.deepEqual(linksDoCandidato({ pid: 5, ano: 2022, cargo: 'GOVERNADOR', uf: 'CE', mun: null }).map(l => l.href), ['pergunta-10.html#5']);
+  assert.deepEqual(linksDoCandidato({ pid: 6, ano: 2014, cargo: 'SENADOR', uf: 'PB', mun: null }).map(l => l.href), ['pergunta-10.html#6']);
+  assert.deepEqual(linksDoCandidato({ pid: null, ano: 2026, cargo: 'PRESIDENTE', uf: null, mun: null }).length, 4);
+});
+
+test('linksDoMunicipio leva às páginas dos índices, da escolaridade, dos prefeitos, do voto e do custo da prefeitura', () => {
+  assert.deepEqual(linksDoMunicipio({ cod: '20516', uf: 'PB' }, 2026).map(l => l.href), [
+    'pergunta-3.html#ano=2026&mun=20516',
+    'pergunta-4.html#lugar=20516',
+    'pergunta-6.html#ano=2024&cargo=PREFEITO&lugar=20516',
+    'pergunta-7.html#cargo=PRESIDENTE&ano=2026&uf=PB&mun=20516',
+    'pergunta-1.html#ano=2024&cargo=PREFEITO&uf=PB&mun=20516',
+  ]);
 });
