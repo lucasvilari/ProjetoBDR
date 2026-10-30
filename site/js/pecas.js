@@ -1,14 +1,16 @@
 // Peças que as páginas das perguntas dividem: o seletor de recorte (ano, cargo, lugar), a leitura
 // dos candidatos de um recorte, o gráfico de dinheiro × votos e o cartão de um político.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261109';
-import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261109';
-import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261109';
-import { COR } from './lib/cores.js?v=20261109';
+import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261155';
+import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261155';
+import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261155';
+import { COR } from './lib/cores.js?v=20261155';
 
 export const UFS_PROJETO = ['AP', 'MG', 'MS', 'PB', 'RO', 'RR'];
 // a capital de cada estado, o município aberto quando a página precisa de um
-const CAPITAIS = { AP: '06050', MG: '41238', MS: '90514', PB: '20516', RO: '00035', RR: '03018' };
+export const CAPITAIS = { AP: '06050', MG: '41238', MS: '90514', PB: '20516', RO: '00035', RR: '03018' };
+// o nome dos seis estados com a preposição: "os municípios da Paraíba", "do Amapá", "de Minas Gerais"
+export const DA_UF = { AP: 'do Amapá', MG: 'de Minas Gerais', MS: 'de Mato Grosso do Sul', PB: 'da Paraíba', RO: 'de Rondônia', RR: 'de Roraima' };
 const minusculo = c => c.toLowerCase();
 
 // ---------------------------------------------------------------- seletor de recorte
@@ -50,7 +52,13 @@ export function grupoOpcoes(nome, rotulo, opcoes, atual, { extra = '', classe = 
  *  única eleição nacional e não tem lugar. opcoes: { anos, cargos?: string[] (filtra os do ano), comLugar,
  *  padrao: {ano, cargo, uf?, mun?}, municipioObrigatorio: sem a opção "todo o estado" para prefeito e
  *  vereador, que abrem na capital }. */
-export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMudar, municipioObrigatorio = false }) {
+// as contas de campanha de 2026 ainda não estavam completas quando os dados foram gerados: o prazo das contas finais
+// vai até o começo de novembro de 2026
+export const AVISO_CONTAS_2026 = ano => (ano === 2026 ? 'Contas de campanha de 2026 ainda incompletas: o TSE recebe as contas '
+  + 'finais até o começo de novembro, e os gastos e receitas daqui são os declarados até 29/10/2026.' : '');
+
+/** aviso(ano): um texto que aparece no seletor para aquele ano (vazio, nada). */
+export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMudar, municipioObrigatorio = false, aviso = () => '' }) {
   const ufPadrao = UFS_PROJETO.includes(padrao.uf) ? padrao.uf : 'MG';
   // nenhum dos seis estados é o DF, então os cargos do ano não dependem do estado
   const cargosValidos = ano => cargosDoAno(ano, ufPadrao).filter(c => !cargos || cargos.includes(c));
@@ -80,7 +88,8 @@ export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMu
       ${comLugar && r.cargo !== 'PRESIDENTE' ? grupoOpcoes('uf', 'Estado', ufs.map(u => [u, NOME_UF[u]]), r.uf) : ''}
       ${comLugar && r.cargo === 'PRESIDENTE' ? '<div class="grupo-opcoes"><span class="grupo-rotulo">Lugar</span><span class="seletor-nota">eleição nacional: o Brasil inteiro</span></div>' : ''}
       ${municipios.length ? `<div class="grupo-opcoes"><label class="grupo-rotulo" for="escolhe-mun">Município</label>
-        <span class="campo"><select name="mun" id="escolhe-mun">${municipioObrigatorio ? '' : '<option value="">todo o estado</option>'}${municipios.map(([cod, m]) => `<option value="${cod}"${cod === r.mun ? ' selected' : ''}>${m.nome}</option>`).join('')}</select></span></div>` : ''}`);
+        <span class="campo"><select name="mun" id="escolhe-mun">${municipioObrigatorio ? '' : '<option value="">todo o estado</option>'}${municipios.map(([cod, m]) => `<option value="${cod}"${cod === r.mun ? ' selected' : ''}>${m.nome}</option>`).join('')}</select></span></div>` : ''}
+      ${aviso(r.ano) ? `<p class="seletor-aviso" role="note">${aviso(r.ano)}</p>` : ''}`);
   }
 
   async function aplica(novo) {
@@ -191,7 +200,7 @@ export function cartaoPolitico(c) {
     rotulo: c.despesa > 0 ? 'de gasto de campanha.' : 'Sem gasto de campanha declarado.',
     linhas,
     foto: c.nomeado ? fotoCandidato(c.foto, 'santinho-foto') : '',
-    classe: c.eleito ? '' : 'santinho-derrota',
+    classe: c.eleito ? 'santinho-vitoria' : 'santinho-derrota',
   }) + (c.pid ? `<a class="botao cartao-carreira" href="pergunta-10.html#${c.pid}">Ver a carreira</a>`
     : c.nomeado ? '' : '<p class="apoio">Candidato de fora dos seis estados do projeto: aparece sem nome, foto ou carreira.</p>');
 }

@@ -6,10 +6,10 @@ além disso.
 """
 from dataclasses import dataclass
 
-EP = (2018, 2020, 2022, 2024)        # Escopo Padrão
-ANOS_P4 = (2022, 2024)               # escopo da pergunta 4
+EP = (2018, 2020, 2022, 2024, 2026)  # Escopo Padrão (2026 incluído depois da eleição, com os resultados publicados)
+ANOS_P4 = (2022, 2024, 2026)         # escopo da pergunta 4
 PRIMEIRO_ANO_CANDIDATOS = 1994       # 1ª eleição com dados por candidato no TSE
-ULTIMO_ANO_COM_RESULTADO = 2024      # 2026 só tem registro de candidaturas (eleição em outubro)
+ULTIMO_ANO_COM_RESULTADO = 2026      # resultados de 2026 publicados pelo TSE em outubro de 2026
 CARREIRA = "carreira"                # marcador: de 1994 até --carreira-ate, de 2 em 2 anos
 
 PERGUNTAS = {

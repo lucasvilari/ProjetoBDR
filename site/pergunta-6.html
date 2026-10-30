@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cidade jovem troca mais de prefeito? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261155">
+  <script src="js/transicao.js?v=20261155"></script>
+  <script type="module" src="js/pergunta-6.js?v=20261155"></script>
+</head>
+<body data-pagina="pergunta-6">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Cidade jovem troca mais de prefeito?</h1>
+      <p class="apoio">Municípios mais jovens trocam mais de prefeito? Elegem gente mais nova? E quem é jovem vota em
+        jovem? A idade de cada município é a mediana do Censo 2022; os prefeitos vão de 2000 a 2024. No mini mapa,
+        escolha um município para ver os prefeitos dele, ou um estado para ver só os municípios desse estado.</p>
+    </div>
+
+    <form class="seletor" id="recorte" aria-label="Escolher ano e cargo"></form>
+    <div class="lugar-mini" role="group" aria-labelledby="rotulo-lugar">
+      <span class="grupo-rotulo" id="rotulo-lugar">Lugar</span>
+      <div class="lugar-mini-corpo">
+        <div id="mini-mapa" class="mini-mapa"></div>
+        <div class="lugar-mini-texto">
+          <p id="lugar-atual" class="lugar-atual"></p>
+          <p id="dica-mini" class="apoio"></p>
+          <button type="button" class="botao" id="voltar-lugar" hidden></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="p6-grade">
+      <section aria-labelledby="t-faixas">
+        <h2 id="t-faixas"></h2>
+        <p class="apoio">Cada faixa é um prefeito eleito, na cor da posição do partido (vermelho, esquerda; azul,
+          direita; cinza, sem nota). Entre uma faixa e outra, o que mudou. Clique numa faixa para ver quem é.</p>
+        <div id="faixas" class="faixas-rolagem"></div>
+        <div id="prefeito-cartao" class="prefeito-cartao" aria-live="polite"></div>
+      </section>
+      <aside id="santinho-idade" aria-label="O perfil do município"></aside>
+    </div>
+
+    <section class="bloco" aria-labelledby="t-ampulhetas">
+      <h2 id="t-ampulhetas"></h2>
+      <p class="apoio">Os municípios divididos pela mediana da idade dos 1.238: metade mais jovem, metade mais velha. Em
+        cada ampulheta, as eleições de 2020 e 2024: a idade média de quem se elegeu prefeito e quantas vezes o partido,
+        ou a pessoa, mudou em relação à eleição anterior. A areia que já caiu é a troca de partido.</p>
+      <div id="ampulhetas" class="ampulhetas"></div>
+      <p id="frase-ampulhetas" class="frase-relacao"></p>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-jovens">
+      <h2 id="t-jovens"></h2>
+      <p class="apoio">Os municípios em cinco grupos de mesmo tamanho pela parcela de quem foi votar com até 34 anos. Em
+        cada grupo, a idade média de quem recebeu os votos para prefeito ou vereador, em 2020 ou 2024 (cada candidato pesa
+        pelos votos que teve ali). Se a idade cai
+        do 1º ao 5º grupo, onde há mais jovens votando, os votos vão para gente mais nova.</p>
+      <ol id="quintis-jovens" class="quintis quintis-jovens"></ol>
+      <p id="escala-jovens" class="quintis-escala" aria-hidden="true"></p>
+      <p id="frase-jovens" class="frase-relacao"></p>
+      <p class="apoio">A idade mediana existe só no Censo 2022, depois das eleições de 2018 e 2020; no verso do santinho,
+        o índice de envelhecimento do Censo 2010 ajuda a ver se o município já era velho antes. Consultas:
+        <code>p06a_alternancia.sql</code> e <code>p06b_jovem_vota_jovem.sql</code>.</p>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# O oráculo do Olho do Povo na Cloudflare (Workers, plano gratuito). Publicar: npx wrangler@4 deploy
+name = "oraculo"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# o modelo do Workers AI, sem chave: a Cloudflare dá o acesso por esta ligação
+[ai]
+binding = "AI"
+
+[vars]
+# só o site publicado e o servidor local podem chamar o oráculo
+ORIGENS = "https://lucasvilari.github.io,http://localhost:8765"
+# o modelo; para comparar outros, troque aqui (os nomes estão no catálogo do Workers AI)
+MODELO = "@cf/google/gemma-4-26b-a4b-it"
+
+# no máximo 6 pedidos por minuto de cada visitante
+[[ratelimits]]
+name = "LIMITE"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 6
+  period = 60

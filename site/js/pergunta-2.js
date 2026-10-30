@@ -5,12 +5,13 @@
 // Dados: mapa/brasil.json e mapa/municipios/UF.json (candidatos e eleitos por faixa, para todo recorte);
 // candidaturas/<ue>-<ano>.json (cada candidato, com patrimônio e votos, quando o recorte tem a lista).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261109';
-import { faixaDePatrimonio } from './lib/cifroes.js?v=20261109';
-import { agrupa } from './lib/plenario.js?v=20261109';
-import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261109';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261109';
+import { comparacao } from './lib/retrato.js?v=20261155';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261155';
+import { faixaDePatrimonio } from './lib/cifroes.js?v=20261155';
+import { agrupa } from './lib/plenario.js?v=20261155';
+import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261155';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261155';
 
 montaPagina();
 
@@ -26,6 +27,7 @@ const SEM_LISTA = 'A lista com os nomes existe por estado (cargos estaduais e fe
 let primeiraPintura = true;
 let atual = null;               // { r, nome, andares, cands, passo, porAndar } do recorte desenhado
 let andarEscolhido = null;
+let janelaAberta = null;        // { f, c }: o andar e o candidato (ou null, se a janela é um grupo) da janela clicada
 
 async function nomeLugar(r) {
   const t = territorio(r);
@@ -114,6 +116,7 @@ function mostraJanela(el) {
   const f = Number(el.dataset.f);
   const a = atual.andares[f];
   const c = el.dataset.k != null ? atual.porAndar?.[f]?.[Number(el.dataset.k)] : null;
+  janelaAberta = { f, c };
   if (!c) {
     caixa.innerHTML = `${FECHAR}<p class="janela-andar">${FAIXAS[f]}</p>
       <p><b>${formata.pct(taxa(a))}</b> se elegeram: ${plural(a.eleitos, 'eleito', 'eleitos')} de ${formata.numero(a.candidatos)}.</p>
@@ -204,6 +207,7 @@ async function atualiza(r) {
   }
   const passo = porAndar ? 1 : agrupa(d3.sum(andares, a => a.candidatos), MAX_JANELAS);
   atual = { r, nome, andares, cands, passo, porAndar };
+  janelaAberta = null;
   document.getElementById('t-predio').innerHTML = `<span class="sobre">${minusculo(r.cargo)} · ${nome} · ${r.ano}</span>
     Quem se elegeu em cada andar de patrimônio`;
   const comGente = andares.filter(a => a.candidatos);
@@ -251,6 +255,63 @@ function passeio() {
     agenda();
   }, 700 + Math.random() * 700);
 })();
+
+// ---------------------------------------------------------------- o retrato para o oráculo
+
+/** As comparações entre andares que o oráculo não deve calcular sozinho: o andar de maior taxa contra o de menor, a
+ *  metade de cima do prédio contra a de baixo e a cobertura contra o prédio inteiro. */
+function comparacoesDoPredio(andares, total) {
+  const comGente = andares.filter(a => a.candidatos);
+  if (comGente.length < 2) return [];
+  const pct = a => formata.pct(taxa(a));
+  const soma = grupo => ({ candidatos: d3.sum(grupo, a => a.candidatos), eleitos: d3.sum(grupo, a => a.eleitos) });
+  const maior = comGente.reduce((m, a) => (taxa(a) > taxa(m) ? a : m));
+  const menor = comGente.reduce((m, a) => (taxa(a) < taxa(m) ? a : m));
+  const meio = Math.ceil(andares.length / 2);
+  const cima = soma(andares.filter(a => a.faixa >= meio)), baixo = soma(andares.filter(a => a.faixa < meio));
+  const topo = comGente.at(-1);
+  const linha = (rotulo, a, b) => [rotulo, comparacao(taxa(a), taxa(b)) ?? (taxa(b) === 0 ? 'o segundo grupo não elegeu ninguém' : null)];
+  return [
+    linha(`Taxa do andar de maior taxa (${FAIXAS[maior.faixa]}, ${pct(maior)}) em relação à do andar de menor taxa (${FAIXAS[menor.faixa]}, ${pct(menor)})`, maior, menor),
+    cima.candidatos && baixo.candidatos ? linha(`Taxa da metade de cima do prédio (de ${FAIXAS[meio]} para cima: ${pct(cima)}, ${formata.numero(cima.eleitos)} de ${formata.numero(cima.candidatos)}) em relação à da metade de baixo (${pct(baixo)}, ${formata.numero(baixo.eleitos)} de ${formata.numero(baixo.candidatos)})`, cima, baixo) : [null, null],
+    linha(`Taxa do andar mais alto com candidatos (${FAIXAS[topo.faixa]}, ${pct(topo)}) em relação à do prédio inteiro (${pct(total)})`, topo, total),
+  ];
+}
+
+/** O que a página mostra agora: a taxa de eleição em cada andar de patrimônio, o prédio inteiro, os maiores patrimônios
+ *  do andar aberto e o candidato da janela clicada. */
+registraRetrato(() => {
+  if (!atual) return null;
+  const { r, nome, andares, porAndar } = atual;
+  const total = { candidatos: d3.sum(andares, a => a.candidatos), eleitos: d3.sum(andares, a => a.eleitos) };
+  const andar = andarEscolhido == null ? null : andares[andarEscolhido];
+  const moradores = andarEscolhido == null ? [] : (porAndar?.[andarEscolhido] ?? []).slice(0, 8);
+  const c = janelaAberta?.c ?? null;
+  const resultado = x => (x.eleito ? 'eleito' : 'não eleito');
+  return {
+    numero: 2, pergunta: 'Patrimônio ajuda a eleger?',
+    recorte: `${minusculo(r.cargo)} · ${nome} · ${r.ano}`,
+    secoes: [
+      { titulo: 'O prédio inteiro', linhas: [
+        ['Candidatos', formata.numero(total.candidatos)], ['Eleitos', formata.numero(total.eleitos)],
+        ['Taxa de eleição', total.candidatos ? formata.pct(taxa(total)) : null],
+      ] },
+      { titulo: 'Taxa de eleição em cada andar, do maior patrimônio (cobertura) ao menor (térreo, sem bens declarados)',
+        linhas: ordemDosAndares(andares.length).map(f => andares[f]).map(a => [FAIXAS[a.faixa],
+          a.candidatos ? `${formata.pct(taxa(a))} se elegeram (${formata.numero(a.eleitos)} de ${formata.numero(a.candidatos)})` : 'nenhum candidato']) },
+      { titulo: 'Comparações prontas (calculadas pela página)', linhas: comparacoesDoPredio(andares, total) },
+      { titulo: `Andar aberto pelo leitor${andar ? `: ${FAIXAS[andar.faixa]}` : ''}`, linhas: andar ? [
+        ['Taxa de eleição', andar.candidatos ? formata.pct(taxa(andar)) : null],
+        ...moradores.map(m => [null, `${nomeDe(m)} (${m.sigla}): patrimônio ${m.patrimonio > 0 ? formata.real(m.patrimonio) : 'nenhum bem'}, ${m.votos > 0 ? `${formata.numero(m.votos)} votos` : 'sem votos'}, ${resultado(m)}`]),
+      ] : [] },
+      { titulo: 'Candidato da janela clicada', linhas: c ? [
+        ['Nome', nomeDe(c)], ['Partido', c.sigla], ['Andar', FAIXAS[janelaAberta.f]],
+        ['Patrimônio', c.patrimonio > 0 ? formata.real(c.patrimonio) : 'nenhum bem'],
+        ['Votos', c.votos > 0 ? formata.numero(c.votos) : 'sem votos'], ['Resultado', resultado(c)],
+      ] : [] },
+    ],
+  };
+});
 
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,

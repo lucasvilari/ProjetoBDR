@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Município rico vota diferente? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261155">
+  <script src="js/transicao.js?v=20261155"></script>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+                   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+  </script>
+  <script type="module" src="js/pergunta-3.js?v=20261155"></script>
+</head>
+<body data-pagina="pergunta-3">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Município rico vota diferente?</h1>
+      <p class="apoio">Quanto um lugar produz por habitante, como vive a população (IDHM), quantos habitantes votam e
+        quantos eleitores não escolheram ninguém, e para que lado, da esquerda à direita, ele votou. Escolha o ano e o
+        cargo, pinte o mapa por um índice e clique num lugar: abaixo do mapa aparecem os índices do município e os
+        partidos que mais recebem votos nele.</p>
+    </div>
+
+    <form class="seletor" id="recorte" aria-label="Escolher ano e cargo"></form>
+
+    <section class="bloco-mapa" aria-labelledby="titulo-mapa">
+      <form class="seletor" id="escolhe-indice" aria-label="Escolher o índice e como pintar o mapa"></form>
+      <div class="mapa-topo">
+        <h2 id="titulo-mapa">Os 27 estados</h2>
+        <span class="mapa-botoes">
+          <button type="button" class="botao" id="vista-mapa" hidden>Ver plano</button>
+          <button type="button" class="botao" id="voltar-brasil" hidden>Voltar ao Brasil</button>
+        </span>
+      </div>
+      <div id="mapa-indices" class="mapa mapa-indices"></div>
+      <div id="legenda-indices" class="legenda-mapa"></div>
+      <p id="dica-mapa" class="apoio dica" aria-live="polite"></p>
+    </section>
+
+    <div class="p3-grade">
+      <section aria-labelledby="t-boletim">
+        <h2 id="t-boletim"></h2>
+        <div id="boletim"></div>
+      </section>
+      <aside id="santinho-municipio" aria-label="Os índices do município"></aside>
+    </div>
+
+    <section class="bloco" aria-labelledby="t-relacao">
+      <h2 id="t-relacao">Os 1.238 municípios em cinco grupos</h2>
+      <p class="apoio">Os municípios dos seis estados divididos em cinco grupos de mesmo tamanho pelo índice escolhido no
+        mapa, do mais baixo ao mais alto. O ponto de cada grupo é a média, nos seus municípios, de <span
+        id="cargo-relacao">o voto</span>, de 0 (esquerda) a 10 (direita). Se o ponto anda de um lado para o outro do
+        primeiro ao último grupo, o voto muda com o índice. O traço tracejado marca o centro da régua (5).</p>
+      <p id="frase-relacao" class="frase-relacao"></p>
+      <ol id="quintis" class="quintis"></ol>
+      <p id="quintis-escala" class="quintis-escala" aria-hidden="true"></p>
+      <p class="apoio">Correlação de Spearman entre os municípios (ou, no mapa do Brasil, entre os estados). Ela mostra se
+        as duas coisas andam juntas, não que uma causa a outra. Índices dos estados: a soma dos seus municípios (o IDHM é
+        a média dos municípios com peso da população). Consultas: <code>p03a_indices_municipio.sql</code> e
+        <code>p03b_partidos_municipio.sql</code>.</p>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

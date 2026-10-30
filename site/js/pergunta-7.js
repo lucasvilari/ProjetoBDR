@@ -8,16 +8,16 @@
 // O recorte (cargo, ano, régua, UF, município e partido em destaque) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
-import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261109';
-import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261109';
+import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
+import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261155';
+import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261155';
 
 montaPagina();
 
 const [vies, geoEstados, { partidos, concordancia_coligacoes: concordancia }] = await Promise.all([
   carregaDados('vies/brasil.json'), carregaDados('geo/estados.json'), carregaDados('partidos.json')]);
 
-const ANOS = [2018, 2020, 2022, 2024];
+const ANOS = [2018, 2020, 2022, 2024, 2026];
 const MUNICIPAIS = ['PREFEITO', 'VEREADOR'];
 // deputado distrital só existe no DF: entra no mapa de deputado estadual, no lugar do DF
 // presidente (o padrão) primeiro; o combinado, que junta dois cargos, por último
@@ -27,7 +27,7 @@ const ufsProjeto = new Set(UFS_PROJETO);
 const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ESTILO = { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background: 'transparent' };
 
-const anosDoCargo = c => (c === 'COMBINADO' ? ANOS : MUNICIPAIS.includes(c) ? [2020, 2024] : [2018, 2022]);
+const anosDoCargo = c => (c === 'COMBINADO' ? ANOS : MUNICIPAIS.includes(c) ? [2020, 2024] : [2018, 2022, 2026]);
 const nomeCargo = c => (c === 'COMBINADO' ? 'combinado' : c.toLowerCase());
 // o 2º turno para presidente vem junto com os dados de todo cargo do ano, mas só faz sentido na eleição para presidente
 const segundoTurno = l => (estado.cargo === 'PRESIDENTE' ? l?.presidente?.segundo_turno ?? [] : []);
@@ -461,7 +461,7 @@ function detalhePartido(p, { fechar = false } = {}) {
     if (!serie.length && !esp.length) return;
     alvo.append(Plot.plot({
       width: alvo.clientWidth || 560, height: 220, marginLeft: 70, style: { ...ESTILO, fontSize: '13px' },
-      x: { domain: [1999, 2025], ticks: [2000, 2004, 2008, 2012, 2016, 2020, 2024], tickFormat: String, label: null },
+      x: { domain: [1999, 2027], ticks: [2000, 2004, 2008, 2012, 2016, 2020, 2024], tickFormat: String, label: null },
       y: { domain: [0, 10], ticks: [0, 5, 10], tickFormat: v => ({ 0: 'esquerda', 5: 'centro', 10: 'direita' })[v], grid: true, label: null },
       marks: [
         Plot.line(serie, { x: 'ano', y: 'v', stroke: COR.tecla, strokeWidth: 2 }),
@@ -512,6 +512,58 @@ async function atualiza({ animar = false } = {}) {
   document.getElementById('voltar').hidden = !estado.uf;
   await Promise.all([desenhaMapa(animar), desenhaSantinho(terr, nome), desenhaPainel(terr, nome)]);
 }
+
+// ---------------------------------------------------------------- o retrato para o oráculo
+
+/** O que a página mostra agora: o índice do lugar nas duas réguas e o do Brasil, os outros anos do mesmo cargo, os
+ *  partidos mais votados, o 2º turno (na eleição para presidente) e o partido que o leitor abriu. */
+/** A diferença entre dois índices na régua escolhida, em palavras: diferenças menores que 5% da escala (0,5 ponto na
+ *  régua de 0 a 10; 10 pontos na da Câmara) contam como praticamente iguais. */
+function diferenca(a, b, r = estado.regua) {
+  if (a == null || b == null) return null;
+  const d = a - b, quase = r === 'camara' ? 10 : 0.5;
+  const pontos = formataValor(Math.round(Math.abs(d) * 100) / 100, 'especialistas');
+  if (Math.abs(d) < quase / 10) return `praticamente igual (${pontos} ponto de diferença)`;
+  return `${Math.abs(d) < quase ? 'ligeiramente' : 'bem'} mais à ${d > 0 ? 'direita' : 'esquerda'} (${pontos} ponto${Math.abs(d) >= 2 ? 's' : ''} de diferença)`;
+}
+
+registraRetrato(async () => {
+  const terr = territorio();
+  const [nome, l] = await Promise.all([nomeDe(terr), linhaDe(terr, estado.cargo, estado.ano)]);
+  const br = terr === 'BR' ? null : await linhaDe('BR', estado.cargo, estado.ano);
+  const anos = anosDoCargo(estado.cargo);
+  const serie = await Promise.all(anos.map(a => linhaDe(terr, estado.cargo, a)));
+  const outra = estado.regua === 'camara' ? 'especialistas' : 'camara';
+  const st = segundoTurno(l);
+  const p = estado.partido ? PARTIDO.get(estado.partido) : null;
+  const regua = r => (r === 'camara' ? 'régua da Câmara (−100 esquerda a +100 direita)' : 'régua dos especialistas (0 esquerda a 10 direita)');
+  return {
+    numero: 7, pergunta: 'Para que lado se vota?',
+    recorte: `${nomeCargo(estado.cargo)} · ${nome} · ${estado.ano} · ${regua(estado.regua)}`,
+    secoes: [
+      { titulo: 'O índice do lugar (média das posições dos partidos, com peso pelos votos de cada um no 1º turno)', linhas: l ? [
+        ['Votos usados', `para ${cargoDosVotos(estado.cargo, estado.ano)}`],
+        ['Índice nesta régua', valor(l) == null ? 'sem dado' : `${formataValor(valor(l))} (${estado.regua === 'camara' ? ladoDe(valor(l)) : (l.classificacao ?? 'sem classificação').toLowerCase()})`],
+        [`Índice na ${regua(outra)}`, valor(l, outra) == null ? null
+          : `${formataValor(valor(l, outra), outra)} (${outra === 'camara' ? ladoDe(valor(l, outra), 'camara') : (l.classificacao ?? 'sem classificação').toLowerCase()})`],
+        ['Votos com posição na régua (o resto ficou fora da conta)', `${virgula(cobertura(l))}%`],
+        ['Brasil, mesmo cargo e ano', br && valor(br) != null ? formataValor(valor(br)) : null],
+      ] : [[null, `Não há votos para ${nomeCargo(estado.cargo)} neste lugar em ${estado.ano}.`]] },
+      { titulo: 'Comparações prontas (calculadas pela página)', linhas: [
+        ['Este lugar em relação ao Brasil', l && br ? diferenca(valor(l), valor(br)) : null],
+        ...anos.slice(1).map((a, i) => [`${a} em relação a ${anos[i]}`, diferenca(valor(serie[i + 1]), valor(serie[i]))]),
+      ] },
+      { titulo: 'O mesmo cargo e lugar em outros anos', linhas: anos.map((a, i) => [String(a), valor(serie[i]) == null ? 'sem dado' : formataValor(valor(serie[i]))]) },
+      { titulo: 'Presidente, 2º turno', linhas: st.map(([candidato, sigla, pct]) => [null, `${candidato} (${sigla}): ${virgula(pct)}%`]) },
+      { titulo: 'Partidos mais votados (parcela dos votos e nota dos especialistas)', linhas: (l?.principais_partidos ?? []).slice(0, 12)
+        .map(([sigla, pct, nota]) => [null, `${sigla}: ${virgula(pct)}% dos votos, ${nota == null ? 'sem nota' : `nota ${virgula(nota)}`}`]) },
+      { titulo: 'Partido aberto pelo leitor', linhas: p ? [
+        ['Partido', p.sigla], ['Nota dos especialistas neste ano', notaPartido(p.sigla, estado.ano, 'especialistas') == null ? null : virgula(notaPartido(p.sigla, estado.ano, 'especialistas'))],
+        ['Posição na régua da Câmara', p.camara == null ? null : comSinal(p.camara)],
+      ] : [] },
+    ],
+  };
+});
 
 leEndereco();
 await atualiza();

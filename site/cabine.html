@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A cabine do oráculo · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261155">
+  <script src="js/transicao.js?v=20261155"></script>
+  <script type="module" src="js/cabine.js?v=20261155"></script>
+</head>
+<body data-pagina="cabine">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo" class="cabine-pagina">
+    <div class="cabeca">
+      <h1>A cabine do oráculo</h1>
+      <p class="apoio">Aqui a pergunta é livre: compare a carreira de dois políticos, dois municípios ou pergunte como foi
+        uma eleição. O oráculo busca os dados nos mesmos arquivos do site (Amapá, Mato Grosso do Sul, Minas Gerais,
+        Paraíba, Rondônia, Roraima e a Presidência) e responde só com eles.</p>
+    </div>
+
+    <section class="cabine" aria-labelledby="cabine-titulo">
+      <form id="cabine-form" class="cabine-form">
+        <label id="cabine-titulo" for="cabine-texto">Sua pergunta</label>
+        <textarea id="cabine-texto" rows="2" maxlength="300" placeholder="Ex.: Compare a carreira de Lula e de Ciro Gomes"></textarea>
+        <button class="botao" type="submit" disabled>Perguntar</button>
+      </form>
+      <div class="cabine-exemplos">
+        <span class="grupo-rotulo">Experimente</span>
+        <button type="button">Compare a carreira de Lula e de Ciro Gomes</button>
+        <button type="button">João Pessoa ou Campina Grande: qual tem o PIB per capita maior?</button>
+        <button type="button">Como foi o segundo turno para presidente em 2026?</button>
+        <button type="button">Quem foi eleito prefeito de Macapá em 2024?</button>
+      </div>
+      <svg class="cabine-olho" id="cabine-olho" data-estado="fechado" viewBox="0 0 160 96" aria-hidden="true">
+        <defs><clipPath id="cabine-olho-dentro"><path d="M4 48C34 4 126 4 156 48C126 92 34 92 4 48Z"/></clipPath></defs>
+        <g class="olho-globo">
+          <path d="M4 48C34 4 126 4 156 48C126 92 34 92 4 48Z" fill="#faf7ef"/>
+          <g clip-path="url(#cabine-olho-dentro)"><g class="olho-pupila"><circle cx="80" cy="48" r="22" fill="#22201c"/><circle cx="88" cy="40" r="6.5" fill="#faf7ef"/></g></g>
+          <path d="M4 48C34 4 126 4 156 48C126 92 34 92 4 48Z" fill="none" stroke="#22201c" stroke-width="4"/>
+        </g>
+        <g class="olho-fechado" fill="none" stroke="#22201c" stroke-width="4" stroke-linecap="round">
+          <path d="M4 48C34 70 126 70 156 48"/>
+          <path d="M38 60l-6 11M58 64l-3 12M80 65v13M102 64l3 12M122 60l6 11" stroke-width="3"/>
+        </g>
+      </svg>
+      <p id="cabine-estado" class="cabine-estado" aria-live="polite"></p>
+      <div id="cabine-resposta" class="cabine-resposta" aria-live="polite"></div>
+      <nav id="cabine-fontes" class="cabine-fontes" hidden aria-label="O que o oráculo consultou"></nav>
+      <p class="oraculo-aviso">O oráculo é uma inteligência artificial e pode errar. Confira os números nas páginas indicadas.
+        Cada pergunta conta duas vezes no limite de perguntas por minuto.</p>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

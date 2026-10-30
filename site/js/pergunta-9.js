@@ -6,12 +6,12 @@
 // para cada candidatura dos políticos com nome), candidaturas/<ue>-<ano>.json (votos e gasto de cada candidato),
 // politicos/ (busca e carreira).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
-import { ueDoRecorte } from './lib/recorte.js?v=20261109';
-import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261109';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261109';
-import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261109';
-import { cenaDaRua, ceuDePalavras, VISTAS, CURTO } from './rua.js?v=20261109';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
+import { ueDoRecorte } from './lib/recorte.js?v=20261155';
+import { OBJETOS, objetoDoTipo } from './lib/propaganda.js?v=20261155';
+import { montaSeletor, leCandidaturas, cartaoPolitico, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261155';
+import { montaBusca, carreiraDe, tabelasPoliticos } from './busca.js?v=20261155';
+import { cenaDaRua, ceuDePalavras, VISTAS, CURTO } from './rua.js?v=20261155';
 
 montaPagina();
 
@@ -134,6 +134,8 @@ function desenhaRua({ valores, detalhes }, palavras, exemplos, titulo) {
 let exemplosAtuais = null;      // (índice da palavra) -> promessa das despesas de exemplo dela
 let palavrasAtuais = [];
 let vista = 'rua';
+let nuvemAberta = null;          // { i, lista }: a nuvem que o leitor abriu e as despesas de exemplo dela
+let ruaAtual = null;            // { r, nome, quem, valores, total, palavras, eu } da rua desenhada
 
 /** Leva a cena de uma vista à outra animando o viewBox: a rua de perto, ou afastada com o céu de nuvens em cima. */
 function vaiPara(destino, animar = true) {
@@ -170,6 +172,7 @@ async function abreNuvem(nuvem) {
   alvo.innerHTML = '<p class="apoio">Buscando as despesas…</p>';
   const lista = await exemplosAtuais(i);
   if (!nuvem.classList.contains('escolhida')) return;          // o leitor já clicou em outra nuvem
+  nuvemAberta = { i, lista };
   // o detalhe da nuvem é uma notinha fiscal: cada despesa em que a palavra aparece é um item, com o valor da despesa
   alvo.innerHTML = `<div class="nota-fiscal" role="group" aria-label="Despesas com a palavra ${w}">
     <p class="nota-cabeca"><b>Olho do Povo</b><span>cupom de despesas de campanha</span></p>
@@ -223,7 +226,7 @@ async function atualiza(r) {
     if (meu !== pedido) return;
     if (!pessoaAtual || !pessoaAtual.cands.length) {
       pessoaAtual = null;
-      document.getElementById('resultados').innerHTML = '<p class="aviso-vazio">Este político não tem candidatura de 2018 a 2024 com dados de despesa.</p>';
+      document.getElementById('resultados').innerHTML = '<p class="aviso-vazio">Este político não tem candidatura de 2018 a 2026 com dados de despesa.</p>';
       seletor.muda({ pid: undefined });
       return;
     }
@@ -267,7 +270,11 @@ async function atualiza(r) {
       .then(a => a.pessoas[pessoaAtual.pid]?.[`${r.ano}|${r.cargo}`]).then(e => (e?.por_palavra[i] ?? []).map(j => e.descricoes[j])).catch(() => [])
     : i => carregaDados(`propaganda/exemplos/${ue}.json`)
       .then(a => a.anos[r.ano]?.[r.cargo]).then(e => (e?.por_palavra[i] ?? []).map(j => e.descricoes[j])).catch(() => []);
-  desenhaRua(porObjeto(dados.gasto, dados.tipos), dados.palavras, exemplos,
+  const objetos = porObjeto(dados.gasto, dados.tipos);
+  nuvemAberta = null;
+  ruaAtual = { r, nome, quem: pessoaAtual ? quem : null, valores: objetos.valores, total, palavras: dados.palavras,
+    eu: pessoaAtual && cands.find(c => c.pid === pessoaAtual.pid), candidatos: dados.candidatos };
+  desenhaRua(objetos, dados.palavras, exemplos,
     pessoaAtual ? `O que ${quem.split(' ')[0]} mais comprou` : 'O que mais aparece nas despesas');
   if (!total) {
     document.getElementById('detalhe-rua').innerHTML = `<span class="aviso-vazio">${pessoaAtual
@@ -283,9 +290,42 @@ async function atualiza(r) {
   primeiraPintura = false;
 }
 
+// ---------------------------------------------------------------- o retrato para o oráculo
+
+/** O que a página mostra agora: quanto se gastou em cada tipo de propaganda (a rua), as palavras que mais aparecem nas
+ *  descrições das despesas (o céu), a nuvem que o leitor abriu e, se for o caso, o político escolhido. */
+registraRetrato(() => {
+  if (!ruaAtual) return null;
+  const { r, nome, quem, valores, total, palavras, eu, candidatos } = ruaAtual;
+  const objetos = OBJETOS.map(o => [o.nome, valores[o.id] ?? 0]).sort((a, b) => b[1] - a[1]);
+  const aberta = nuvemAberta ? palavras[nuvemAberta.i] : null;
+  return {
+    numero: 9, pergunta: 'Onde gastam em propaganda?',
+    recorte: `${minusculo(r.cargo)} · ${nome} · ${r.ano}${quem ? ` · só as despesas de ${quem}` : ''}`,
+    secoes: [
+      { titulo: 'Gasto total declarado', linhas: [
+        ['Total', formata.real(total)], ['Candidatos com despesas', !quem && candidatos ? formata.numero(candidatos) : null],
+      ] },
+      { titulo: 'Gasto por tipo de despesa (os objetos da rua; "comitê" junta o que não é propaganda: pessoal, advogados, contadores, combustível, aluguel)',
+        linhas: objetos.map(([o, v]) => [o, `${formata.real(v)}${total ? ` (${formata.pct((100 * v) / total)})` : ''}`]) },
+      { titulo: 'Palavras que mais aparecem nas descrições das despesas (as nuvens do céu). As somas se sobrepõem: uma despesa entra na soma de todas as palavras que tem, então elas não se somam nem se comparam entre si nem com os totais por tipo acima; quanto se gastou em cada coisa está só nos totais por tipo',
+        linhas: palavras.slice(0, 20).map(([w, f, v]) => [null, `"${w}": ${formata.numero(f)} ${f === 1 ? 'vez' : 'vezes'}, em despesas que somam ${formata.real(v)} (o valor inteiro dessas despesas, não o gasto com "${w}")`]) },
+      { titulo: `Nuvem aberta pelo leitor${aberta ? `: "${aberta[0]}"` : ''}`, linhas: aberta ? [
+        ['Aparece', `${formata.numero(aberta[1])} ${aberta[1] === 1 ? 'vez' : 'vezes'}`],
+        ...nuvemAberta.lista.map(([texto, valor]) => [null, `${texto}: despesa de ${formata.real(valor)}`]),
+      ] : [] },
+      { titulo: 'Político escolhido', linhas: eu ? [
+        ['Nome', nomeDe(eu)], ['Partido', eu.sigla], ['Gasto de campanha', eu.despesa == null ? null : formata.real(eu.despesa)],
+        ['Votos', eu.votos == null ? null : formata.numero(eu.votos)], ['Resultado', eu.eleito ? 'eleito' : 'não eleito'],
+      ] : [] },
+    ],
+  };
+});
+
 const seletor = montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2024, cargo: 'PREFEITO', uf: 'PB', mun: '20516' }, aoMudar: atualiza,
   municipioObrigatorio: true,
+  aviso: AVISO_CONTAS_2026,
 });
 montaBusca(document.getElementById('form-busca'), document.getElementById('resultados'), {
   hrefDe: f => `#pid=${f.id}`, filtro: f => f.ultimo_ano >= 2018,

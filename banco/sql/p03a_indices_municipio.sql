@@ -1,4 +1,4 @@
--- Índices de um município em cada eleição de 2018 a 2024
+-- Índices de um município em cada eleição de 2018 a 2026
 SELECT m.nome,
        m.uf,
        e.ano,
@@ -44,5 +44,5 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) idh ON TRUE
 WHERE m.cod_tse = :'cod_tse'
-  AND e.ano IN (2018, 2020, 2022, 2024)
+  AND e.ano IN (2018, 2020, 2022, 2024, 2026)
 ORDER BY e.ano;

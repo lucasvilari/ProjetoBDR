@@ -25,7 +25,7 @@ def _argumentos(argv):
     p.add_argument("--anos", type=int, nargs="+", metavar="ANO",
                    help="limita aos anos indicados, dentro do escopo de cada pergunta")
     p.add_argument("--carreira-ate", type=int, default=ULTIMO_ANO_COM_RESULTADO, metavar="ANO",
-                   help="último ano da pergunta 10 (padrão: 2024; 2026 inclui as candidaturas atuais)")
+                   help="último ano da pergunta 10 (padrão: 2026, o último com resultados)")
     p.add_argument("--dados", type=Path, default=RAIZ_PADRAO, help="pasta de destino (padrão: ./dados)")
     p.add_argument("--simular", action="store_true",
                    help="só mostra o plano e o espaço estimado, sem baixar nada")

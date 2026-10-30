@@ -8,12 +8,13 @@
 // candidaturas/<ue>-<ano>.json (cada candidato, com receita, receita pública e votos).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261109';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261109';
-import { COR } from './lib/cores.js?v=20261109';
-import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261109';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261109';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261109';
+import { comparacao } from './lib/retrato.js?v=20261155';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261155';
+import { COR } from './lib/cores.js?v=20261155';
+import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261155';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261155';
+import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261155';
 
 montaPagina();
 
@@ -255,7 +256,54 @@ async function atualiza(r) {
   primeiraPintura = false;
 }
 
+// ---------------------------------------------------------------- o retrato para o oráculo
+
+/** O que a página mostra agora: a parcela de dinheiro público escolhida nos cifrões, a taxa de vitória de quem tem
+ *  pelo menos isso e de quem tem menos, a curva de 10 em 10%, os partidos e quem mais recebeu dinheiro público. */
+registraRetrato(() => {
+  if (!estado) return null;
+  const { fatias, cands, nome, r } = estado;
+  const taxaTxt = g => (g.candidatos ? `${formata.pct(g.taxa)} se elegeram (${formata.numero(g.eleitos)} de ${formata.numero(g.candidatos)})` : 'ninguém');
+  const { com, sem } = comPeloMenos(fatias, meios);
+  const comReceita = cands.filter(c => c.receita > 0);
+  const partidos = d3.groups(comReceita, c => c.sigla).map(([sigla, cs]) => {
+    const todos = cands.filter(c => c.sigla === sigla);
+    return { sigla, parcela: d3.mean(cs, parcela), candidatos: todos.length, eleitos: todos.filter(c => c.eleito).length };
+  }).sort((a, b) => b.parcela - a.parcela);
+  const maiores = [...cands].filter(c => c.receita_publica > 0).sort((a, b) => b.receita_publica - a.receita_publica).slice(0, 10);
+  // dinheiro público ÷ votos, como nas torneiras dos políticos: de todos os candidatos juntos e só dos eleitos
+  const porVotoDe = cs => custoPorVoto(d3.sum(cs, c => c.receita_publica ?? 0), d3.sum(cs, c => c.votos ?? 0));
+  const porVotoTxt = v => (v == null ? null : `${formata.porVoto(v)} de dinheiro público por voto`);
+  return {
+    numero: 8, pergunta: 'Dinheiro público elege?',
+    recorte: `${minusculo(r.cargo)} · ${nome} · ${r.ano}`,
+    secoes: [
+      { titulo: `A escolha do leitor nos cifrões: pelo menos ${meios * 5}% da receita vinda de dinheiro público (fundo eleitoral e partidário)`,
+        linhas: fatias.length ? [
+          [meios === 0 ? 'Todos os candidatos' : `Com pelo menos ${meios * 5}%`, taxaTxt(com)],
+          ...(meios === 0 ? [] : [[`Com menos de ${meios * 5}%`, taxaTxt(sem)], ['Todos os candidatos', taxaTxt(comPeloMenos(fatias, 0).com)]]),
+        ] : [[null, 'Não há candidatos com receita declarada neste recorte.']] },
+      { titulo: 'Comparações prontas (calculadas pela página)', linhas: meios === 0 ? [] : [
+        [`Taxa de quem tem pelo menos ${meios * 5}% (${com.candidatos ? formata.pct(com.taxa) : '—'}) em relação à de quem tem menos (${sem.candidatos ? formata.pct(sem.taxa) : '—'})`,
+          com.candidatos && sem.candidatos ? comparacao(com.taxa, sem.taxa) : null],
+      ] },
+      { titulo: 'Taxa de vitória de quem tem pelo menos cada parcela de dinheiro público',
+        linhas: d3.range(0, 21, 2).map(k => [`${k * 5}% ou mais`, taxaTxt(comPeloMenos(fatias, k).com)]) },
+      { titulo: 'Partidos: parcela média de dinheiro público na receita dos candidatos e taxa de vitória',
+        linhas: partidos.slice(0, 15).map(p => [null, `${p.sigla}: ${formata.pct(p.parcela)} público em média, ${formata.numero(p.eleitos)} eleitos de ${formata.numero(p.candidatos)}`]) },
+      { titulo: 'Quanto custou cada voto pago com dinheiro público (dinheiro público recebido ÷ votos no 1º turno)', linhas: [
+        ['Todos os candidatos juntos', porVotoTxt(porVotoDe(cands))],
+        ['Só os eleitos', porVotoTxt(porVotoDe(cands.filter(c => c.eleito)))],
+      ] },
+      { titulo: 'Quem mais recebeu dinheiro público', linhas: maiores.map(c => [null,
+        `${nomeDe(c)} (${c.sigla}): ${formata.real(c.receita_publica)} públicos, ${formata.pct(parcela(c))} da receita, ${c.votos > 0 ? `${formata.numero(c.votos)} votos` : 'sem votos'}`
+        + `${custoPorVoto(c.receita_publica, c.votos) == null ? '' : `, ${porVotoTxt(custoPorVoto(c.receita_publica, c.votos))}`}, ${c.eleito ? 'eleito' : 'não eleito'}`]) },
+    ],
+  };
+});
+
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,
   municipioObrigatorio: true,
+  aviso: AVISO_CONTAS_2026,
 });

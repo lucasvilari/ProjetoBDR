@@ -95,11 +95,11 @@ Os dados reais do TSE obrigaram às decisões abaixo, marcadas com "AJUSTE" em
 
 1. **`sq_candidato` antes de 2018.** De 2000 a 2008 o `SQ_CANDIDATO` se repete
    dentro do próprio ano (em 2000, 399 mil candidaturas têm 3.131 valores); de
-   2010 a 2016 se repete entre anos. De 2018 a 2024 é único. A carga mantém o SQ
+   2010 a 2016 se repete entre anos. De 2018 a 2026 é único. A carga mantém o SQ
    do TSE de 2018 em diante e grava um identificador **negativo** sintético nas
    eleições anteriores, que só servem à pergunta 10.
 2. **1994 e 1996 ficam fora.** O TSE não publica o título eleitoral nesses anos,
-   e sem ele não há político (FK obrigatória). A pergunta 10 cobre 1998 a 2024.
+   e sem ele não há político (FK obrigatória). A pergunta 10 cobre 1998 a 2026.
 3. **Receitas e despesas são somadas por documento.** `SQ_RECEITA` e `SQ_DESPESA`
    identificam o documento; as linhas repetidas são seus itens (uma nota com seis
    produtos aparece em seis linhas). Fonte, origem, doador, tipo e fornecedor
@@ -219,7 +219,7 @@ esquerdo.
 
 ### A visão `vw_ideologia_partido`
 
-Reúne as três medidas, com uma linha por partido e ano de eleição (1998 a 2024). É
+Reúne as três medidas, com uma linha por partido e ano de eleição (1998 a 2026). É
 por ela que as consultas leem a ideologia.
 
 | Coluna | Como é preenchida |

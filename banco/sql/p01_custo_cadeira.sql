@@ -21,6 +21,6 @@ SELECT v.ano,
 FROM vw_candidatura v
 JOIN cadeiras k ON k.ano = v.ano AND k.cargo = v.cargo
 LEFT JOIN gasto g ON g.sq_candidato = v.sq_candidato
-WHERE v.ano IN (2018, 2020, 2022, 2024)
+WHERE v.ano IN (2018, 2020, 2022, 2024, 2026)
 GROUP BY v.ano, v.cargo, k.vagas
 ORDER BY v.ano, custo_medio_por_eleito DESC NULLS LAST;

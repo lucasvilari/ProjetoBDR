@@ -32,11 +32,17 @@ export function spearman(pares) {
   return Math.round((sxy / Math.sqrt(sxx * syy)) * 1e9) / 1e9;
 }
 
-/** A correlação em palavras, para quem não lê estatística. */
+/** A força de uma correlação em palavras, sem dizer o que ela relaciona. */
+export function forcaDaRelacao(r) {
+  if (r == null) return 'dados insuficientes';
+  return Math.abs(r) < 0.1 ? 'quase nenhuma relação' : Math.abs(r) < 0.3 ? 'relação fraca'
+    : Math.abs(r) < 0.6 ? 'relação moderada' : 'relação forte';
+}
+
+/** A correlação entre dinheiro e votos em palavras, para quem não lê estatística. */
 export function descreveCorrelacao(r) {
   if (r == null) return 'dados insuficientes';
-  const forca = Math.abs(r) < 0.1 ? 'quase nenhuma relação' : Math.abs(r) < 0.3 ? 'relação fraca'
-    : Math.abs(r) < 0.6 ? 'relação moderada' : 'relação forte';
+  const forca = forcaDaRelacao(r);
   if (Math.abs(r) < 0.1) return forca;
   return `${r > 0 ? 'mais dinheiro, mais votos' : 'mais dinheiro, menos votos'}: ${forca}`;
 }

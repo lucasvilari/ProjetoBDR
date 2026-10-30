@@ -12,7 +12,7 @@ WITH votos AS (
     JOIN municipio m ON m.cod_tse = vp.cod_tse
     WHERE vp.turno = 1
       AND vp.cargo IN ('VEREADOR', 'DEPUTADO FEDERAL')
-      AND e.ano IN (2018, 2020, 2022, 2024)
+      AND e.ano IN (2018, 2020, 2022, 2024, 2026)
     GROUP BY 1, 2, 3
 ),
 com_nota AS (

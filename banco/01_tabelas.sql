@@ -65,7 +65,7 @@ CREATE TABLE ideologia_coligacao (
 -- AJUSTE 1: antes de 2018 o SQ_CANDIDATO do TSE não identifica a candidatura
 -- (2000-2008 repetem o valor dentro do próprio ano; 2010-2016 repetem entre
 -- anos). Nessas eleições a carga grava um identificador sintético NEGATIVO,
--- que nunca colide com os sequenciais positivos do TSE. De 2018 a 2024
+-- que nunca colide com os sequenciais positivos do TSE. De 2018 a 2026
 -- (escopo padrão, onde estão bens, receitas, despesas e votos) o valor é o
 -- SQ_CANDIDATO original.
 -- AJUSTE 2: situacao_final passa de VARCHAR(30) para VARCHAR(50), porque o TSE

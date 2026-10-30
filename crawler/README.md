@@ -1,7 +1,7 @@
 # ProjetoBDR: crawler de dados
 
 Baixa **somente** os arquivos necessários para responder às 10 perguntas do projeto,
-nos escopos de tempo definidos (E.P. = 2018, 2020, 2022 e 2024), e organiza tudo em `dados/`.
+nos escopos de tempo definidos (E.P. = 2018, 2020, 2022, 2024 e 2026), e organiza tudo em `dados/`.
 
 Tamanho total, medido nos servidores em 11/09/2026: **6,0 GB de download e ~33 GB em disco**
 (bem abaixo do teto de 200 GB).
@@ -29,7 +29,7 @@ python -m crawler
 | `--anos 2024` | Só esses anos, dentro do escopo de cada pergunta |
 | `--fontes tse ibge ipea dataverse` | Só essas fontes |
 | `--atualizar` | Baixa de novo o que o servidor republicou desde o último download |
-| `--carreira-ate 2026` | Estende a P10 às candidaturas de 2026 (ainda sem resultado) |
+| `--carreira-ate 2026` | Último ano da P10 (padrão: 2026, o último com resultados publicados) |
 | `--manter-zips` | Guarda os zips do TSE em `dados/_zips` (ocupa +6 GB) |
 | `--limite-gb 200` | Não baixa se o total em disco for passar desse valor (padrão 200) |
 | `--dados PASTA` | Grava em outra pasta (padrão `./dados`) |

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estudo ajuda a eleger? · Olho do Povo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilo.css?v=20261155">
+  <script src="js/transicao.js?v=20261155"></script>
+  <script type="module" src="js/pergunta-4.js?v=20261155"></script>
+</head>
+<body data-pagina="pergunta-4">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topo"></header>
+
+  <main id="conteudo">
+    <div class="cabeca">
+      <h1>Estudo ajuda a eleger?</h1>
+      <p class="apoio">Quem estudou mais se elege mais? E os lugares onde o eleitorado estudou menos votam em gente com
+        menos estudo? A escolaridade vira uma escala de 0 (analfabeto) a 7 (superior completo), nas eleições de 2022,
+        2024 e 2026 dos seis estados; no mini mapa, escolha um deles ou um dos seus municípios para ver os números daquele lugar.</p>
+    </div>
+
+    <form class="seletor" id="recorte" aria-label="Escolher ano e cargo"></form>
+
+    <div class="lugar-mini" role="group" aria-labelledby="rotulo-lugar">
+      <span class="grupo-rotulo" id="rotulo-lugar">Lugar</span>
+      <div class="lugar-mini-corpo">
+        <div id="mini-mapa" class="mini-mapa"></div>
+        <div class="lugar-mini-texto">
+          <p id="lugar-atual" class="lugar-atual"></p>
+          <p id="dica-mini" class="apoio"></p>
+          <button type="button" class="botao" id="voltar-lugar" hidden></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="p4-grade">
+      <section aria-labelledby="t-escada">
+        <h2 id="t-escada"></h2>
+        <p class="apoio">Cada degrau é um grau de escolaridade. Os bonequinhos são os candidatos daquele degrau, e os
+          verdes, os que se elegeram; embaixo, a taxa de eleição. Clique num degrau para ver os candidatos dele.</p>
+        <div class="escada-rolagem"><div id="escada" class="escada"></div></div>
+        <p id="escada-passo" class="apoio escada-passo"></p>
+        <div id="candidatos-escada" class="candidatos-escada" aria-live="polite"></div>
+      </section>
+      <aside id="santinho-escolaridade" aria-label="A taxa de eleição por escolaridade"></aside>
+    </div>
+
+    <section class="bloco" aria-labelledby="t-boletim-escolar">
+      <h2 id="t-boletim-escolar">Lugares com menos estudo elegem gente parecida?</h2>
+      <p class="apoio">Os municípios do lugar escolhido (todos os 1.238 nos seis estados juntos; os do estado num estado ou
+        município) em cinco grupos de mesmo tamanho, do eleitorado com menos estudo ao com mais.
+        Em cada grupo, a nota média (de 0 a 7) de quem foi votar, a de quem recebeu os votos (cada candidato pesa pelos
+        votos que teve no município) e a dos eleitos que tiveram votos ali.</p>
+      <div id="boletim-escolar"></div>
+      <p id="frase-escolaridade" class="frase-relacao"></p>
+
+      <p class="aviso-tse"><strong>Cuidado ao ler:</strong> a escolaridade do eleitor no TSE é a que ele declarou ao tirar
+        o título, e quase ninguém a atualiza depois. Por isso a nota de quem foi votar tende a ficar abaixo da
+        escolaridade real; a dos candidatos é a declarada no registro de cada eleição. Compare os grupos entre si, não os
+        dois números como se medissem a mesma coisa. Consultas: <code>p04a_escolaridade_sucesso.sql</code> e
+        <code>p04b_escolaridade_municipio.sql</code>.</p>
+    </section>
+  </main>
+
+  <footer class="rodape"></footer>
+</body>
+</html>

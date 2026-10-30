@@ -13,7 +13,7 @@ e grava os resultados em arquivos pequenos.
                  Brasil, nas regiões, nas UFs e nos municípios dos seis estados (banco nacional)
     partidos_recorte  pergunta 1: cadeiras, gasto e votos dos eleitos de cada partido nos seis estados, e a
                  nota de cada partido em cada ano (banco nacional)
-    candidaturas cada candidato de 2018 a 2024 dos seis estados e a presidente, por unidade eleitoral e
+    candidaturas cada candidato de 2018 a 2026 dos seis estados e a presidente, por unidade eleitoral e
                  ano, com votos e dinheiro (banco nacional; nomes do banco dos seis estados)
     legenda      pergunta 5: eleitos das eleições proporcionais dos seis estados, quociente
                  eleitoral e quem entrou pela legenda (banco dos seis estados)
@@ -21,6 +21,19 @@ e grava os resultados em arquivos pequenos.
                  presidente e nos seis estados e seus municípios (banco nacional)
     propaganda   pergunta 9: gasto por tipo de despesa e palavras das descrições, por recorte
                  (banco nacional) e por candidatura dos políticos com nome (banco dos seis estados)
+    indices      pergunta 3: PIB per capita, IDHM, eleitores por habitante, isentos e partido do prefeito de
+                 cada município em cada eleição, e o ranking de partidos por votos e eleitos, somando os cargos e
+                 de cada cargo (banco dos seis estados); o voto ideológico de cada município, combinado e por
+                 cargo, vem dos arquivos da parte vies, que precisa rodar antes
+    indices_estados
+                 pergunta 3: os mesmos índices somados por estado, das 27 UFs e do Brasil (banco nacional)
+    escolaridade pergunta 4: candidatos e eleitos por grau de escolaridade, e o nível médio de quem votou e de
+                 quem recebeu os votos em cada município, em 2022, 2024 e 2026, e a escada de cada estado e município
+                 (banco dos seis estados)
+    escolaridade_estados
+                 pergunta 4: o nível de quem votou e de quem recebeu os votos em cada uma das 27 UFs (banco nacional)
+    idade        pergunta 6: perfil etário de cada município, prefeitos eleitos de 2000 a 2024 e idade de quem recebeu
+                 os votos ao lado da parcela de votantes até 34 anos (banco dos seis estados)
 
 Uso (com o ambiente de banco/.venv):
     ../banco/.venv/bin/python gera_dados.py                 # tudo
@@ -116,6 +129,21 @@ FROM candidatura c JOIN votos_cand v ON v.sq_candidato = c.sq_candidato
 WHERE c.cargo = 'PRESIDENTE'
 GROUP BY 1
 """
+# O arquivo de candidatos de 2006 do TSE não traz o resultado da eleição presidencial (o campo vem "#NULO#" para
+# todos), e não há a votação de presidente desse ano no banco. O resultado oficial (2º turno, 29/10/2006) entra aqui à
+# mão: Lula (PT) reeleito; os demais candidatos aptos, não eleitos; a candidatura do PCO foi indeferida e fica sem
+# resultado.
+def corrige_presidente_2006(ano, cargo, sigla, situacao, eleito, reeleicao):
+    """(situação, eleito, reeleição) da candidatura, com o resultado de presidente em 2006 preenchido."""
+    if ano != 2006 or cargo != 'PRESIDENTE' or situacao is not None:
+        return situacao, eleito, reeleicao
+    if sigla == 'PT':
+        return 'ELEITO', True, True
+    if sigla == 'PCO':
+        return situacao, eleito, reeleicao
+    return 'NÃO ELEITO', False, False
+
+
 # Ficha de busca: o suficiente para listar e distinguir homônimos. foto é "ano/número no TSE/ue"
 # da candidatura mais recente com foto (de 2004 em diante; ver foto_sq), com que o site monta o
 # endereço da foto no DivulgaCandContas do TSE; fica vazia para quem não tem.
@@ -186,7 +214,7 @@ def chave_da_foto_antiga(linha):
 # as liga aos políticos pelo nome e pela data de nascimento, comparando com todas as grafias de nome que cada
 # título usou de 1998 em diante; quem casa com mais de um título, ou com nenhum, fica de fora.
 ANOS_SEM_TITULO = (1994, 1996)
-ANOS_COM_TITULO = range(1998, 2025, 2)
+ANOS_COM_TITULO = range(1998, 2027, 2)
 ELEITO_TSE = {'ELEITO', 'ELEITO POR QP', 'ELEITO POR MÉDIA'}
 
 
@@ -296,6 +324,7 @@ def parte_politicos(nacional, conn):
              patrimonio, receita, publica, despesa, votos) in cur:
             if cargo == 'PRESIDENTE':
                 votos = votos_presidente.get(sq, votos)
+                situacao, eleito, reel = corrige_presidente_2006(ano, cargo, partidos.get(id_partido), situacao, eleito, reel)
             foto_sq = sq if sq > 0 else fotos_antigas.get((ano, local, cargo, titulo))
             linha = [ano, cargos(cargo), local, id_partido, situacoes(situacao or 'SEM SITUAÇÃO'), int(reel), foto_sq,
                      inteiro(patrimonio), inteiro(receita), inteiro(publica), inteiro(despesa), votos]
@@ -359,7 +388,7 @@ def parte_politicos(nacional, conn):
 
 # --------------------------------------------------------------------------- mapa (perguntas 1, 2 e 8)
 
-ANOS = (2018, 2020, 2022, 2024)
+ANOS = (2018, 2020, 2022, 2024, 2026)
 CARGOS_MAPA = ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL',
                'DEPUTADO DISTRITAL', 'PREFEITO', 'VEREADOR')
 FAIXAS_PATRIMONIO = ['Sem bens declarados', 'Até R$ 100 mil', 'R$ 100 mil a R$ 500 mil',
@@ -545,13 +574,13 @@ def parte_geo(conn):
 # --------------------------------------------------------------------------- partidos
 
 SQL_PARTIDOS = """
-WITH atuais AS (                -- partidos com candidatura em 2022 ou 2024
+WITH atuais AS (                -- partidos com candidatura de 2022 em diante
     SELECT DISTINCT v.id_partido FROM vw_candidatura v WHERE v.ano >= 2022
 ),
 eleitos AS (
     SELECT v.id_partido, v.ano, v.cargo, COUNT(*) FILTER (WHERE v.eleito) AS eleitos, COUNT(*) AS candidatos
     FROM vw_candidatura v
-    WHERE v.ano IN (2022, 2024)
+    WHERE v.ano IN (2022, 2024, 2026)
       AND v.cargo IN ('GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL', 'DEPUTADO DISTRITAL',
                       'PREFEITO', 'VEREADOR')
     GROUP BY 1, 2, 3
@@ -599,7 +628,7 @@ def parte_partidos(conn):
 
 # --------------------------------------------------------------------------- candidaturas (cada candidato de um recorte)
 
-# Cada candidato de 2018 a 2024, um arquivo por unidade eleitoral e ano: com nome, número público e foto nos
+# Cada candidato de 2018 a 2026, um arquivo por unidade eleitoral e ano: com nome, número público e foto nos
 # seis estados e para presidente; anônimo nas demais UFs.
 CAMPOS_CANDIDATURAS_RECORTE = ['ano', 'cargo', 'partido', 'unidade', 'eleito', 'situacao', 'votos', 'votos_2t',
                                'despesa', 'receita', 'receita_publica', 'patrimonio', 'nome', 'pid', 'foto']
@@ -667,7 +696,7 @@ def mapa_pid(conn):
 
 
 def parte_candidaturas(nacional, seis):
-    log('candidaturas: lendo candidatos de 2018 a 2024 (banco nacional)')
+    log('candidaturas: lendo candidatos de 2018 a 2026 (banco nacional)')
     pids = mapa_pid(seis)
     with nacional.cursor() as cur:
         cur.execute(SQL_CANDIDATURAS_RECORTE, {'anos': list(ANOS), 'ufs': list(UFS_PROJETO)})
@@ -703,7 +732,7 @@ def parte_candidaturas(nacional, seis):
 # --------------------------------------------------------------------------- legenda (pergunta 5)
 
 # Eleitos das eleições proporcionais dos seis estados, por unidade eleitoral: deputados federais e
-# estaduais por UF (2018 e 2022) e vereadores por município (2020 e 2024), com os votos nominais, o
+# estaduais por UF (2018, 2022 e 2026) e vereadores por município (2020 e 2024), com os votos nominais, o
 # quociente eleitoral e a coligação ou federação que recebeu as cadeiras. Mesma regra de
 # banco/sql/p05_eleitos_legenda.sql: eleito por QP ou média com votação nominal abaixo do quociente.
 CARGOS_PROPORCIONAIS = ('VEREADOR', 'DEPUTADO ESTADUAL', 'DEPUTADO FEDERAL', 'DEPUTADO DISTRITAL')
@@ -1106,7 +1135,8 @@ def parte_dependencia(conn):
 # --------------------------------------------------------------------------- propaganda (pergunta 9)
 
 # Mesmas regras de banco/sql/p09b_nuvem_palavras.sql: minúsculas, separa no que não é letra ou número,
-# descarta palavras de até 2 letras, números puros e as palavras vazias abaixo.
+# descarta palavras de até 2 letras, números puros e as palavras vazias abaixo, e junta as grafias que só diferem em
+# acento ou cedilha (chave_palavra).
 STOPWORDS = {'de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'as', 'os', 'em', 'para', 'com', 'por', 'no', 'na',
              'nos', 'nas', 'um', 'uma', 'ref', 'referente', 'servico', 'servicos', 'serviço', 'serviços'}
 SEPARADOR = re.compile(r'[^a-zà-ú0-9]+')
@@ -1123,19 +1153,29 @@ def palavras(descricao):
     return list(_palavras(descricao)) if descricao else []
 
 
+@functools.lru_cache(maxsize=300_000)
+def chave_palavra(w):
+    """A palavra sem acentos nem cedilha: "militância", "militancia" e "mobilizaçao"/"mobilização" contam juntas."""
+    return ''.join(c for c in unicodedata.normalize('NFD', w) if not unicodedata.combining(c))
+
+
 class ContaPalavras:
     """Frequência e valor associado de cada palavra, como na p09b: cada ocorrência numa descrição conta uma
-    vez e soma o valor do lançamento. `soma` recebe um grupo de n lançamentos iguais e o valor somado deles."""
+    vez e soma o valor do lançamento. `soma` recebe um grupo de n lançamentos iguais e o valor somado deles.
+    Grafias que só diferem em acento ou cedilha são a mesma palavra, mostrada na grafia mais usada."""
     def __init__(self):
-        self.freq, self.valor = Counter(), Counter()
+        self.freq, self.valor, self.grafias = Counter(), Counter(), defaultdict(Counter)
 
     def soma(self, descricao, n, valor):
         for w in palavras(descricao):
-            self.freq[w] += n
-            self.valor[w] += valor
+            c = chave_palavra(w)
+            self.freq[c] += n
+            self.valor[c] += valor
+            self.grafias[c][w] += n
 
     def top(self, k):
-        return [[w, f, round(self.valor[w])] for w, f in sorted(self.freq.items(), key=lambda x: (-x[1], x[0]))[:k]]
+        grafia = lambda c: min(self.grafias[c].items(), key=lambda x: (-x[1], x[0]))[0]
+        return [[grafia(c), f, round(self.valor[c])] for c, f in sorted(self.freq.items(), key=lambda x: (-x[1], x[0]))[:k]]
 
 
 LIMITE_DESCRICAO = 90                    # caracteres de cada descrição de exemplo
@@ -1152,16 +1192,17 @@ class ExemplosDePalavras:
     da nota em que a palavra aparece (sem repetir texto): o que o site mostra quando o leitor clica numa palavra da TV.
     O valor é o da despesa inteira."""
     def __init__(self, alvos, k=3):
-        self.alvos, self.k, self.melhores = set(alvos), k, defaultdict(dict)    # palavra -> {descrição: valor}
+        # as palavras são comparadas sem acento (chave_palavra), como na contagem
+        self.alvos, self.k, self.melhores = {chave_palavra(w) for w in alvos}, k, defaultdict(dict)   # chave -> {descrição: valor}
 
     def soma(self, descricao, valor):
-        achadas = set(palavras(descricao)) & self.alvos
+        achadas = {chave_palavra(w) for w in palavras(descricao)} & self.alvos
         if not achadas:
             return
         # a despesa junta os itens da nota com " | ": o exemplo de cada palavra é o item em que ela aparece
         itens = [i for i in (descricao or '').split('|') if i.strip()] or [descricao]
         for w in achadas:
-            texto = limpa_descricao(next((i for i in itens if w in palavras(i)), descricao))
+            texto = limpa_descricao(next((i for i in itens if w in {chave_palavra(x) for x in palavras(i)}), descricao))
             m = self.melhores[w]
             if valor > m.get(texto, -1):
                 m[texto] = valor
@@ -1173,7 +1214,7 @@ class ExemplosDePalavras:
         tabela, valores, por_palavra = Tabela(), {}, []
         for w in ordem:
             indices = []
-            for texto, v in sorted(self.melhores.get(w, {}).items(), key=lambda x: -x[1]):
+            for texto, v in sorted(self.melhores.get(chave_palavra(w), {}).items(), key=lambda x: -x[1]):
                 indices.append(tabela(texto))
                 valores[texto] = max(valores.get(texto, 0), v)
             por_palavra.append(indices)
@@ -1316,11 +1357,453 @@ def municipios_da(conn, uf):
     return _MUNICIPIOS[uf]
 
 
+# --------------------------------------------------------------------------- índices do município (pergunta 3)
+
+def mais_recente(serie, ano):
+    """(ano, valor) do dado mais recente publicado até `ano` numa série {ano: valor}; (None, None) se não houver."""
+    anos = [a for a in serie if a <= ano]
+    return (max(anos), serie[max(anos)]) if anos else (None, None)
+
+
+# Mesmas regras de banco/sql/p03a_indices_municipio.sql, p03b_partidos_municipio.sql e p03c_indices_por_partido.sql:
+# isentos são brancos, nulos e abstenções do 1º turno de prefeito (anos municipais) ou de presidente (anos gerais);
+# PIB, população e IDHM são os mais recentes publicados até o ano da eleição; os votos de cada partido somam os
+# nominais e os de legenda do 1º turno de todos os cargos no município.
+SQL_APURACAO_MUNICIPIO = """
+SELECT e.ano, a.cod_tse, SUM(a.aptos), SUM(a.brancos + a.nulos + a.abstencoes)
+FROM apuracao a JOIN eleicao e ON e.cod_eleicao = a.cod_eleicao
+WHERE e.ano = ANY(%(anos)s) AND a.turno = 1
+  AND a.cargo = CASE e.abrangencia WHEN 'MUNICIPAL' THEN 'PREFEITO' ELSE 'PRESIDENTE' END
+GROUP BY 1, 2
+"""
+SQL_PREFEITOS = """
+SELECT v.ano, v.ue, p.sigla FROM vw_candidatura v JOIN partido p ON p.id_partido = v.id_partido
+WHERE v.cargo = 'PREFEITO' AND v.eleito AND v.ano >= %(desde)s
+"""
+SQL_VOTOS_PARTIDO_MUNICIPIO = """
+SELECT e.ano, vp.cod_tse, vp.cargo, p.sigla, SUM(vp.votos_nominais + vp.votos_legenda)
+FROM votos_part vp JOIN eleicao e ON e.cod_eleicao = vp.cod_eleicao JOIN partido p ON p.id_partido = vp.id_partido
+WHERE e.ano = ANY(%(anos)s) AND vp.turno = 1
+GROUP BY 1, 2, 3, 4
+"""
+SQL_ELEITOS_MUNICIPIO = """
+SELECT v.ano, v.ue, v.cargo, p.sigla, COUNT(*) FROM vw_candidatura v JOIN partido p ON p.id_partido = v.id_partido
+WHERE v.eleito AND v.ano = ANY(%(anos)s) AND length(v.ue) = 5
+GROUP BY 1, 2, 3, 4
+"""
+CAMPOS_INDICES = ['pib_per_capita', 'idhm', 'eleitores_por_populacao', 'isentos_pct', 'prefeito', 'ano_prefeito',
+                  'ideologia', 'classificacao', 'segundo_turno']
+
+
+def voto_ideologico(uf):
+    """{(ano, município): (índice, classificação, 2º turno de presidente [sigla, %, sigla, %] ou None)}: o índice
+    ideológico combinado (deputado federal nos anos gerais, vereador nos municipais) que a parte vies gravou."""
+    arq = DADOS / f'vies/municipios/{uf}.json'
+    if not arq.exists():
+        raise SystemExit(f'falta {arq}: rode a parte vies antes da parte indices')
+    vies = json.loads(arq.read_text())
+    c = {nome: i for i, nome in enumerate(vies['campos'])}
+    saida = {}
+    for l in vies['linhas']:
+        st = (l[c['presidente']] or {}).get('segundo_turno') or []
+        saida[(l[c['ano']], l[c['territorio']])] = (
+            l[c['indice']], l[c['classificacao']],
+            [st[0][1], st[0][2], st[1][1], st[1][2]] if len(st) >= 2 else None)
+    return saida
+
+
+def voto_ideologico_por_cargo(uf):
+    """{(ano, cargo, município): (índice, classificação)}: o índice ideológico de cada cargo que a parte vies gravou."""
+    saida = {}
+    for cargo in CARGOS_VIES:
+        arq = DADOS / f'vies/municipios/{uf}-{slug_cargo(cargo)}.json'
+        if not arq.exists():
+            continue
+        vies = json.loads(arq.read_text())
+        c = {nome: i for i, nome in enumerate(vies['campos'])}
+        for l in vies['linhas']:
+            saida[(l[c['ano']], cargo, l[c['territorio']])] = (l[c['indice']], l[c['classificacao']])
+    return saida
+RANKING_MAX = 10       # partidos por município e ano no ranking (mais os que elegeram alguém)
+
+
+def parte_indices(conn):
+    log('índices: PIB, IDHM, eleitores, isentos e partidos de cada município')
+    with conn.cursor() as cur:
+        cur.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
+        municipios = cur.fetchall()
+        cur.execute('SELECT cod_tse, ano, pib_per_capita, populacao FROM indicador_anual')
+        pib, pop = defaultdict(dict), defaultdict(dict)
+        for cod, ano, pc, p in cur.fetchall():
+            if pc is not None:
+                pib[cod][ano] = float(pc)
+            if p is not None:
+                pop[cod][ano] = int(p)
+        cur.execute('SELECT cod_tse, ano, idhm FROM idhm_municipio')
+        idhm = defaultdict(dict)
+        for cod, ano, v in cur.fetchall():
+            idhm[cod][ano] = float(v)
+        cur.execute(SQL_APURACAO_MUNICIPIO, {'anos': list(ANOS)})
+        apur = {(ano, cod): (int(aptos), int(isentos)) for ano, cod, aptos, isentos in cur.fetchall()}
+        cur.execute(SQL_PREFEITOS, {'desde': min(ANOS) - 2})
+        prefeito = {(ano, cod): sigla for ano, cod, sigla in cur.fetchall()}
+        cur.execute(SQL_VOTOS_PARTIDO_MUNICIPIO, {'anos': list(ANOS)})
+        # por cargo e somados (None: todos os cargos)
+        votos = defaultdict(lambda: defaultdict(int))
+        cargos_do_ano = defaultdict(set)
+        for ano, cod, cargo, sigla, v in cur.fetchall():
+            votos[(ano, None, cod)][sigla] += int(v)
+            votos[(ano, cargo, cod)][sigla] += int(v)
+            cargos_do_ano[ano].add(cargo)
+        cur.execute(SQL_ELEITOS_MUNICIPIO, {'anos': list(ANOS)})
+        eleitos = defaultdict(lambda: defaultdict(int))
+        for ano, cod, cargo, sigla, n in cur.fetchall():
+            eleitos[(ano, None, cod)][sigla] += n
+            eleitos[(ano, cargo, cod)][sigla] += n
+    partidos, classes = Tabela(), Tabela()
+    voto, voto_cargo = {}, {}
+    for uf in UFS_PROJETO:
+        voto.update(voto_ideologico(uf))
+        voto_cargo.update(voto_ideologico_por_cargo(uf))
+    # na ordem de CARGOS_VIES, só os que tiveram votos no ano
+    cargos = {ano: [c for c in CARGOS_VIES if c in cargos_do_ano[ano]] for ano in ANOS}
+    valores, ano_pib = {}, {}
+    for ano in ANOS:
+        linhas = []
+        # o prefeito no ano da eleição: o eleito nela (anos municipais) ou na municipal anterior (anos gerais)
+        ano_pref = ano if ano % 4 == 0 else ano - 2
+        refs = Counter()
+        for cod, _, _ in municipios:
+            a_pib, v_pib = mais_recente(pib[cod], ano)
+            _, v_pop = mais_recente(pop[cod], ano)
+            _, v_idhm = mais_recente(idhm[cod], ano)
+            aptos, isentos = apur.get((ano, cod), (None, None))
+            sigla = prefeito.get((ano_pref, cod))
+            ideo, classe, st = voto.get((ano, cod), (None, None, None))
+            refs[a_pib] += 1
+            linhas.append([None if v_pib is None else round(v_pib, 2),
+                           None if v_idhm is None else round(v_idhm, 3),
+                           round(aptos / v_pop, 4) if aptos and v_pop else None,
+                           round(100 * isentos / aptos, 2) if aptos else None,
+                           partidos(sigla) if sigla else None, ano_pref if sigla else None,
+                           ideo, classes(classe) if classe else None, st])
+        valores[ano] = linhas
+        ano_pib[ano] = refs.most_common(1)[0][0]
+    ideologia_cargos = {ano: {cargo: [(lambda v: None if v is None or v[0] is None else [v[0], classes(v[1])])(
+                                          voto_cargo.get((ano, cargo, cod))) for cod, _, _ in municipios]
+                              for cargo in cargos[ano]} for ano in ANOS}
+    shutil.rmtree(DADOS / 'indices/ranking', ignore_errors=True)
+    # o ranking: os partidos mais votados de cada município e ano, mais os que elegeram alguém ali
+    # um arquivo com todos os cargos somados (<UF>.json) e um por cargo (<UF>-<cargo>.json)
+    por_uf = defaultdict(lambda: defaultdict(dict))
+    for cod, _, uf in municipios:
+        for ano in ANOS:
+            for cargo in (None, *cargos[ano]):
+                vs = votos.get((ano, cargo, cod))
+                if not vs:
+                    continue
+                el = eleitos.get((ano, cargo, cod), {})
+                ordem = sorted(vs.items(), key=lambda x: (-x[1], x[0]))
+                escolhidos = [s for i, (s, _) in enumerate(ordem) if i < RANKING_MAX or el.get(s)]
+                por_uf[(uf, cargo)][ano][cod] = {'total': sum(vs.values()),
+                                                 'partidos': [[partidos(s), vs[s], el.get(s, 0)] for s in escolhidos]}
+    for (uf, cargo), anos in por_uf.items():
+        nome = uf if cargo is None else f'{uf}-{slug_cargo(cargo)}'
+        grava(f'indices/ranking/{nome}.json', {'partidos': partidos.lista, 'anos': anos})
+    grava('indices/municipios.json', {'anos': list(ANOS), 'campos': CAMPOS_INDICES, 'ano_pib': ano_pib,
+                                      'partidos': partidos.lista, 'classificacoes': classes.lista,
+                                      'municipios': [list(m) for m in municipios],
+                                      'valores': valores, 'cargos': cargos, 'ideologia_cargos': ideologia_cargos})
+    log(f'índices: {len(municipios):,} municípios; {tamanho_pasta(DADOS / "indices") / 1e6:.1f} MB')
+
+
+def agrega_estado(municipios):
+    """[PIB per capita, IDHM, eleitores por habitante, isentos %] de um estado a partir dos seus municípios (dicts com
+    pib_pc, pop, idhm, aptos, isentos). PIB per capita, eleitores e isentos são razões de somas; o IDHM é a média dos
+    municípios com peso da população. Cada índice usa só os municípios que têm os dados dele."""
+    def razao(num, den):
+        pares = [(num(m), den(m)) for m in municipios]
+        pares = [(a, b) for a, b in pares if a is not None and b]
+        return sum(a for a, _ in pares) / sum(b for _, b in pares) if pares else None
+    com = lambda *ks: (lambda f: lambda m: None if any(m[k] is None for k in ks) else f(m))
+    pib = razao(com('pib_pc', 'pop')(lambda m: m['pib_pc'] * m['pop']), lambda m: m['pop'] if m['pib_pc'] is not None else None)
+    idhm = razao(com('idhm', 'pop')(lambda m: m['idhm'] * m['pop']), lambda m: m['pop'] if m['idhm'] is not None else None)
+    eleitores = razao(com('aptos', 'pop')(lambda m: m['aptos']), lambda m: m['pop'] if m['aptos'] is not None else None)
+    isentos = razao(com('isentos', 'aptos')(lambda m: 100 * m['isentos']), lambda m: m['aptos'] if m['isentos'] is not None else None)
+    return [pib, idhm, eleitores, isentos]
+
+
+def parte_indices_estados(conn):
+    log('índices dos estados: PIB per capita, IDHM, eleitores por habitante e isentos das 27 UFs')
+    with conn.cursor() as cur:
+        cur.execute('SELECT cod_tse, uf FROM municipio')
+        uf_de = dict(cur.fetchall())
+        cur.execute('SELECT cod_tse, ano, pib_per_capita, populacao FROM indicador_anual')
+        pib, pop = defaultdict(dict), defaultdict(dict)
+        for cod, ano, pc, p in cur.fetchall():
+            if pc is not None:
+                pib[cod][ano] = float(pc)
+            if p is not None:
+                pop[cod][ano] = int(p)
+        cur.execute('SELECT cod_tse, ano, idhm FROM idhm_municipio')
+        idhm = defaultdict(dict)
+        for cod, ano, v in cur.fetchall():
+            idhm[cod][ano] = float(v)
+        cur.execute(SQL_APURACAO_MUNICIPIO, {'anos': list(ANOS)})
+        apur = {(ano, cod): (int(aptos), int(isentos)) for ano, cod, aptos, isentos in cur.fetchall()}
+    valores, ano_pib = {}, {}
+    for ano in ANOS:
+        por_uf, refs = defaultdict(list), Counter()
+        for cod, uf in uf_de.items():
+            a_pib, v_pib = mais_recente(pib[cod], ano)
+            refs[a_pib] += 1
+            aptos, isentos = apur.get((ano, cod), (None, None))
+            m = {'pib_pc': v_pib, 'pop': mais_recente(pop[cod], ano)[1], 'idhm': mais_recente(idhm[cod], ano)[1],
+                 'aptos': aptos, 'isentos': isentos}
+            por_uf[uf].append(m)
+            por_uf['BR'].append(m)
+        arredonda = lambda v, casas: None if v is None else round(v, casas)
+        valores[ano] = {uf: [arredonda(a, c) for a, c in zip(agrega_estado(ms), (2, 3, 4, 2))] for uf, ms in sorted(por_uf.items())}
+        ano_pib[ano] = refs.most_common(1)[0][0]
+    grava('indices/estados.json', {'anos': list(ANOS), 'campos': CAMPOS_INDICES[:4], 'ano_pib': ano_pib, 'valores': valores})
+    log(f'índices dos estados: {len(valores[ANOS[0]]) - 1} UFs')
+
+
+# Pergunta 4, com as regras de banco/sql/p04a_escolaridade_sucesso.sql e p04b_escolaridade_municipio.sql: a escolaridade
+# vira um nível de 0 (analfabeto) a 7 (superior completo) pela função nivel_escolaridade do banco; o nível de quem votou
+# é a média dos níveis de quem compareceu no 1º turno, com peso pelo comparecimento; o de quem recebeu os votos, a
+# média dos níveis dos candidatos com peso pelos votos no município; o dos eleitos, a média dos níveis dos eleitos que
+# tiveram votos ali (uma vez por zona, como na consulta).
+ANOS_ESCOLARIDADE = (2022, 2024, 2026)
+NIVEIS_ESCOLARIDADE = ['ANALFABETO', 'LÊ E ESCREVE', 'ENSINO FUNDAMENTAL INCOMPLETO', 'ENSINO FUNDAMENTAL COMPLETO',
+                       'ENSINO MÉDIO INCOMPLETO', 'ENSINO MÉDIO COMPLETO', 'SUPERIOR INCOMPLETO', 'SUPERIOR COMPLETO']
+SQL_ESCADA = """
+SELECT v.ano, v.cargo, v.ue, m.uf, nivel_escolaridade(v.escolaridade), COUNT(*), COUNT(*) FILTER (WHERE v.eleito)
+FROM vw_candidatura v LEFT JOIN municipio m ON m.cod_tse = v.ue
+WHERE v.ano = ANY(%(anos)s) AND nivel_escolaridade(v.escolaridade) IS NOT NULL
+GROUP BY 1, 2, 3, 4, 5
+"""
+SQL_NIVEL_ELEITORADO = """
+SELECT e.ano, pc.cod_tse,
+       SUM(pc.comparecimento * nivel_escolaridade(pc.escolaridade))::NUMERIC
+         / NULLIF(SUM(pc.comparecimento) FILTER (WHERE nivel_escolaridade(pc.escolaridade) IS NOT NULL), 0)
+FROM perfil_comparecimento pc JOIN eleicao e ON e.cod_eleicao = pc.cod_eleicao
+WHERE pc.turno = 1 AND e.ano = ANY(%(anos)s)
+GROUP BY 1, 2
+"""
+SQL_NIVEL_VOTADOS = """
+SELECT v.ano, v.cargo, vc.cod_tse,
+       SUM(vc.votos * nivel_escolaridade(v.escolaridade))::NUMERIC
+         / NULLIF(SUM(vc.votos) FILTER (WHERE nivel_escolaridade(v.escolaridade) IS NOT NULL), 0),
+       AVG(nivel_escolaridade(v.escolaridade)) FILTER (WHERE v.eleito)
+FROM votos_cand vc JOIN vw_candidatura v ON v.sq_candidato = vc.sq_candidato
+WHERE vc.turno = 1 AND v.ano = ANY(%(anos)s)
+GROUP BY 1, 2, 3
+"""
+
+# Cada candidato dos seis estados (menos presidente) com o grau dele e a nota média de quem foi votar nos municípios
+# onde ele teve votos, com peso pelos votos que teve em cada um. Um arquivo por unidade eleitoral e ano, como em
+# candidaturas/: municípios nos anos municipais, estados nos gerais.
+CAMPOS_CANDIDATOS_ESCOLARIDADE = ['nome', 'pid', 'partido', 'cargo', 'eleito', 'nivel', 'nivel_eleitores', 'votos', 'foto']
+SQL_CANDIDATOS_ESCOLARIDADE = """
+WITH el AS (
+    SELECT e.ano, pc.cod_tse,
+           SUM(pc.comparecimento * nivel_escolaridade(pc.escolaridade))::NUMERIC
+             / NULLIF(SUM(pc.comparecimento) FILTER (WHERE nivel_escolaridade(pc.escolaridade) IS NOT NULL), 0) AS n
+    FROM perfil_comparecimento pc JOIN eleicao e ON e.cod_eleicao = pc.cod_eleicao
+    WHERE pc.turno = 1 AND e.ano = ANY(%(anos)s)
+    GROUP BY 1, 2
+),
+vt AS (
+    SELECT vc.sq_candidato, SUM(vc.votos) AS votos,
+           SUM(vc.votos * el.n) / NULLIF(SUM(vc.votos) FILTER (WHERE el.n IS NOT NULL), 0) AS n
+    FROM votos_cand vc JOIN vw_candidatura v ON v.sq_candidato = vc.sq_candidato
+    LEFT JOIN el ON el.ano = v.ano AND el.cod_tse = vc.cod_tse
+    WHERE vc.turno = 1 AND v.ano = ANY(%(anos)s)
+    GROUP BY 1
+)
+SELECT v.sq_candidato, v.titulo_eleitoral, v.ano, v.ue, v.cargo, p.sigla, v.eleito,
+       nivel_escolaridade(v.escolaridade), vt.n, vt.votos
+FROM vw_candidatura v JOIN partido p ON p.id_partido = v.id_partido
+LEFT JOIN vt ON vt.sq_candidato = v.sq_candidato
+WHERE v.ano = ANY(%(anos)s) AND v.ue <> 'BR'
+"""
+
+
+def parte_escolaridade(conn):
+    log('escolaridade: candidatos e eleitos por grau, e o nível de quem votou e de quem recebeu os votos')
+    anos = list(ANOS_ESCOLARIDADE)
+    num = lambda v, casas=3: None if v is None else round(float(v), casas)
+    with conn.cursor() as cur:
+        cur.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
+        municipios = cur.fetchall()
+        cur.execute(SQL_ESCADA, {'anos': anos})
+        # a escada de cada lugar: os seis estados juntos (SEIS, com presidente), cada estado (as candidaturas dele e
+        # dos seus municípios) e cada município (as dele, só nos anos municipais)
+        escada = {ano: defaultdict(lambda: defaultdict(lambda: [[0, 0] for _ in NIVEIS_ESCOLARIDADE])) for ano in anos}
+        for ano, cargo, ue, uf_mun, nivel, candidatos, eleitos in cur.fetchall():
+            lugares = ['SEIS']
+            if ue in UFS_PROJETO:
+                lugares.append(ue)
+            elif uf_mun:
+                lugares += [uf_mun, ue]
+            for lugar in lugares:
+                for chave in (cargo, 'TODOS'):
+                    escada[ano][lugar][chave][nivel][0] += candidatos
+                    escada[ano][lugar][chave][nivel][1] += eleitos
+        cur.execute(SQL_NIVEL_ELEITORADO, {'anos': anos})
+        eleitor = {(ano, cod): num(v) for ano, cod, v in cur.fetchall()}
+        cur.execute(SQL_NIVEL_VOTADOS, {'anos': anos})
+        votados = defaultdict(dict)
+        for ano, cargo, cod, votado, eleitos in cur.fetchall():
+            votados[(ano, cargo)][cod] = [num(votado), num(eleitos)]
+        cur.execute(SQL_CANDIDATOS_ESCOLARIDADE, {'anos': anos})
+        candidatos = cur.fetchall()
+    pids = mapa_pid(conn)
+    shutil.rmtree(DADOS / 'escolaridade/candidatos', ignore_errors=True)
+    por_ue = defaultdict(lambda: {'partidos': Tabela(), 'cargos': Tabela(), 'linhas': []})
+    for sq, titulo, ano, ue, cargo, sigla, eleito, nivel, n_eleitores, votos in candidatos:
+        arq = por_ue[(ue, ano)]
+        pid, nome = pids.get(titulo, (None, None))
+        arq['linhas'].append([nome, pid, arq['partidos'](sigla), arq['cargos'](cargo), bool(eleito), nivel,
+                              num(n_eleitores), None if votos is None else int(votos), f'{ano}/{sq}/{ue}' if sq > 0 else None])
+    for (ue, ano), arq in por_ue.items():
+        # os eleitos primeiro, depois os mais votados
+        arq['linhas'].sort(key=lambda l: (not l[4], -(l[7] or 0)))
+        grava(f'escolaridade/candidatos/{ue}-{ano}.json', {'campos': CAMPOS_CANDIDATOS_ESCOLARIDADE,
+                                                          'partidos': arq['partidos'].lista, 'cargos': arq['cargos'].lista,
+                                                          'linhas': [sem_vazios_no_fim(l) for l in arq['linhas']]})
+    cargos = {ano: [c for c in CARGOS_VIES if c in escada[ano]['SEIS']] for ano in anos}
+    grava('escolaridade/escolaridade.json', {
+        'anos': anos, 'niveis': NIVEIS_ESCOLARIDADE, 'cargos': cargos,
+        'escada': {ano: {lugar: dict(por_cargo) for lugar, por_cargo in escada[ano].items()} for ano in anos},
+        'municipios': [list(m) for m in municipios],
+        'eleitorado': {ano: [eleitor.get((ano, cod)) for cod, _, _ in municipios] for ano in anos},
+        'votados': {ano: {c: [votados[(ano, c)].get(cod) for cod, _, _ in municipios] for c in cargos[ano]} for ano in anos},
+    })
+    log(f'escolaridade: {len(municipios):,} municípios e {len(candidatos):,} candidatos; '
+        f'{tamanho_pasta(DADOS / "escolaridade") / 1e6:.1f} MB')
+
+
+SQL_NIVEL_ELEITORADO_UF = """
+SELECT e.ano, m.uf,
+       SUM(pc.comparecimento * nivel_escolaridade(pc.escolaridade))::NUMERIC
+         / NULLIF(SUM(pc.comparecimento) FILTER (WHERE nivel_escolaridade(pc.escolaridade) IS NOT NULL), 0)
+FROM perfil_comparecimento pc JOIN eleicao e ON e.cod_eleicao = pc.cod_eleicao JOIN municipio m ON m.cod_tse = pc.cod_tse
+WHERE pc.turno = 1 AND e.ano = ANY(%(anos)s)
+GROUP BY 1, 2
+"""
+SQL_NIVEL_VOTADOS_UF = """
+SELECT v.ano, v.cargo, m.uf,
+       SUM(vc.votos * nivel_escolaridade(v.escolaridade))::NUMERIC
+         / NULLIF(SUM(vc.votos) FILTER (WHERE nivel_escolaridade(v.escolaridade) IS NOT NULL), 0)
+FROM votos_cand vc JOIN vw_candidatura v ON v.sq_candidato = vc.sq_candidato JOIN municipio m ON m.cod_tse = vc.cod_tse
+WHERE vc.turno = 1 AND v.ano = ANY(%(anos)s)
+GROUP BY 1, 2, 3
+"""
+
+
+def parte_escolaridade_estados(conn):
+    log('escolaridade dos estados: o nível de quem votou e de quem recebeu os votos nas 27 UFs')
+    anos = list(ANOS_ESCOLARIDADE)
+    with conn.cursor() as cur:
+        cur.execute(SQL_NIVEL_ELEITORADO_UF, {'anos': anos})
+        eleitorado = defaultdict(dict)
+        for ano, uf, v in cur.fetchall():
+            eleitorado[ano][uf] = None if v is None else round(float(v), 3)
+        cur.execute(SQL_NIVEL_VOTADOS_UF, {'anos': anos})
+        votados = defaultdict(lambda: defaultdict(dict))
+        for ano, cargo, uf, v in cur.fetchall():
+            votados[ano][cargo][uf] = None if v is None else round(float(v), 3)
+    grava('escolaridade/estados.json', {'anos': anos, 'eleitorado': {a: dict(sorted(eleitorado[a].items())) for a in anos},
+                                        'votados': {a: {c: dict(sorted(v.items())) for c, v in votados[a].items()} for a in anos}})
+    log(f'escolaridade dos estados: {len(eleitorado[anos[0]])} UFs')
+
+
+# Pergunta 6, com as regras de banco/sql/p06a_alternancia.sql e p06b_jovem_vota_jovem.sql: a idade mediana e o
+# índice de envelhecimento de cada município; os prefeitos eleitos de 2000 a 2024, na ordem das eleições, com o partido,
+# a idade na posse e a nota do partido (especialistas); a parcela de quem foi votar com até 34 anos e a idade média dos
+# candidatos com peso pelos votos, por município, nas eleições municipais (prefeito e vereador).
+# só as eleições municipais: a página é por município, e só prefeito e vereador são disputados nele
+ANOS_JOVENS = (2020, 2024)
+CARGOS_JOVENS = ('PREFEITO', 'VEREADOR')
+CAMPOS_PREFEITO = ['ano', 'nome', 'pid', 'partido', 'idade', 'foto']
+SQL_PREFEITOS_HISTORICO = """
+SELECT v.ue, v.ano, v.titulo_eleitoral, p.sigla, p.numero, v.idade_posse, v.sq_candidato
+FROM vw_candidatura v JOIN partido p ON p.id_partido = v.id_partido
+WHERE v.cargo = 'PREFEITO' AND v.eleito AND length(v.ue) = 5
+ORDER BY v.ue, v.ano, v.sq_candidato
+"""
+SQL_NOTAS_PARTIDOS = """
+SELECT i.ano, p.sigla, i.nota_especialistas FROM vw_ideologia_partido i JOIN partido p ON p.id_partido = i.id_partido
+WHERE i.nota_especialistas IS NOT NULL
+"""
+# a parcela de jovens vem da mesma eleição do cargo: o TSE separa um ano em várias eleições, cada uma com o seu
+# comparecimento
+SQL_JOVENS = """
+SELECT pc.cod_eleicao, pc.cod_tse,
+       100.0 * SUM(pc.comparecimento) FILTER (WHERE SUBSTRING(pc.faixa_etaria FROM '^[0-9]+')::INT < 35)
+         / NULLIF(SUM(pc.comparecimento), 0)
+FROM perfil_comparecimento pc JOIN eleicao e ON e.cod_eleicao = pc.cod_eleicao
+WHERE pc.turno = 1 AND pc.faixa_etaria ~ '^[0-9]' AND e.ano = ANY(%(anos)s)
+GROUP BY 1, 2
+"""
+SQL_IDADE_VOTADA = """
+SELECT v.ano, v.cargo, v.cod_eleicao, vc.cod_tse, SUM(vc.votos * v.idade_posse)::NUMERIC / NULLIF(SUM(vc.votos), 0)
+FROM votos_cand vc JOIN vw_candidatura v ON v.sq_candidato = vc.sq_candidato
+WHERE vc.turno = 1 AND v.idade_posse > 0 AND v.ano = ANY(%(anos)s)
+GROUP BY 1, 2, 3, 4
+"""
+
+
+def parte_idade(conn):
+    log('idade: prefeitos de 2000 a 2024, perfil etário dos municípios e idade de quem recebeu os votos')
+    anos = list(ANOS_JOVENS)
+    with conn.cursor() as cur:
+        cur.execute('SELECT cod_tse, nome, uf, idade_mediana, indice_envelhecimento FROM municipio '
+                    'WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
+        municipios = [[cod, nome, uf, None if im is None else float(im), None if ie is None else float(ie)]
+                      for cod, nome, uf, im, ie in cur.fetchall()]
+        cur.execute(SQL_PREFEITOS_HISTORICO)
+        prefeitos_brutos = cur.fetchall()
+        cur.execute(SQL_NOTAS_PARTIDOS)
+        notas = defaultdict(dict)
+        for ano, sigla, nota in cur.fetchall():
+            notas[ano][sigla] = round(float(nota), 2)
+        cur.execute(SQL_JOVENS, {'anos': anos})
+        jovens_eleicao = {(el, cod): None if v is None else round(float(v), 2) for el, cod, v in cur.fetchall()}
+        cur.execute(SQL_IDADE_VOTADA, {'anos': anos})
+        votada, jovens = defaultdict(dict), defaultdict(dict)
+        for ano, cargo, el, cod, v in cur.fetchall():
+            votada[(ano, cargo)][cod] = None if v is None else round(float(v), 2)
+            jovens[(ano, cargo)][cod] = jovens_eleicao.get((el, cod))
+    pids = mapa_pid(conn)
+    # o partido é sigla e número: há siglas repetidas em partidos diferentes (o PSD de 41 e o de 55)
+    partidos = Tabela()
+    prefeitos = defaultdict(list)
+    for ue, ano, titulo, sigla, numero, idade, sq in prefeitos_brutos:
+        pid, nome = pids.get(titulo, (None, None))
+        prefeitos[ue].append(sem_vazios_no_fim([ano, nome, pid, partidos((sigla, numero)), idade,
+                                                f'{ano}/{sq}/{ue}' if sq > 0 and ano >= 2004 else None]))
+    cargos = {ano: [c for c in CARGOS_JOVENS if (ano, c) in votada] for ano in anos}
+    grava('idade/idade.json', {
+        'municipios': municipios, 'campos_prefeito': CAMPOS_PREFEITO, 'partidos': [list(p) for p in partidos.lista],
+        'notas': {ano: notas[ano] for ano in sorted(notas)}, 'prefeitos': dict(prefeitos),
+        'anos': anos, 'cargos': cargos,
+        'jovens': {ano: {c: [jovens[(ano, c)].get(m[0]) for m in municipios] for c in cargos[ano]} for ano in anos},
+        'idade_votada': {ano: {c: [votada[(ano, c)].get(m[0]) for m in municipios] for c in cargos[ano]} for ano in anos},
+    })
+    log(f'idade: {sum(map(len, prefeitos.values())):,} prefeitos em {len(prefeitos):,} municípios; '
+        f'{tamanho_pasta(DADOS / "idade") / 1e6:.1f} MB')
+
+
 PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
           'partidos': parte_partidos, 'vies': parte_vies,
           'candidaturas': parte_candidaturas, 'legenda': parte_legenda,
           'propaganda': parte_propaganda, 'partidos_recorte': parte_partidos_recorte,
-          'dependencia': parte_dependencia}
+          'dependencia': parte_dependencia, 'indices': parte_indices,
+          'indices_estados': parte_indices_estados, 'escolaridade': parte_escolaridade,
+          'escolaridade_estados': parte_escolaridade_estados, 'idade': parte_idade}
 # partes que leem os dois bancos: recebem (nacional, seis estados)
 DOIS_BANCOS = {'candidaturas', 'propaganda', 'politicos'}
 
@@ -1336,7 +1819,7 @@ def main():
             with psycopg.connect(args.nacional) as nacional, psycopg.connect(args.banco) as seis:
                 PARTES[parte](nacional, seis)
             continue
-        dsn = args.banco if parte == 'legenda' else args.nacional
+        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade') else args.nacional
         with psycopg.connect(dsn) as conn:
             PARTES[parte](conn)
 

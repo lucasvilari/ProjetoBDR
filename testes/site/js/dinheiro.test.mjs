@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from '../../../site/js/lib/dinheiro.js';
+import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais, forcaDaRelacao } from '../../../site/js/lib/dinheiro.js';
 
 test('custo por voto', () => {
   assert.equal(custoPorVoto(1000, 100), 10); assert.equal(custoPorVoto(1000, 0), null);
@@ -18,4 +18,12 @@ test('reais abreviados para o número grande do santinho', () => {
   assert.equal(abreviaReais(1500000000), 'R$ 1,5 bi');
   assert.equal(abreviaReais(850000), 'R$ 850 mil');
   assert.equal(abreviaReais(999), 'R$ 999');
+});
+
+test('força da relação em palavras, sem falar de dinheiro', () => {
+  assert.equal(forcaDaRelacao(0.05), 'quase nenhuma relação');
+  assert.equal(forcaDaRelacao(-0.2), 'relação fraca');
+  assert.equal(forcaDaRelacao(0.45), 'relação moderada');
+  assert.equal(forcaDaRelacao(-0.7), 'relação forte');
+  assert.equal(forcaDaRelacao(null), 'dados insuficientes');
 });

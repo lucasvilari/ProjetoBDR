@@ -17,7 +17,7 @@ FROM (
            END AS faixa
     FROM vw_candidatura v
     JOIN vw_patrimonio p ON p.sq_candidato = v.sq_candidato
-    WHERE v.ano IN (2018, 2020, 2022, 2024)
+    WHERE v.ano IN (2018, 2020, 2022, 2024, 2026)
       AND v.cargo = :'cargo'
 ) t
 GROUP BY ano, faixa

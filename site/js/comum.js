@@ -1,7 +1,11 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-import { PERGUNTAS } from './lib/perguntas.js?v=20261109';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261155';
+import { montaOraculo, registraRetrato } from './oraculo.js?v=20261155';
+
+// cada página registra aqui como montar o retrato do que mostra, que o oráculo lê
+export { registraRetrato };
 
 // a navegação são as teclas da urna: uma por pergunta respondida, com o título por extenso no rótulo
 const PAGINAS = PERGUNTAS.filter(p => p.href).map(p => ({ id: `pergunta-${p.n}`, rotulo: String(p.n), titulo: p.titulo, href: p.href }));
@@ -18,6 +22,7 @@ export function montaPagina() {
       <nav class="nav" aria-label="Seções do site">
         <a class="nav-todas" href="index.html"${atual === 'inicio' ? ' aria-current="page"' : ''}>Perguntas</a>
         ${PAGINAS.map(p => `<a class="nav-tecla" href="${p.href}" title="${p.titulo}" aria-label="Pergunta ${p.rotulo}: ${p.titulo}"${p.id === atual ? ' aria-current="page"' : ''}>${p.rotulo}</a>`).join('')}
+        <a class="nav-tecla nav-cabine" href="cabine.html" title="Pergunte ao oráculo" aria-label="A cabine do oráculo: faça uma pergunta geral"${atual === 'cabine' ? ' aria-current="page"' : ''}>?</a>
       </nav>
     </div>`;
   const rodape = document.querySelector('footer.rodape');
@@ -28,6 +33,7 @@ export function montaPagina() {
     </div>`;
   document.addEventListener('click', viraSantinho);
   apertaTeclas();
+  montaOraculo();
   confereSePronta();
 }
 
@@ -56,8 +62,8 @@ function apertaTeclas() {
   });
 }
 
-// a página está montada quando o topo já foi escrito e nenhum dado está chegando por dois quadros seguidos: aí o
-// olho do piscar entre páginas pode reabrir (js/transicao.js)
+// a página está montada quando o topo já foi escrito e nenhum dado está chegando por dois quadros seguidos: aí a
+// cortina entre páginas pode se abrir (js/transicao.js)
 let pendentes = 0, conferindo = false;
 function confereSePronta() {
   if (conferindo) return;
@@ -128,7 +134,7 @@ const cache = new Map();
 
 /** Lê um arquivo JSON de dados/, uma vez por página. */
 // a mesma versão do ?v= dos scripts: depois de publicar, o navegador não mistura script novo com dado velho
-const VERSAO = '20261109';
+const VERSAO = '20261155';
 
 export function carregaDados(caminho) {
   if (!cache.has(caminho)) {
@@ -157,10 +163,9 @@ export function comSeta(v, centro = 5, casas = null) {
   return `<span class="seta" title="no centro">${txt}</span>`;
 }
 
-// código de cada eleição no DivulgaCandContas do TSE, de onde vêm as fotos
 // o código de cada eleição no DivulgaCandContas do TSE, que tem as fotos de 2004 em diante
 const ELEICAO_TSE = { 2004: 14431, 2006: 14423, 2008: 14422, 2010: 14417, 2012: 1699, 2014: 680, 2016: 2,
-  2018: 2022802018, 2020: 2030402020, 2022: 2040602022, 2024: 2045202024 };
+  2018: 2022802018, 2020: 2030402020, 2022: 2040602022, 2024: 2045202024, 2026: 20322002026 };
 
 /** A foto do candidato no TSE ("ano/número do candidato no TSE/ue", de 2004 em diante). Sem foto, ou se o TSE
  *  não responder, a imagem some; quando o TSE não tem a foto, ele manda uma silhueta. */

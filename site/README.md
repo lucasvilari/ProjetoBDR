@@ -9,16 +9,21 @@ perguntas respondidas têm uma página cada, com uma visualização própria:
 | `index.html` | apresentação, fontes e a roda das perguntas | o olho que se abre e as dez perguntas em volta dele |
 | `pergunta-1.html` | Quanto custa uma cadeira? | o plenário em 3D (ou 2D) com a multidão de quem tentou, as moedas do gasto, por partido e por político |
 | `pergunta-2.html` | Patrimônio ajuda a eleger? | um prédio: cada andar uma faixa de patrimônio, cada janela um candidato, acesa quando se elegeu; os moradores de cada andar e patrimônio × votos |
+| `pergunta-3.html` | Município rico vota diferente? | o mapa das 27 UFs (e dos municípios dos seis estados) em relevo 3D: a altura de cada lugar é o índice e a cor, o voto (ou plano, sem WebGL); abaixo, do município escolhido no mapa, o boletim de urna com os partidos mais votados, a posição de cada um e os eleitos, e o santinho com PIB per capita, IDHM, eleitores por habitante, isentos e para que lado votou; o voto médio dos municípios em cinco grupos por índice; tudo para o ano e o cargo escolhidos |
+| `pergunta-4.html` | Estudo ajuda a eleger? | um mini mapa para escolher o lugar (os seis estados juntos, um deles ou um município); do lugar, a escada dos diplomas (clicar num degrau lista os candidatos dele, cada um com um mini cartão e o link para a carreira): oito degraus, de analfabeto a superior completo, com os candidatos em cima, os eleitos em verde e a taxa de eleição de cada degrau; o boletim escolar dos municípios em cinco grupos pela escolaridade de quem foi votar, com a de quem recebeu os votos e dos eleitos |
 | `pergunta-5.html` | Quem entrou pela legenda? | cada eleito é um copo com os próprios votos, com a marca do quociente: os puxadores transbordam; ao esvaziar a jarra da chapa (colegas sem cadeira e legenda), ela e a sobra dos puxadores enchem os copos dos outros |
+| `pergunta-6.html` | Cidade jovem troca mais de prefeito? | um mini mapa para escolher o lugar; a faixa de prefeito passando de mão em mão, de 2000 a 2024, uma faixa por prefeito na cor da posição do partido (clicável, com mini cartão e link para a carreira); as ampulhetas dos municípios mais jovens e mais velhos (troca de partido e de pessoa, idade dos prefeitos); jovem vota em jovem, em cinco grupos de municípios |
 | `pergunta-7.html` | Para que lado se vota? | o mapa do vermelho (esquerda) ao azul (direita), por cargo e ano, nas duas réguas, com linha do tempo; e os partidos |
 | `pergunta-8.html` | Dinheiro público elege? | o leitor preenche dez cifrões com a parcela de dinheiro público e vê a taxa de vitória de quem tem pelo menos isso; cada candidato e cada partido como uma torneira |
 | `pergunta-9.html` | Onde gastam em propaganda? | a rua da campanha, com um objeto por tipo de despesa; a seta para o céu afasta a vista e mostra as nuvens, uma por palavra das despesas |
-| `pergunta-10.html` | Como foi a carreira de um político? | a linha do tempo com um santinho por eleição, de 1994 a 2024 (1994 e 1996 ligadas pelo nome e nascimento), com foto de 2004 em diante |
+| `pergunta-10.html` | Como foi a carreira de um político? | a linha do tempo com um santinho por eleição, de 1994 a 2026 (1994 e 1996 ligadas pelo nome e nascimento), com foto de 2004 em diante |
+| `cabine.html` | A cabine do oráculo (a tecla "?") | a pergunta livre ao oráculo: comparar carreiras ou municípios, o resultado de uma eleição |
 
 Os dados cobrem os seis estados do projeto (Amapá, Mato Grosso do Sul, Minas Gerais, Paraíba,
-Rondônia e Roraima) e a eleição para presidente. Nas páginas com seletor (perguntas 1, 2, 5, 8 e 9), o lugar é
+Rondônia e Roraima) e a eleição para presidente. Nas páginas com seletor (perguntas 1, 2, 3, 4, 5, 6, 8 e 9), o lugar é
 sempre um desses estados ou um município deles, onde há os dados completos de cada candidato; presidente é a
-única eleição nacional. A pergunta 7, o mapa ideológico, cobre o Brasil inteiro. Sempre que há um número de um
+única eleição nacional. Os anos vão de 2018 a 2026; as contas de campanha de 2026 (gastos e receitas, nas perguntas 1, 8 e 9)
+são as declaradas ao TSE até 29/10/2026 e ainda podem crescer, e a pergunta 6 fica nas eleições municipais (até 2024). A pergunta 7, o mapa ideológico, cobre o Brasil inteiro, e o mapa da pergunta 3 mostra os índices de todos os estados para comparação. Sempre que há um número de um
 político (gasto, patrimônio, dinheiro público), ele vem com os votos e o custo por voto.
 
 As páginas antigas (`cadeiras.html`, `mapa.html`, `partido.html`, `politico.html`) só levam à página
@@ -27,7 +32,7 @@ nova da pergunta, com o mesmo recorte (`js/lib/redirecionamentos.js`).
 Não há servidor nem banco em funcionamento: as páginas leem arquivos JSON em `dados/`, gerados uma
 vez a partir do banco. HTML, CSS e JavaScript puros, com módulos do navegador; gráficos com
 [Observable Plot](https://observablehq.com/plot/), mapa com [D3](https://d3js.org/) e o plenário em 3D
-com [three.js](https://threejs.org/), todos carregados do jsDelivr com versão fixa.
+e o mapa em relevo com [three.js](https://threejs.org/), todos carregados do jsDelivr com versão fixa.
 
 ## Visual
 
@@ -35,13 +40,40 @@ O tema é a urna eletrônica: corpo bege, teclas pretas em relevo, visor afundad
 teclas numeradas das perguntas. Cada resposta aparece num santinho, o cartãozinho de campanha, com o
 número da pergunta na caixa e, no verso, como o número foi calculado e de qual consulta ele sai. As
 cores têm papéis fixos (`js/lib/cores.js`): verde para vitória, laranja com "×" para derrota, vermelho
-para a esquerda e azul para a direita, e o verde-água do dinheiro público na pergunta 8.
+para a esquerda e azul para a direita, e o verde-água do dinheiro público na pergunta 8. O topo é a sanefa da cortina do oráculo,
+em veludo vinho bem escuro (para não se confundir com o vermelho da esquerda) com franja dourada, e o dourado marca a
+página atual e tudo o que o leitor escolhe (ano, cargo, lugar, botões ligados, linha da tabela); o rodapé fecha com a mesma faixa.
 
-Entre uma página e outra, o olho pisca: o topo fica parado, e duas pálpebras escuras fecham sobre o resto da página e
-reabrem já na nova. É a
-transição nativa do navegador entre páginas do mesmo site (`@view-transition`, em `css/estilo.css`); nos navegadores que
-não a têm, e para quem pede menos movimento no sistema, a página só troca. Como o topo e o conteúdo são montados pelo
-JavaScript, `js/transicao.js` mantém o olho fechado até a página nova estar montada (no máximo 1,5 s).
+Entre uma página e outra, a cortina da cabine do oráculo se fecha: o topo fica parado, as duas metades de uma cortina de
+veludo cobrem o resto da página, vindas dos lados, e se abrem já na nova. A cortina é desenhada em WebGL
+(`js/cortina.js`), com pregas, luz no veludo e a borda de baixo atrasada em relação à de cima, como pano puxado; a
+imagem dela fechada passa para a página nova, e `js/transicao.js` a mantém fechada até a página estar montada (no
+máximo 1,5 s). Sem WebGL, e para quem pede menos movimento no sistema, a página só troca.
+
+## O oráculo
+
+Em toda página de pergunta, o olho no canto da tela abre o oráculo: ele lê o que a página mostra naquele momento (o
+"retrato": o recorte escolhido, os números calculados e o que o leitor abriu; `js/oraculo.js`, e em cada página a
+chamada a `registraRetrato`) e pede uma interpretação a uma IA, que pode também responder a uma pergunta do leitor.
+
+A IA roda numa função da Cloudflare (pasta `oraculo/` na raiz do repositório, fora do site), no plano gratuito do
+Workers AI: sem chave de API e sem custo, com uma cota diária que, quando acaba, faz o olho avisar que o oráculo está
+descansando. A função só aceita pedidos do site publicado e do servidor local, limita cada visitante a 6 pedidos por
+minuto e leva as instruções do oráculo (`oraculo/src/pedido.js`): usar só os números do retrato, citá-los, ser neutro
+(sem avaliar candidatos ou partidos nem sugerir voto) e dizer o que os dados não permitem concluir. O modelo é a
+variável `MODELO` de `oraculo/wrangler.toml`. Para publicar a função depois de mudá-la, na pasta `oraculo`:
+
+```bash
+npx wrangler@4 deploy
+```
+
+A cabine do oráculo (`cabine.html`, a tecla "?" depois da 10) aceita perguntas gerais, fora de uma página: comparar a
+carreira de até três políticos, comparar municípios dos seis estados ou ver o resultado de uma eleição. São dois
+pedidos à função: no primeiro, a IA só transforma a pergunta num pedido de dados (tipo, nomes, ano, cargo, lugar),
+conferido pela função; a página busca esses dados nos mesmos arquivos de `dados/`, monta o retrato e, no segundo
+pedido, a IA responde com ele. Por isso cada pergunta da cabine conta duas vezes no limite por minuto. Entre a pergunta
+e a resposta fica um olho: fechado enquanto o oráculo espera e pensa, aberto quando ele responde; quando não há
+resposta, a pupila sobe até sumir. Abaixo da resposta ficam os links para as páginas que têm os mesmos números.
 
 ## Estrutura
 
@@ -54,18 +86,24 @@ site/
 ├── js/comum.js                   cabeçalho, rodapé, santinho, leitura dos dados e formatos
 ├── js/pecas.js                   seletor de recorte, candidatos do recorte, dinheiro × votos, cartão de político
 ├── js/busca.js                   busca de políticos por nome e leitura da carreira
-├── js/transicao.js               segura o piscar entre páginas até a página nova estar montada
-├── js/pergunta-N.js              uma por página (e plenario-2d.js, plenario-3d.js, rua.js)
+├── js/transicao.js               segura a cortina entre páginas até a página nova estar montada
+├── js/cortina.js                 a cortina em WebGL: fecha antes de sair, abre na página nova
+├── js/oraculo.js                 o olho do oráculo: o painel, o retrato da página e a chamada à IA
+├── cabine.html, js/cabine.js     a cabine do oráculo: pergunta livre, pedido de dados e retrato montado na hora
+├── js/pergunta-N.js              uma por página (e plenario-2d.js, plenario-3d.js, rua.js, relevo-3d.js, mapa-lugares.js)
 ├── js/lib/                       funções puras, testadas em testes/site/js
 ├── gera_dados.py                 gera dados/ a partir do banco
 └── dados/
     ├── mapa/            perguntas 1, 2 e 8: brasil.json e municipios/<UF>.json
-    ├── candidaturas/    cada candidato de 2018 a 2024: <unidade>-<ano>.json
+    ├── candidaturas/    cada candidato de 2018 a 2026: <unidade>-<ano>.json
     ├── dependencia/     pergunta 8: candidatos e eleitos por fatia de 5% de dinheiro público
     ├── partidos-recorte/ pergunta 1: cadeiras, gasto e votos dos eleitos por partido, <BR ou UF>.json
     ├── legenda/         pergunta 5: eleitos, quociente e votos de cada chapa por <unidade>.json, e resumo.json
     ├── vies/            pergunta 7: brasil.json e municipios/<UF>[-<cargo>].json
     ├── partidos.json    medidas de ideologia e eleitos por partido
+    ├── indices/         pergunta 3: municipios.json (índices, partido do prefeito e voto ideológico de cada município, combinado e por cargo, por ano) ranking/<UF>[-<cargo>].json e estados.json (os índices das 27 UFs)
+    ├── escolaridade/    pergunta 4: escolaridade.json (candidatos e eleitos por grau e lugar; o nível de quem votou e de quem recebeu os votos em cada município) e estados.json (os mesmos níveis nas 27 UFs, no texto do mini mapa); candidatos/<lugar>-<ano>.json (cada candidato com o grau dele e a nota de quem votou nele)
+    ├── idade/           pergunta 6: idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos, votantes até 34 anos e idade de quem recebeu os votos)
     ├── propaganda/      pergunta 9: <unidade>.json, pessoas/<n>.json e exemplos/ (despesas de cada palavra do céu, baixadas só ao clicar)
     ├── geo/             contornos do IBGE (estados e municípios dos seis estados)
     └── politicos/       índice de busca, fichas e carreiras, em fatias
@@ -73,8 +111,8 @@ site/
 
 ## Gerar os dados
 
-O gerador usa dois bancos: o dos seis estados (`eleicoes`, o do dump), para os nomes, as carreiras e a
-legenda, e um com o país inteiro, para o mapa, os partidos, o viés, as listas de
+O gerador usa dois bancos: o dos seis estados (`eleicoes`, o do dump), para os nomes, as carreiras, a
+legenda, os índices dos municípios, a escolaridade e a idade, e um com o país inteiro, para o mapa, os partidos, o viés, as listas de
 candidatos e a propaganda. O banco nacional é carregado com `banco/carga.py --ufs todas` num banco
 separado:
 
@@ -95,7 +133,7 @@ As fotos dos candidatos de 2004 a 2016 precisam dos arquivos de candidatos do TS
 candidato no TSE, e a parte `politicos` o lê desses arquivos. Sem eles, o site sai igual, só sem essas fotos.
 
 Uma parte só: `--partes politicos` (ou `mapa`, `geo`, `partidos`, `vies`, `partidos_recorte`,
-`dependencia`, `candidaturas`, `legenda`, `propaganda`). A docstring de `gera_dados.py` diz o que cada parte grava e de qual banco
+`dependencia`, `candidaturas`, `legenda`, `propaganda`, `indices`, `indices_estados`, `escolaridade`, `escolaridade_estados`, `idade`). A docstring de `gera_dados.py` diz o que cada parte grava e de qual banco
 lê. Título eleitoral, CPF e data de nascimento não saem do banco: cada político recebe um número
 sequencial próprio.
 

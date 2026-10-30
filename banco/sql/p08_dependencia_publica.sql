@@ -11,7 +11,7 @@ classificado AS (
            COALESCE(f.receita_publica, 0) / NULLIF(f.receita_total, 0) AS parcela_publica
     FROM vw_candidatura v
     JOIN financiamento f ON f.sq_candidato = v.sq_candidato
-    WHERE v.ano IN (2018, 2020, 2022, 2024)
+    WHERE v.ano IN (2018, 2020, 2022, 2024, 2026)
       AND f.receita_total > 0
 )
 SELECT ano,

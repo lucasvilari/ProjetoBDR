@@ -1,4 +1,5 @@
--- Palavras para a nuvem: frequência e valor associado nas descrições das despesas
+-- Palavras para a nuvem: frequência e valor associado nas descrições das despesas. Grafias que só diferem em acento
+-- ou cedilha ("militância" e "militancia") contam como a mesma palavra, mostrada na grafia mais usada.
 WITH palavras AS (
     SELECT d.valor,
            REGEXP_SPLIT_TO_TABLE(LOWER(d.descricao), '[^a-zà-ú0-9]+') AS palavra
@@ -13,13 +14,13 @@ stopwords (palavra) AS (
            ('uma'), ('ref'), ('referente'), ('servico'), ('servicos'),
            ('serviço'), ('serviços')
 )
-SELECT p.palavra,
+SELECT MODE() WITHIN GROUP (ORDER BY p.palavra) AS palavra,
        COUNT(*)      AS frequencia,
        SUM(p.valor)  AS valor_associado
 FROM palavras p
 WHERE LENGTH(p.palavra) > 2
   AND p.palavra !~ '^[0-9]+$'
   AND NOT EXISTS (SELECT 1 FROM stopwords s WHERE s.palavra = p.palavra)
-GROUP BY p.palavra
+GROUP BY TRANSLATE(p.palavra, 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc')
 ORDER BY frequencia DESC
 LIMIT 100;

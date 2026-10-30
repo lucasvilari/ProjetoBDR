@@ -5,11 +5,11 @@
 //
 // Dados: legenda/<ue>.json (eleitos, votos, quociente e os votos de cada chapa; UFs dos seis estados e seus
 // municípios) e legenda/resumo.json (eleitos e eleitos pela legenda por partido, ano, cargo e UF).
-import { montaPagina, carregaDados, formata, NOME_UF, em } from './comum.js?v=20261109';
-import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261109';
-import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261109';
-import { abreviaReais } from './lib/dinheiro.js?v=20261109';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261109';
+import { montaPagina, carregaDados, formata, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
+import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261155';
+import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261155';
+import { abreviaReais } from './lib/dinheiro.js?v=20261155';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261155';
 
 montaPagina();
 
@@ -168,6 +168,7 @@ async function mostraCartao(pid) {
   if (!pid || !atual) { caixa.innerHTML = ''; return; }
   document.querySelectorAll('#copos .copo').forEach(b => b.classList.toggle('escolhido', b.dataset.pid === String(pid)));
   const e = atual.eleitos.find(x => String(x.pid) === String(pid));
+  atual.aberto = e.pid;
   const c = atual.copos.get(e.pid);
   const q = atual.q;
   const emprestado = c.dosPuxadores + c.daChapa;
@@ -229,7 +230,7 @@ async function atualiza(r) {
   const rec = dados?.anos?.[r.ano]?.[r.cargo];
   const nome = await nomeDe(r, ue);
   if (!rec) { avisa(`Não há eleição para ${minusculo(r.cargo)} ${em(nome)} em ${r.ano}.`); return; }
-  atual = { r, ue, q: rec.quociente, chave: `${ue}-${r.ano}` };
+  atual = { r, ue, q: rec.quociente, chave: `${ue}-${r.ano}`, rec, unidades: dados.unidades, nome, aberto: null };
   caixa.innerHTML = desenhaCopos(rec, dados.unidades, r.ano);
   const pelaLegenda = atual.eleitos.filter(e => porLegenda(e, rec.quociente)).length;
   titulo.innerHTML = `<span class="sobre">${minusculo(r.cargo)} · ${nome} · ${r.ano}</span>
@@ -265,6 +266,47 @@ document.getElementById('copos').addEventListener('click', e => {
     chapa.querySelector('.jarra-svg').animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(30deg)', offset: 0.22 },
       { transform: 'rotate(30deg)', offset: 0.72 }, { transform: 'rotate(0deg)' }], { duration: 1500, easing: 'ease-in-out' });
   }
+});
+
+// ---------------------------------------------------------------- o retrato para o oráculo
+
+/** O que a página mostra agora: o quociente, cada chapa com quem entrou pela legenda e quem puxou votos, e o copo
+ *  (eleito) que o leitor abriu. */
+registraRetrato(() => {
+  if (!atual?.eleitos) return null;
+  const { r, q, rec, unidades, nome, eleitos, copos } = atual;
+  const pelaLegenda = eleitos.filter(e => porLegenda(e, q));
+  const chapas = [...new Set(eleitos.map(e => e.unidade))].map(un => {
+    const es = eleitos.filter(e => e.unidade === un);
+    const puxadores = es.filter(e => copos.get(e.pid).transborda);
+    return [unidades[un], `${es.length} ${es.length === 1 ? 'cadeira' : 'cadeiras'}, ${es.filter(e => porLegenda(e, q)).length} pela legenda`
+      + (puxadores.length ? `; puxadores (passaram do quociente): ${puxadores.map(e => `${e.nome ?? 'eleito'} (${formata.numero(e.votos)} votos)`).join(', ')}` : '')];
+  }).sort((a, b) => Number.parseInt(b[1], 10) - Number.parseInt(a[1], 10));
+  const e = atual.aberto == null ? null : eleitos.find(x => x.pid === atual.aberto);
+  const c = e ? copos.get(e.pid) : null;
+  return {
+    numero: 5, pergunta: 'Quem entrou pela legenda?',
+    recorte: `${minusculo(r.cargo)} · ${nome} · ${r.ano}`,
+    secoes: [
+      { titulo: 'O preço de uma cadeira', linhas: [
+        ['Quociente eleitoral (votos válidos ÷ vagas)', `${formata.numero(q)} votos`],
+        ['Votos válidos', formata.numero(rec.validos)], ['Vagas', formata.numero(rec.vagas)],
+        ['Eleitos que não chegaram ao quociente sozinhos (entraram pela legenda)', `${pelaLegenda.length} de ${eleitos.length}`],
+      ] },
+      { titulo: 'Cada chapa (partido ou federação)', linhas: chapas },
+      { titulo: `Votos próprios de cada eleito e quanto do quociente alcançou sozinho${eleitos.length > 30 ? ' (os 30 mais votados)' : ''}`,
+        linhas: [...eleitos].sort((a, b) => b.votos - a.votos).slice(0, 30)
+          .map(x => [null, `${x.nome ?? 'eleito'} (${x.sigla}): ${formata.numero(x.votos)} votos, ${formata.pct((100 * x.votos) / q)} do quociente${porLegenda(x, q) ? ', pela legenda' : ''}`]) },
+      { titulo: 'Eleito aberto pelo leitor', linhas: e ? [
+        ['Nome', e.nome ?? 'eleito'], ['Partido', e.sigla], ['Votos próprios', formata.numero(e.votos)],
+        c.transborda ? ['Passou do quociente em', `${formata.numero(c.transborda)} votos (a sobra foi para os colegas da chapa)`]
+          : ['Faltou para o quociente', `${formata.numero(q - e.votos)} votos`],
+        ['Votos vindos da sobra dos puxadores', c.dosPuxadores ? formata.numero(c.dosPuxadores) : null],
+        ['Votos vindos da chapa (colegas sem cadeira e legenda)', c.daChapa ? formata.numero(c.daChapa) : null],
+        ['Ainda faltou (cadeira veio pelas sobras, por média)', c.vazio ? formata.numero(c.vazio) : null],
+      ] : [] },
+    ],
+  };
 });
 
 const brasil = await carregaDados('mapa/brasil.json');

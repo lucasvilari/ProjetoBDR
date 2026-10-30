@@ -4,10 +4,10 @@
 //
 // Dados: politicos/ (índice, fichas e carreiras; ver js/busca.js).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, formata, santinho, fotoCandidato } from './comum.js?v=20261109';
-import { COR, corIdeologia } from './lib/cores.js?v=20261109';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261109';
-import { montaBusca, carreiraDe } from './busca.js?v=20261109';
+import { montaPagina, formata, santinho, fotoCandidato, registraRetrato } from './comum.js?v=20261155';
+import { COR, corIdeologia } from './lib/cores.js?v=20261155';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261155';
+import { montaBusca, carreiraDe } from './busca.js?v=20261155';
 
 montaPagina();
 
@@ -24,10 +24,9 @@ function resultado(c) {
   return 'Candidatura não concluída';
 }
 
-/** Por que falta o resultado: o arquivo de 2006 não traz a eleição presidencial; nos demais casos,
- *  o TSE deixa a situação vazia, em geral para candidaturas indeferidas ou retiradas antes da eleição. */
-function motivoSemResultado(c) {
-  if (c.ano === 2006 && c.cargo === 'PRESIDENTE') return 'o arquivo de 2006 do TSE não traz o resultado da eleição presidencial';
+/** Por que falta o resultado: o TSE deixa a situação vazia, em geral para candidaturas indeferidas ou retiradas
+ *  antes da eleição (o resultado de presidente em 2006, que o arquivo do TSE não traz, o gerador já preenche). */
+function motivoSemResultado() {
   return 'situação não informada pelo TSE (em geral, candidatura indeferida ou retirada antes da eleição)';
 }
 
@@ -62,7 +61,7 @@ function santinhoDoPolitico(cands, chaveFoto) {
       <p>Votos, patrimônio, receitas e despesas só existem a partir de 2018. Candidaturas que não chegaram à eleição costumam
       não ter resultado nem prestação de contas.</p>`,
     fonte: 'p10b_resumo_carreira.sql',
-    classe: r.vitorias ? '' : 'santinho-derrota',
+    classe: r.vitorias ? 'santinho-vitoria' : 'santinho-derrota',
     foto: fotoCandidato(chaveFoto, 'santinho-foto'),
   });
 }
@@ -116,7 +115,7 @@ function graficoIdeologia(cands, largura) {
   return Plot.plot({
     width: Math.max(540, Math.min(1080, largura)), height: 210, marginLeft: estreito ? 96 : 110, marginRight: 30,
     style: { fontFamily: 'Archivo, sans-serif', fontSize: estreito ? '12px' : '13px', background: 'transparent' },
-    x: { domain: [1993, 2025], ticks: [1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022], tickFormat: d => String(d), label: null },
+    x: { domain: [1993, 2027], ticks: [1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022, 2026], tickFormat: d => String(d), label: null },
     y: { domain: [0, 10], ticks: [0, 5, 10], tickFormat: v => ({ 0: 'esquerda (0)', 5: 'centro (5)', 10: 'direita (10)' })[v], label: null, grid: true },
     marks: [
       Plot.line(comNota, { x: 'ano', y: 'nota', stroke: COR.tecla, strokeWidth: 2.5, curve: 'step-after' }),
@@ -161,6 +160,7 @@ async function abre(id) {
   if (!dados) { naoEncontrado(); return; }
   const { nome, cands } = dados;
   cands.forEach(c => { c.resultado = resultado(c); });
+  aberto = { nome, cands };
   document.title = `${nome} · Olho do Povo`;
   ficha.innerHTML = `
     <h2 class="ficha-nome">${nome}</h2>
@@ -210,7 +210,43 @@ async function abre(id) {
 }
 
 const TITULO = document.title;
+let aberto = null;     // { nome, cands }: o político cuja carreira está na tela
+
+/** O que a página mostra agora: o resumo da carreira do político aberto e cada candidatura, com os números que a
+ *  página mostra (votos, gasto, custo por voto, patrimônio e dinheiro público, de 2018 em diante). */
+registraRetrato(() => {
+  if (!aberto) return null;
+  const { nome, cands } = aberto;
+  const s = resumo(cands);
+  const linha = c => {
+    const partes = [`${c.ano}, ${c.cargo.toLowerCase()} ${c.local === 'Brasil' ? 'no Brasil' : `em ${c.local}`}, ${c.sigla}: ${c.resultado.toLowerCase()}${c.resultado === 'Resultado não informado' ? ` — ${motivoSemResultado(c)}` : ''}`];
+    if (c.nota != null) partes.push(`nota do partido ${String(c.nota).replace('.', ',')}`);
+    if (c.ano >= 2018) {
+      if (c.votos > 0) partes.push(`${formata.numero(c.votos)} votos`);
+      if (c.despesa) partes.push(`gasto ${formata.real(c.despesa)}`);
+      const pv = custoPorVoto(c.despesa, c.votos);
+      if (pv != null) partes.push(`${formata.porVoto(pv)} por voto`);
+      if (c.patrimonio) partes.push(`patrimônio ${formata.real(c.patrimonio)}`);
+      if (c.receita) partes.push(`${formata.pct((100 * (c.receita_publica ?? 0)) / c.receita)} da receita de dinheiro público`);
+    }
+    return [null, partes.join(', ')];
+  };
+  return {
+    numero: 10, pergunta: 'Como foi a carreira de um político?',
+    recorte: `${nome}, candidaturas de ${s.periodo}`,
+    secoes: [
+      { titulo: 'Resumo da carreira', linhas: [
+        ['Candidaturas', formata.numero(s.candidaturas)], ['Vitórias', `${formata.numero(s.vitorias)} (${s.taxa})`],
+        ['Reeleições', formata.numero(s.reeleicoes)], ['Derrotas', formata.numero(s.derrotas)],
+        ['Cargos diferentes', formata.numero(s.cargos)], ['Partidos diferentes', formata.numero(s.partidos)],
+      ] },
+      { titulo: 'Cada candidatura (nota do partido: especialistas, 0 esquerda a 10 direita; números de campanha só de 2018 em diante)',
+        linhas: [...cands].sort((a, b) => a.ano - b.ano).map(linha) },
+    ],
+  };
+});
 function naoEncontrado() {
+  aberto = null;
   document.title = TITULO;
   ficha.hidden = false;
   ficha.innerHTML = '<p class="aviso-vazio">Esse político não foi encontrado. Faça uma nova busca.</p>';

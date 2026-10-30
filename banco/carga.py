@@ -38,8 +38,8 @@ DADOS = RAIZ.parent / 'crawler' / 'dados'
 TSE = DADOS / 'tse'
 DSN = os.environ.get('DATABASE_URL', 'dbname=eleicoes')
 
-ANOS_EP = (2018, 2020, 2022, 2024)
-ANOS_CAND = tuple(range(1994, 2025, 2))
+ANOS_EP = (2018, 2020, 2022, 2024, 2026)
+ANOS_CAND = tuple(range(1994, 2027, 2))
 ELEITO = "('ELEITO', 'ELEITO POR QP', 'ELEITO POR MÉDIA')"
 # UFs do projeto.
 UFS_PADRAO = ('AP', 'MG', 'MS', 'PB', 'RO', 'RR')
@@ -101,15 +101,20 @@ class Carga:
         self.sql(f'DROP TABLE IF EXISTS stg.{tabela}')
         self.sql(f'CREATE UNLOGGED TABLE stg.{tabela} ({", ".join(f"{c} text" for c in cols)})')
         opcoes = f"FORMAT csv, HEADER true, DELIMITER ';', ENCODING '{encoding}'"
+        nulos = 0
         with self.conn.cursor() as cur:
             with cur.copy(f'COPY stg.{tabela} FROM STDIN WITH ({opcoes})') as cp:
                 with open(arquivo, 'rb') as fh:
                     if encoding == 'UTF8' and fh.read(3) != b'\xef\xbb\xbf':
                         fh.seek(0)
                     while bloco := fh.read(1 << 20):
-                        cp.write(bloco)
+                        # bytes nulos soltos no texto (as despesas de 2026 têm dois): o PostgreSQL não os aceita
+                        nulos += bloco.count(b'\x00')
+                        cp.write(bloco.replace(b'\x00', b''))
         n = self.um(f'SELECT count(*) FROM stg.{tabela}')[0]
         self.registra('preparo', f'{arquivo.relative_to(DADOS)}', n, time.time() - t0)
+        if nulos:
+            self.registra('preparo aviso', f'{arquivo.relative_to(DADOS)}: bytes nulos removidos', nulos)
         return set(cols)
 
     def recorta(self, tabela, etapa, detalhe):
@@ -517,7 +522,7 @@ def etapa_nucleo(c):
                f.situacao_final
         FROM stg.cand_final f
         JOIN partido p ON p.numero = f.numero AND p.sigla = f.sigla
-    """, etapa='candidatura', detalhe='1998-2024, turnos consolidados')
+    """, etapa='candidatura', detalhe='1998-2026, turnos consolidados')
 
     c.sql("""
         INSERT INTO vaga (cod_eleicao, ue, cargo, qt_vagas)
@@ -528,7 +533,7 @@ def etapa_nucleo(c):
         WHERE stg.ordinaria(nm_tipo_eleicao) AND stg.int(qt_vaga) > 0
           AND stg.int(cd_eleicao) IN (SELECT cod_eleicao FROM eleicao)
         GROUP BY 1, 2, 3
-    """, etapa='vaga', detalhe='eleições ordinárias 2018-2024')
+    """, etapa='vaga', detalhe='eleições ordinárias 2018-2026')
     etapa_ideologia(c)
 
 
@@ -623,7 +628,7 @@ def etapa_apuracao(c):
         WHERE stg.int(cd_eleicao) IN (SELECT cod_eleicao FROM eleicao)
           AND stg.mun(cd_municipio) IN (SELECT cod_tse FROM municipio)
         GROUP BY 1, 2, 3, 4, 5
-    """, etapa='apuracao', detalhe='detalhe_votacao_munzona 2018-2024, somado o voto em trânsito')
+    """, etapa='apuracao', detalhe='detalhe_votacao_munzona 2018-2026, somado o voto em trânsito')
 
 
 def etapa_votos_part(c):
@@ -647,7 +652,7 @@ def etapa_votos_part(c):
         WHERE v.cod_eleicao IN (SELECT cod_eleicao FROM eleicao)
           AND v.cod_tse IN (SELECT cod_tse FROM municipio)
         GROUP BY 1, 2, 3, 4, 5, 6
-    """, etapa='votos_part', detalhe='votacao_partido_munzona 2018-2024, somado o voto em trânsito')
+    """, etapa='votos_part', detalhe='votacao_partido_munzona 2018-2026, somado o voto em trânsito')
 
 
 def etapa_bem(c):
@@ -778,13 +783,17 @@ def etapa_perfil(c):
         c.recorta('bruto', 'perfil descarte', f'{ano}')
         c.registra('perfil descarte', f'{ano}: exterior (UF ZZ)',
                    c.um("SELECT count(*) FROM stg.bruto WHERE sg_uf = 'ZZ'")[0])
-        c.sql("""
+        # em 2026 o TSE renomeou DS_GRAU_ESCOLARIDADE para DS_GRAU_INSTRUCAO, com os mesmos valores
+        grau = 'ds_grau_instrucao' if c.um("""SELECT count(*) FROM information_schema.columns
+            WHERE table_schema = 'stg' AND table_name = 'bruto' AND column_name = 'ds_grau_instrucao'""")[0] \
+            else 'ds_grau_escolaridade'
+        c.sql(f"""
             INSERT INTO perfil_comparecimento (cod_eleicao, cod_tse, zona, turno, faixa_etaria, escolaridade,
                                                aptos, comparecimento)
             SELECT m.cod_eleicao, a.cod_tse, a.zona, a.turno, a.faixa, a.esc, a.aptos, a.comp
             FROM (SELECT stg.mun(cd_municipio) AS cod_tse, stg.int(nr_zona) AS zona, stg.int(nr_turno) AS turno,
                          COALESCE(stg.nulo(ds_faixa_etaria), 'NÃO INFORMADO') AS faixa,
-                         COALESCE(stg.nulo(ds_grau_escolaridade), 'NÃO INFORMADO') AS esc,
+                         COALESCE(stg.nulo({grau}), 'NÃO INFORMADO') AS esc,
                          sum(COALESCE(stg.int(qt_aptos), 0)) AS aptos,
                          sum(COALESCE(stg.int(qt_comparecimento), 0)) AS comp
                   FROM stg.bruto WHERE sg_uf <> 'ZZ'

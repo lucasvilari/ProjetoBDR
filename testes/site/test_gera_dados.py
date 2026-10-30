@@ -1,4 +1,6 @@
 """Funções puras de site/gera_dados.py (não precisam de banco)."""
+import pytest
+
 import gera_dados
 
 
@@ -180,3 +182,64 @@ def test_exemplo_mostra_o_item_da_nota_com_a_palavra():
     descricoes, por_palavra = ex.saida(['cgh', 'aereo'])
     assert [descricoes[i][0] for i in por_palavra[0]] == ['TRANSP AEREO BELTRANO CGH/BSB']
     assert [descricoes[i][0] for i in por_palavra[1]] == ['TRANSP AEREO FULANO AJU/REC']
+
+
+def test_resultado_da_eleicao_presidencial_de_2006_entra_a_mao():
+    """O arquivo de 2006 do TSE não traz o resultado de presidente: Lula (PT) reeleito, os demais aptos não eleitos,
+    a candidatura indeferida (PCO) sem resultado; as outras eleições ficam como vieram."""
+    corrige = gera_dados.corrige_presidente_2006
+    assert corrige(2006, 'PRESIDENTE', 'PT', None, False, False) == ('ELEITO', True, True)
+    assert corrige(2006, 'PRESIDENTE', 'PSDB', None, False, False) == ('NÃO ELEITO', False, False)
+    assert corrige(2006, 'PRESIDENTE', 'PCO', None, False, False) == (None, False, False)
+    assert corrige(2010, 'PRESIDENTE', 'PT', 'ELEITO', True, False) == ('ELEITO', True, False)
+    assert corrige(2006, 'GOVERNADOR', 'PT', None, False, False) == (None, False, False)
+
+
+def test_palavras_que_so_diferem_em_acento_contam_juntas():
+    """"militancia", "militância" e "MILITÂNCIA" são a mesma palavra: as contagens se somam e a nuvem mostra a grafia
+    mais usada."""
+    cont = gera_dados.ContaPalavras()
+    cont.soma('militancia de rua', 2, 200.0)
+    cont.soma('Militância de rua', 5, 500.0)
+    cont.soma('mobilização', 1, 10.0)
+    cont.soma('mobilizacao', 1, 30.0)
+    top = cont.top(10)
+    assert top[0] == ['militância', 7, 700]
+    assert ['rua', 7, 700] in top
+    assert len([w for w, _, _ in top if w.startswith('mobiliza')]) == 1
+
+
+def test_exemplos_acham_a_palavra_em_qualquer_grafia():
+    ex = gera_dados.ExemplosDePalavras({'mobilização'}, k=3)
+    ex.soma('PAGAMENTO MOBILIZACAO DE RUA', 900)
+    ex.soma('Mobilização eleitoral', 100)
+    descricoes, por_palavra = ex.saida(['mobilização'])
+    assert [descricoes[i][0] for i in por_palavra[0]] == ['PAGAMENTO MOBILIZACAO DE RUA', 'Mobilização eleitoral']
+
+
+def test_mais_recente_ate_o_ano():
+    """O índice de uma eleição é o mais recente publicado até o ano dela (o PIB de 2023 serve a 2024)."""
+    serie = {2010: 0.5, 2018: 1.0, 2021: 2.0, 2023: 3.0}
+    assert gera_dados.mais_recente(serie, 2024) == (2023, 3.0)
+    assert gera_dados.mais_recente(serie, 2020) == (2018, 1.0)
+    assert gera_dados.mais_recente(serie, 2009) == (None, None)
+    assert gera_dados.mais_recente({}, 2024) == (None, None)
+
+
+def test_indices_do_estado_somam_os_municipios_com_peso_da_populacao():
+    """PIB per capita, eleitores por habitante e isentos do estado são razões de somas; o IDHM é a média dos municípios
+    com peso da população. Município sem um dado fica fora só daquele índice."""
+    municipios = [
+        {'pib_pc': 10_000, 'pop': 100, 'idhm': 0.6, 'aptos': 80, 'isentos': 20},
+        {'pib_pc': 40_000, 'pop': 300, 'idhm': 0.8, 'aptos': 200, 'isentos': 40},
+        {'pib_pc': None, 'pop': 100, 'idhm': None, 'aptos': 50, 'isentos': 10},
+    ]
+    pib, idhm, razao, isentos = gera_dados.agrega_estado(municipios)
+    assert pib == pytest.approx((10_000 * 100 + 40_000 * 300) / 400)
+    assert idhm == pytest.approx((0.6 * 100 + 0.8 * 300) / 400)
+    assert razao == pytest.approx(330 / 500)
+    assert isentos == pytest.approx(100 * 70 / 330)
+
+
+def test_indices_do_estado_sem_dados():
+    assert gera_dados.agrega_estado([{'pib_pc': None, 'pop': None, 'idhm': None, 'aptos': None, 'isentos': None}]) == [None] * 4

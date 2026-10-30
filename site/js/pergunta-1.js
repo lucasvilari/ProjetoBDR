@@ -6,13 +6,14 @@
 // dos eleitos por partido quando não há a lista de candidatos, como nos vereadores de um estado inteiro, e a
 // nota de cada partido em cada ano, inclusive dos que já não existem).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em } from './comum.js?v=20261109';
-import { corIdeologia, COR } from './lib/cores.js?v=20261109';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261109';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261109';
-import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261109';
-import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes } from './pecas.js?v=20261109';
-import { montaPlenario2D } from './plenario-2d.js?v=20261109';
+import { comparacao } from './lib/retrato.js?v=20261155';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
+import { corIdeologia, COR } from './lib/cores.js?v=20261155';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261155';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261155';
+import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261155';
+import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes, AVISO_CONTAS_2026 } from './pecas.js?v=20261155';
+import { montaPlenario2D } from './plenario-2d.js?v=20261155';
 
 montaPagina();
 
@@ -131,7 +132,7 @@ async function desenhaPlenario(dados) {
   marcaVista(false);
   if (podeUsar3D()) {
     try {
-      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261109');
+      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261155');
       cena = montaPlenario3D(alvo, dados, aoEscolher);
       marcaVista(true);
       if (partidoFixo != null) cena.destaca(partidoFixo);
@@ -282,7 +283,34 @@ function tabelaPartidos() {
       <td class="num">${formata.real(p.gasto / p.n)}</td>
       <td class="num">${custoPorVoto(p.gasto, p.votos) == null ? '—' : formata.porVoto(custoPorVoto(p.gasto, p.votos))}</td></tr>`).join('')}</tbody>
   </table></div>
-  <p class="apoio">Custo por cadeira: o que os eleitos do partido gastaram, dividido pelas cadeiras que ganharam. Custo por voto: o mesmo gasto dividido pelos votos que esses eleitos tiveram no 1º turno.</p>`;
+  <p class="apoio">Custo por cadeira: o que os eleitos do partido gastaram, dividido pelas cadeiras que ganharam. Custo por voto: o mesmo gasto dividido pelos votos que esses eleitos tiveram no 1º turno.</p>
+  ${tabelaDerrotados()}`;
+}
+
+/** Com um vencedor só (presidente, governador ou prefeito de um lugar, senador num ano de uma vaga), o gasto de
+ *  quem perdeu, candidato a candidato: a tabela por partido teria uma linha só. */
+function derrotados() {
+  const { lista, cands, r } = atual;
+  if (!lista || d3.sum(lista, p => p.n) !== 1) return [];
+  return cands.filter(c => c.cargo === r.cargo && !c.eleito).sort((a, b) => (b.despesa ?? 0) - (a.despesa ?? 0));
+}
+
+function tabelaDerrotados() {
+  const { lista } = atual;
+  const perdedores = derrotados();
+  if (!perdedores.length) return '';
+  const gasto = d3.sum(perdedores, c => c.despesa ?? 0);
+  const vencedor = d3.sum(lista, p => p.gasto);
+  return `<h3>Quem não se elegeu</h3>
+  <p>${plural(perdedores.length, 'candidato não eleito gastou', 'candidatos não eleitos gastaram')} ${formata.real(gasto)}${perdedores.length > 1 ? ' juntos' : ''}.
+    ${vencedor > 0 ? `Comparado ao gasto de quem venceu (${formata.real(vencedor)}): ${comparacao(gasto, vencedor)}.` : 'Quem venceu não declarou gastos.'}</p>
+  <div class="rolagem"><table class="tabela">
+    <thead><tr><th>Candidato</th><th>Partido</th><th class="num">Gasto</th><th class="num">Votos no 1º turno</th><th class="num">Custo por voto</th></tr></thead>
+    <tbody>${perdedores.map(c => `<tr><td class="nome">${nomeDe(c)}</td><td>${c.sigla}</td>
+      <td class="num">${c.despesa == null ? '—' : formata.real(c.despesa)}</td>
+      <td class="num">${c.votos == null ? '—' : formata.numero(c.votos)}</td>
+      <td class="num">${custoPorVoto(c.despesa, c.votos) == null ? '—' : formata.porVoto(custoPorVoto(c.despesa, c.votos))}</td></tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
 function desenhaDetalhe() {
@@ -300,10 +328,14 @@ function desenhaDetalhe() {
   }
   const { cands, r, dados } = atual;
   const doCargo = cands.filter(c => c.cargo === r.cargo);
-  const eleitos = doCargo.filter(c => c.eleito).sort((a, b) => (b.votos ?? 0) - (a.votos ?? 0));
+  // com um vencedor só, a lista traz também quem perdeu (o vencedor primeiro, os outros pelos votos)
+  const umVencedor = doCargo.filter(c => c.eleito).length === 1;
+  const eleitos = doCargo.filter(c => umVencedor || c.eleito)
+    .sort((a, b) => Number(b.eleito) - Number(a.eleito) || (b.votos ?? 0) - (a.votos ?? 0));
   const quem = escolhido?.candidato ?? null;
   const cartao = quem ? cartaoPolitico(quem)
-    : `<p class="apoio">${dados?.ocupantes ? 'Clique numa cadeira do plenário, ou num dos eleitos abaixo, para ver quem se sentou nela.' : 'Escolha um dos eleitos abaixo para ver o cartão dele.'}</p>`;
+    : `<p class="apoio">${umVencedor ? 'Escolha o eleito ou um dos candidatos que perderam, abaixo, para ver o cartão dele.'
+      : dados?.ocupantes ? 'Clique numa cadeira do plenário, ou num dos eleitos abaixo, para ver quem se sentou nela.' : 'Escolha um dos eleitos abaixo para ver o cartão dele.'}</p>`;
   // no mesmo recorte, trocar de eleito só muda o cartão e a tecla marcada: a lista e o gráfico ficam onde estão (e a
   // tecla clicada termina a animação de apertar, em vez de ser trocada por outra)
   if (desenhadoPara === atual && caixa.querySelector('.p1-politico')) {
@@ -316,7 +348,8 @@ function desenhaDetalhe() {
   desenhadoPara = atual;
   caixa.innerHTML = `<div class="p1-politico">
       <div class="p1-cartao"><div class="p1-quem">${cartao}</div>
-        ${grupoOpcoes('eleito', `Os ${formata.numero(eleitos.length)} eleitos`, eleitos.map((c, i) => [i, `${nomeDe(c)} (${c.sigla})`]),
+        ${grupoOpcoes('eleito', umVencedor ? `O eleito e os ${formata.numero(eleitos.length - 1)} não eleitos` : `Os ${formata.numero(eleitos.length)} eleitos`,
+          eleitos.map((c, i) => [i, `${nomeDe(c)} (${c.sigla})${umVencedor && !c.eleito ? ' · não eleito' : ''}`]),
           eleitos.indexOf(quem), { classe: 'grupo-eleitos' })}
       </div>
       <div class="p1-dispersao"><h3>Gasto e votos de todos os ${formata.numero(doCargo.length)} candidatos</h3></div>
@@ -361,6 +394,81 @@ async function atualiza(r) {
   desenhaDetalhe();
 }
 
+// ---------------------------------------------------------------- o retrato para o oráculo
+
+/** O que a página mostra agora, para o oráculo ler: o recorte, os custos, as cadeiras por partido, a média do Brasil
+ *  no mesmo cargo e ano, e o partido ou o eleito que o leitor abriu. */
+/** O custo por cadeira somado dos partidos de esquerda (nota abaixo de 5) e de direita (acima de 5), e um em relação
+ *  ao outro: a comparação que o oráculo não deve fazer de cabeça. */
+function ladoALado(lista) {
+  const lado = filtro => {
+    const ps = (lista ?? []).filter(p => p.nota != null && filtro(p.nota));
+    const n = d3.sum(ps, p => p.n);
+    return n ? { n, custo: d3.sum(ps, p => p.gasto) / n, partidos: ps.length } : null;
+  };
+  const esq = lado(v => v < 5), dir = lado(v => v > 5);
+  const desc = (x, nome) => (x ? `${nome}: ${formata.real(x.custo)} por cadeira (${plural(x.n, 'cadeira', 'cadeiras')} de ${plural(x.partidos, 'partido', 'partidos')})` : `${nome}: nenhuma cadeira`);
+  return [
+    [null, `Custo por cadeira somado dos partidos de esquerda (nota abaixo de 5) e de direita (acima de 5) — ${desc(esq, 'esquerda')}; ${desc(dir, 'direita')}`],
+    ['Custo por cadeira da direita em relação ao da esquerda', esq && dir ? comparacao(dir.custo, esq.custo) : null],
+  ];
+}
+
+registraRetrato(() => {
+  if (!atual) return null;
+  const { r, nome, custo, lista } = atual;
+  const real = v => (v == null ? null : formata.real(v));
+  const doBrasil = territorio(r) === 'BR' ? null
+    : brasil.custo.map(l => registro(brasil.campos_custo, l)).find(x => x.ano === r.ano && x.territorio === 'BR' && brasil.cargos[x.cargo] === r.cargo);
+  const fixo = partidoFixo == null ? null : lista?.[partidoFixo];
+  const quem = escolhido?.candidato ?? null;
+  const nota = n => (n == null ? 'sem nota' : `nota ${String(n.toFixed(1)).replace('.', ',')}`);
+  return {
+    numero: 1, pergunta: 'Quanto custa uma cadeira?',
+    recorte: `${minusculo(r.cargo)} · ${nome} · ${r.ano}`,
+    secoes: [
+      { titulo: 'Números do recorte', linhas: custo ? [
+        ['Vagas', formata.numero(custo.vagas ?? 0)],
+        ['Candidatos', formata.numero(custo.candidatos)],
+        ['Candidatos por vaga', custo.vagas ? formata.numero(Math.round(10 * custo.candidatos / custo.vagas) / 10) : null],
+        ['Eleitos', formata.numero(custo.eleitos)],
+        ['Gasto de todos os candidatos', real(custo.gasto)],
+        ['Gasto dos eleitos', custo.gasto ? `${real(custo.gasto_eleitos ?? 0)} (${formata.pct(100 * (custo.gasto_eleitos ?? 0) / custo.gasto)} do total)` : null],
+        ['Gasto médio por eleito (o custo de uma cadeira)', real(custoMedio(custo))],
+      ] : [[null, 'Sem dados de custo para este recorte.']] },
+      { titulo: `Mesmo cargo e ano no Brasil inteiro`, linhas: doBrasil ? [
+        ['Gasto médio por eleito', real(custoMedio(doBrasil))],
+        ['Candidatos por vaga', doBrasil.vagas ? formata.numero(Math.round(10 * doBrasil.candidatos / doBrasil.vagas) / 10) : null],
+      ] : [] },
+      { titulo: 'Comparações prontas (calculadas pela página)', linhas: [
+        [`Custo de uma cadeira neste recorte (${real(custoMedio(custo))}) em relação ao do Brasil (${real(custoMedio(doBrasil))})`,
+          doBrasil ? comparacao(custoMedio(custo), custoMedio(doBrasil)) : null],
+        [`Gasto médio de um eleito (${real(custoMedio(custo))}) em relação ao gasto médio de um candidato não eleito (${custo && custo.candidatos > custo.eleitos ? real((custo.gasto - (custo.gasto_eleitos ?? 0)) / (custo.candidatos - custo.eleitos)) : '—'})`,
+          custo && custo.candidatos > custo.eleitos ? comparacao(custoMedio(custo), (custo.gasto - (custo.gasto_eleitos ?? 0)) / (custo.candidatos - custo.eleitos)) : null],
+        ...ladoALado(lista),
+      ] },
+      { titulo: 'Cadeiras por partido, da esquerda para a direita (nota dos especialistas: 0 esquerda, 10 direita)',
+        linhas: (lista ?? []).map(p => [null, `${p.sigla}: ${plural(p.n, 'cadeira', 'cadeiras')}, ${nota(p.nota)}, custo por cadeira ${real(p.gasto / p.n)}`]) },
+      { titulo: 'Quem perdeu (um vencedor só), do maior gasto ao menor: gasto, votos no 1º turno, custo por voto',
+        linhas: derrotados().map(c => [null, `${nomeDe(c)} (${c.sigla}): ${c.despesa == null ? 'sem gasto declarado' : real(c.despesa)}, `
+          + `${c.votos == null ? 'sem votos' : `${formata.numero(c.votos)} votos`}`
+          + `${custoPorVoto(c.despesa, c.votos) == null ? '' : `, ${formata.porVoto(custoPorVoto(c.despesa, c.votos))} por voto`}`
+          + `${c.despesa != null && lista?.[0] && c.despesa > d3.sum(lista, p => p.gasto) ? '; gastou mais que quem venceu' : ''}`]) },
+      { titulo: 'Partido destacado pelo leitor', linhas: fixo ? [
+        ['Partido', fixo.sigla], ['Cadeiras', formata.numero(fixo.n)], ['Gasto dos eleitos do partido', real(fixo.gasto)],
+        ['Custo por cadeira', real(fixo.gasto / fixo.n)],
+        ['Custo por voto', custoPorVoto(fixo.gasto, fixo.votos) == null ? null : formata.porVoto(custoPorVoto(fixo.gasto, fixo.votos))],
+      ] : [] },
+      { titulo: 'Candidato aberto pelo leitor', linhas: quem ? [
+        ['Nome', nomeDe(quem)], ['Partido', quem.sigla], ['Resultado', quem.eleito ? 'eleito' : 'não eleito'], ['Gasto de campanha', real(quem.despesa)],
+        ['Votos', quem.votos == null ? null : formata.numero(quem.votos)],
+        ['Custo por voto', quem.custoPorVoto == null ? null : formata.porVoto(quem.custoPorVoto)],
+      ] : [] },
+    ],
+  };
+});
+
 montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,
+  aviso: AVISO_CONTAS_2026,
 });

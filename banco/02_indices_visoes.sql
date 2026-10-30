@@ -64,7 +64,7 @@ SELECT pa.id_partido,
        col.nota       AS nota_coligacoes,
        cam.espectro   AS espectro_camara
 FROM partido pa
-CROSS JOIN generate_series(1998, 2024, 2) AS a (ano)
+CROSS JOIN generate_series(1998, 2026, 2) AS a (ano)
 LEFT JOIN LATERAL (
     SELECT i.nota, i.id_partido <> pa.id_partido AS herdada
     FROM ideologia_partido i

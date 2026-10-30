@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { formata } from './comum.js?v=20261109';
+import { formata } from './comum.js?v=20261155';
 
 const MAX_MULTIDAO = 2400;
 const BEGE = new THREE.Color('#e8dcc4'), VISOR = new THREE.Color('#faf7ef');

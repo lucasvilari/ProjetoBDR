@@ -34,7 +34,7 @@ JOIN partido pa  ON pa.id_partido = c.id_partido
 JOIN quociente q ON q.cod_eleicao = c.cod_eleicao AND q.cargo = c.cargo AND q.ue = c.ue
 JOIN nominais n  ON n.sq_candidato = c.sq_candidato
 WHERE c.situacao_final IN ('ELEITO POR QP', 'ELEITO POR MÉDIA')
-  AND c.ano IN (2018, 2020, 2022, 2024)
+  AND c.ano IN (2018, 2020, 2022, 2024, 2026)
   AND pa.sigla = :'sigla'
 GROUP BY c.ano, c.cargo, pa.sigla
 ORDER BY c.ano, c.cargo;

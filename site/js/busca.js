@@ -1,4 +1,4 @@
-// Busca de políticos por nome e leitura da carreira, usadas pelas perguntas 9 e 10.
+// Busca de políticos por nome e leitura da carreira, usadas pelas perguntas 9 e 10 e pela cabine do oráculo.
 //
 // Os dados vêm em três tipos de arquivo (gerados por gera_dados.py):
 //   politicos/indice/ABC.json   palavras que começam com ABC -> números dos políticos
@@ -6,7 +6,7 @@
 //   politicos/fichas/N.json     nome, UF, último cargo, anos e vitórias, 2.000 por arquivo
 //   politicos/carreira/N.json   candidaturas, 1.000 políticos por arquivo
 // A busca baixa só as fatias e fichas necessárias; abrir um político baixa uma carreira.
-import { carregaDados, formata, fotoCandidato } from './comum.js?v=20261109';
+import { carregaDados, formata, fotoCandidato } from './comum.js?v=20261155';
 
 const LIMITE_RESULTADOS = 30;
 export const tabelasPoliticos = () => carregaDados('politicos/tabelas.json');
@@ -43,22 +43,29 @@ async function fichas(ids) {
   return ids.map(id => ({ id, ...Object.fromEntries(tabelas.campos_ficha.map((c, i) => [c, todas[id][i]])) }));
 }
 
+/** As fichas dos políticos com todas as palavras de `texto` no nome (no máximo 400, pelos números), ou null quando o
+ *  texto não tem palavra que sirva para buscar. */
+export async function procuraPoliticos(texto) {
+  const termos = await palavrasDoNome(texto);
+  if (!termos.length) return null;
+  const conjuntos = await Promise.all(termos.map(idsPorPrefixo));
+  conjuntos.sort((a, b) => a.size - b.size);
+  const ids = [...conjuntos[0]].filter(id => conjuntos.every(c => c.has(id))).sort((a, b) => a - b);
+  return fichas(ids.slice(0, 400));
+}
+
 /** Liga o campo de busca do formulário à lista de resultados em `caixa`. Cada resultado é um link para
  *  hrefDe(ficha); `filtro(ficha)` esconde quem não serve à página (por exemplo, sem candidatura recente). */
 export function montaBusca(form, caixa, { hrefDe = f => `#${f.id}`, filtro = () => true, vazio = '' } = {}) {
   const campo = form.querySelector('input[type="search"]');
   let atual = 0;
   async function busca(texto) {
-    const termos = await palavrasDoNome(texto);
-    if (!termos.length) { caixa.innerHTML = vazio; return; }
     const minha = ++atual;
-    const conjuntos = await Promise.all(termos.map(idsPorPrefixo));
+    const todas = await procuraPoliticos(texto);
     if (minha !== atual) return;                    // o usuário já digitou outra coisa
-    conjuntos.sort((a, b) => a.size - b.size);
-    const ids = [...conjuntos[0]].filter(id => conjuntos.every(c => c.has(id))).sort((a, b) => a - b);
+    if (!todas) { caixa.innerHTML = vazio; return; }
     const tabelas = await tabelasPoliticos();
-    const achados = (await fichas(ids.slice(0, 400))).filter(filtro);
-    if (minha !== atual) return;
+    const achados = todas.filter(filtro);
     if (!achados.length) {
       caixa.innerHTML = '<p class="apoio">Nenhum político com esse nome. Confira a grafia ou use outra palavra do nome.</p>';
       return;
