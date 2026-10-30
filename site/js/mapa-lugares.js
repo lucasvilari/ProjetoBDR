@@ -3,8 +3,8 @@
 // nem escolheu o plano; o plano tem as mesmas cores, sem a altura. A página diz a cor, a altura e o texto de cada lugar;
 // o mapa monta a cena, troca de vista, avisa o clique e cuida do botão entre relevo e plano.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { carregaDados, NOME_UF } from './comum.js?v=20261155';
-import { UFS_PROJETO, DA_UF } from './pecas.js?v=20261155';
+import { carregaDados, NOME_UF } from './comum.js?v=20261156';
+import { UFS_PROJETO, DA_UF } from './pecas.js?v=20261156';
 
 export const PROJETO = new Set(UFS_PROJETO);
 
@@ -31,7 +31,7 @@ export function criaMapaDeLugares({ caixa, botaoVista, chaveSessao, aoEscolher, 
     mapa?.cena?.destroi();
     if (podeUsar3D()) {
       try {
-        const { montaRelevo } = await import('./relevo-3d.js?v=20261155');
+        const { montaRelevo } = await import('./relevo-3d.js?v=20261156');
         const clicaveis = new Set(geo.features.map(chave).filter(k => naUF || PROJETO.has(k)));
         return { id, em3D: true, geo, cena: montaRelevo(caixa, { geo, chave, clicaveis, rotulo, aoEscolher: escolhe,
           alturaMax: naUF ? 0.14 : 0.34 }) };

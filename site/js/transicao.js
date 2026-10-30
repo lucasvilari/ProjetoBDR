@@ -18,8 +18,12 @@
   let herdada = null;
   try { herdada = JSON.parse(sessionStorage.getItem(CHAVE)); sessionStorage.removeItem(CHAVE); } catch { herdada = null; }
   if (herdada?.imagem) {
+    // o topo só ganha conteúdo com o JavaScript: até lá, guarda a altura que tinha na página anterior, para o conteúdo
+    // (o título da página nova) não subir para a faixa que a cortina não cobre
+    const topo = Number(herdada.topo) || 0;
     const estilo = document.createElement('style');
-    estilo.textContent = `html::after { content: ""; position: fixed; left: 0; right: 0; top: ${Number(herdada.topo) || 0}px;
+    estilo.textContent = `header.topo { min-height: ${topo}px; }
+      html::after { content: ""; position: fixed; left: 0; right: 0; top: ${topo}px;
       bottom: 0; z-index: 2147483000; pointer-events: none; background: url("${herdada.imagem}") center / 100% 100% no-repeat; }`;
     document.head.append(estilo);
     const tira = () => estilo.remove();

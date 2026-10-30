@@ -1,6 +1,6 @@
 // O plenário em SVG: a versão sem 3D (aparelho sem WebGL ou movimento reduzido), com as mesmas
 // informações da cena 3D. Cada bolinha é uma cadeira, ou um grupo delas quando são milhares.
-import { formata } from './comum.js?v=20261155';
+import { formata } from './comum.js?v=20261156';
 
 /** Desenha o plenário em `alvo`. dados: { total, passo, geo: {pontos, raio, interno}, lista, donos, ocupantes, cores }.
  *  Clicar (ou Enter) numa cadeira chama aoEscolher({ assento, partido, candidato }). Devolve { destroi, destaca }. */

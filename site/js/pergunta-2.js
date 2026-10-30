@@ -5,13 +5,13 @@
 // Dados: mapa/brasil.json e mapa/municipios/UF.json (candidatos e eleitos por faixa, para todo recorte);
 // candidaturas/<ue>-<ano>.json (cada candidato, com patrimônio e votos, quando o recorte tem a lista).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { comparacao } from './lib/retrato.js?v=20261155';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261155';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261155';
-import { faixaDePatrimonio } from './lib/cifroes.js?v=20261155';
-import { agrupa } from './lib/plenario.js?v=20261155';
-import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261155';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261155';
+import { comparacao } from './lib/retrato.js?v=20261156';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261156';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261156';
+import { faixaDePatrimonio } from './lib/cifroes.js?v=20261156';
+import { agrupa } from './lib/plenario.js?v=20261156';
+import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261156';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261156';
 
 montaPagina();
 

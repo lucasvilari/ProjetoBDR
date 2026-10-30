@@ -1,9 +1,9 @@
 // Página inicial: a abertura (o olho se abre e voa até o logo) e a roda do oráculo, com as dez
 // perguntas em volta do olho; apontar uma pergunta faz o olho olhar para ela e mostra o que ela
 // responde e como é calculada.
-import { montaPagina } from './comum.js?v=20261155';
-import { PERGUNTAS } from './lib/perguntas.js?v=20261155';
-import { posicoesNaRoda, olharPara } from './lib/roda.js?v=20261155';
+import { montaPagina } from './comum.js?v=20261156';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261156';
+import { posicoesNaRoda, olharPara } from './lib/roda.js?v=20261156';
 
 montaPagina();
 

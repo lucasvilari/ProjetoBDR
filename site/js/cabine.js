@@ -4,12 +4,12 @@
 //
 // Dados: politicos/ (busca e carreiras), indices/municipios.json e idade/idade.json (municípios),
 // candidaturas/<ue>-<ano>.json, mapa/ e vies/ (eleições).
-import { montaPagina, carregaDados, formata, NOME_UF } from './comum.js?v=20261155';
-import { ENDERECO, AVISOS } from './oraculo.js?v=20261155';
-import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261155';
-import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261155';
-import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261155';
-import { achaMunicipios, escolhePolitico, resumoCarreira, votacao } from './lib/cabine.js?v=20261155';
+import { montaPagina, carregaDados, formata, NOME_UF } from './comum.js?v=20261156';
+import { ENDERECO, AVISOS } from './oraculo.js?v=20261156';
+import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261156';
+import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261156';
+import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261156';
+import { achaMunicipios, escolhePolitico, resumoCarreira, votacao } from './lib/cabine.js?v=20261156';
 
 montaPagina();
 
