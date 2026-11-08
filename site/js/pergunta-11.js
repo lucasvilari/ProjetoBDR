@@ -7,10 +7,10 @@
 // O PIB per capita é a preços correntes: a variação não desconta a inflação. É retrato, não prova de causa.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em } from './comum.js?v=20261109';
-import { COR } from './lib/cores.js?v=20261109';
-import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261109';
-import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe } from './lib/retrospecto.js?v=20261109';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
+import { COR } from './lib/cores.js?v=20261157';
+import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261157';
+import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe } from './lib/retrospecto.js?v=20261157';
 
 montaPagina();
 
@@ -441,6 +441,40 @@ function desenhaPainel() {
   caixa.querySelector('#g-setor').append(graficoSetores(dados, largura));
   painel.replaceChildren(caixa);
 }
+
+// ---------------------------------------------------------------- retrato para o oráculo
+
+const textoMandato = m => {
+  const pib = m[D.varPib] == null ? 'sem dado'
+    : `${numeroBr(m[D.varPib], 1, true)}% (${real(m[D.pibIni])} em ${m[D.eleicao]} para ${real(m[D.pibFim])} em ${m[D.anoPib]}, a preços correntes)`;
+  const hom = m[D.varHom] == null ? 'sem dado'
+    : `${numeroBr(m[D.varHom], 1, true)} por 100 mil (${numeroBr(m[D.homIni])} para ${numeroBr(m[D.homFim])} em ${m[D.anoHom]})`;
+  return `${nomeCurto(m[D.nome])} (${m[D.partido]}); PIB per capita: ${pib}; homicídios: ${hom}`;
+};
+
+registraRetrato(() => {
+  const terr = territorio(), nome = nomeDoLugar();
+  const rotulo = `${IND[estado.ind].rotulo}, ${ehMandato(estado.ind) ? `eleição de ${estado.ano}` : estado.ano}`;
+  const secoes = [];
+  if (terr) {
+    const v = valor(terr, estado.ind, estado.ano);
+    secoes.push({ titulo: `${nome}: ${rotulo}`, linhas: [[IND[estado.ind].rotulo, v == null ? 'sem dado' : textoValor(estado.ind, v)]] });
+    const mandatos = (estado.mun ? MUN[estado.mun]?.prefeitos : uf.ufs[estado.uf]?.governadores) ?? [];
+    secoes.push({ titulo: `${estado.mun ? 'Prefeitos' : 'Governadores'} eleitos e o que mudou no mandato (variação do ano da eleição ao último ano medido)`,
+      linhas: mandatos.map(m => [`Mandato ${mandatoDe(m[D.eleicao]).de} a ${mandatoDe(m[D.eleicao]).ate}`, textoMandato(m)]) });
+    secoes.push({ titulo: `Série anual ${em(nome)}`, linhas: linhasDaSerie().map(l => [String(l.ano),
+      `PIB per capita ${l.pib == null ? 'sem dado' : real(l.pib)}; homicídios ${l.hom == null ? 'sem dado' : `${numeroBr(l.hom)} por 100 mil`}; setor que mais pesa ${indiceDoMaior(l.pcts) == null ? 'sem dado' : SETORES[indiceDoMaior(l.pcts)]}`]) });
+  } else {
+    secoes.push({ titulo: `Governadores dos seis estados e o que mudou no mandato`, linhas: UFS_PROJETO.flatMap(u =>
+      (uf.ufs[u]?.governadores ?? []).map(m => [`${u}, mandato ${mandatoDe(m[D.eleicao]).de} a ${mandatoDe(m[D.eleicao]).ate}`, textoMandato(m)])) });
+  }
+  secoes.push({ titulo: 'Cuidados na leitura', linhas: [
+    ['PIB per capita', 'a preços correntes, sem descontar a inflação: parte da alta é só preço'],
+    ['Setores', 'o IBGE publica o valor adicionado por setor só até 2021; o PIB per capita, até 2022'],
+    ['Homicídios', 'registros do Ministério da Saúde no Atlas da Violência; nos municípios, média de 3 anos, e os pequenos oscilam muito'],
+    ['Causa', 'mostra o que mudou durante o mandato, não que o eleito causou a mudança']] });
+  return { numero: 11, pergunta: 'O que mudou no mandato?', recorte: `${nome} · ${rotulo}`, secoes };
+});
 
 // ---------------------------------------------------------------- tudo junto
 
