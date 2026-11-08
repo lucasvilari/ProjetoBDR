@@ -132,12 +132,30 @@ CREATE TABLE idhm_municipio (
     PRIMARY KEY (cod_tse, ano)
 );
 
+-- vab_*: valor adicionado bruto por atividade (SIDRA 5938, em reais). vab_servicos
+-- exclui a administração pública, que tem coluna própria; os quatro VABs mais
+-- impostos_liquidos fecham com o pib (03_validacao.sql confere).
 CREATE TABLE indicador_anual (
-    cod_tse          VARCHAR(5)    NOT NULL REFERENCES municipio (cod_tse) ON DELETE CASCADE,
-    ano              SMALLINT      NOT NULL,
-    pib              NUMERIC(18,2),
-    populacao        INTEGER,
-    pib_per_capita   NUMERIC(14,2) GENERATED ALWAYS AS (pib / NULLIF(populacao, 0)) STORED,
+    cod_tse            VARCHAR(5)    NOT NULL REFERENCES municipio (cod_tse) ON DELETE CASCADE,
+    ano                SMALLINT      NOT NULL,
+    pib                NUMERIC(18,2),
+    vab_agropecuaria   NUMERIC(18,2),
+    vab_industria      NUMERIC(18,2),
+    vab_servicos       NUMERIC(18,2),
+    vab_adm_publica    NUMERIC(18,2),
+    impostos_liquidos  NUMERIC(18,2),
+    populacao          INTEGER,
+    pib_per_capita     NUMERIC(14,2) GENERATED ALWAYS AS (pib / NULLIF(populacao, 0)) STORED,
+    PRIMARY KEY (cod_tse, ano)
+);
+
+-- Atlas da Violência (Ipea), série "taxa de homicídios registrados": mortes por
+-- 100 mil habitantes, a partir do SIM do Ministério da Saúde. Nem todo município
+-- tem valor em todos os anos.
+CREATE TABLE homicidio_municipio (
+    cod_tse  VARCHAR(5)    NOT NULL REFERENCES municipio (cod_tse) ON DELETE CASCADE,
+    ano      SMALLINT      NOT NULL,
+    taxa     NUMERIC(6,2)  NOT NULL CHECK (taxa >= 0),
     PRIMARY KEY (cod_tse, ano)
 );
 

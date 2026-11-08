@@ -23,6 +23,7 @@ PERGUNTAS = {
     8: "Sucesso de candidatos dependentes de repasses públicos x financiados por outras fontes",
     9: "Onde o candidato investe em propaganda (nuvem de palavras)?",
     10: "Sobrevivência da carreira de um político",
+    11: "Retrospecto: o que mudou (PIB, setores, homicídios) durante o mandato dos eleitos",
 }
 
 
@@ -77,7 +78,8 @@ ITENS = {i.chave: i for i in (
     # ---- IBGE ----------------------------------------------------------------
     Item("ibge_municipios", "ibge",
          "Municípios com UF, região, meso/microrregião e regiões imediata/intermediária"),
-    Item("ibge_pib", "ibge", "PIB municipal a preços correntes (SIDRA 5938), para o PIB per capita"),
+    Item("ibge_pib", "ibge",
+         "PIB municipal a preços correntes e valor adicionado por atividade, de 2010 em diante (SIDRA 5938)"),
     Item("ibge_populacao_estimada", "ibge", "População residente estimada (SIDRA 6579)"),
     Item("ibge_censo2022_populacao", "ibge", "População residente do Censo 2022 (SIDRA 4709)"),
     Item("ibge_censo2022_idade", "ibge", "Idade mediana e índice de envelhecimento, Censo 2022 (SIDRA 9515)"),
@@ -87,6 +89,8 @@ ITENS = {i.chave: i for i in (
     Item("atlas_escolaridade", "ipea",
          "Escolaridade de adultos no Atlas (PNUD): analfabetismo 15+ (1991 a 2022) e fundamental/médio/superior completos 25+ (1991 a 2010)"),
     Item("atlas_envelhecimento", "ipea", "Taxa de envelhecimento no Atlas (PNUD), Censos 1991 a 2022"),
+    # ---- Atlas da Violência (Ipea) -----------------------------------------------
+    Item("atlas_violencia", "ipea", "Taxa de homicídios registrados por 100 mil habitantes, por município, 2000 a 2024"),
     # ---- Harvard Dataverse -----------------------------------------------------
     Item("ideologia_partidos", "dataverse",
          "Classificação ideológica dos partidos por especialistas (Bolognesi et al.)"),
@@ -154,6 +158,15 @@ NECESSIDADES = {
     },
     10: {  # trajetória: todas as eleições com dados por candidato
         "candidatos": CARREIRA,                   # CPF/título/nome ligam o político entre eleições
+    },
+    11: {  # retrospecto do mandato: indicadores do território x quem foi eleito
+        "candidatos": (2012, 2016, 2018, 2020, 2022, 2024),   # prefeitos e governadores eleitos
+        "municipio_tse_ibge": None,
+        "ibge_municipios": None,
+        "ibge_pib": None,                         # PIB total e por setor
+        "ibge_populacao_estimada": None,          # pondera a taxa de homicídios por UF
+        "ibge_censo2022_populacao": None,
+        "atlas_violencia": None,                  # taxa de homicídios por município e ano
     },
 }
 

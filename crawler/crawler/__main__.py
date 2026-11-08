@@ -19,7 +19,7 @@ def _argumentos(argv):
         description="Baixa só os dados necessários para as perguntas do ProjetoBDR.",
     )
     p.add_argument("--perguntas", type=int, nargs="+", choices=sorted(PERGUNTAS), metavar="N",
-                   help="perguntas a atender (padrão: todas, 1 a 10)")
+                   help="perguntas a atender (padrão: todas, 1 a 11)")
     p.add_argument("--fontes", nargs="+", choices=["tse", "ibge", "ipea", "dataverse"],
                    help="limita às fontes indicadas (padrão: todas)")
     p.add_argument("--anos", type=int, nargs="+", metavar="ANO",

@@ -272,7 +272,7 @@ def etapa_esquema(c):
     """Recria o modelo do zero (mantém o escopo geográfico definido em main)."""
     log('== esquema')
     c.sql("""DROP TABLE IF EXISTS votos_part, votos_cand, perfil_comparecimento, apuracao,
-             indicador_anual, idhm_municipio, municipio, despesa, receita, bem, candidatura,
+             indicador_anual, homicidio_municipio, idhm_municipio, municipio, despesa, receita, bem, candidatura,
              ideologia_coligacao, ideologia_partido, partido, politico, vaga, eleicao CASCADE""")
     c.sql('DROP FUNCTION IF EXISTS nivel_escolaridade(VARCHAR)')
     ufs = [u for (u,) in c.sql("SELECT uf FROM carga.escopo WHERE uf <> 'BR'")]
@@ -281,7 +281,7 @@ def etapa_esquema(c):
     c.sql(FUNCOES_STG)
     c.define_escopo(ufs)
     c.sql((RAIZ / '01_tabelas.sql').read_text())
-    c.registra('esquema', '01_tabelas.sql aplicado', 17)
+    c.registra('esquema', '01_tabelas.sql aplicado', 18)
 
 
 def etapa_territorio(c):
@@ -320,26 +320,50 @@ def etapa_territorio(c):
         WHERE stg.num(i.idhm) IS NOT NULL
     """, etapa='idhm_municipio', detalhe='Ipeadata ADH_IDHM (1991, 2000, 2010)')
 
+    for t in ('mun_tse_ibge', 'ibge_mun', 'censo9515', 'idhm'):
+        c.sql(f'DROP TABLE stg.{t}')
+
+
+def etapa_indicadores(c):
+    """PIB, setores, população e homicídios. Refaz só estas duas tabelas, sem tocar nas demais."""
+    log('== indicadores')
+    c.sql('TRUNCATE indicador_anual, homicidio_municipio')
     c.prepara('pib', DADOS / 'ibge' / 'pib' / 'pib_municipios_tabela5938.csv', 'UTF8')
     c.prepara('pop_est', DADOS / 'ibge' / 'populacao' / 'estimativas_populacao_tabela6579.csv', 'UTF8')
     c.prepara('pop_censo', DADOS / 'ibge' / 'populacao' / 'censo2022_populacao_tabela4709.csv', 'UTF8')
     c.sql("""
-        WITH pib AS (SELECT municipio_codigo AS cod, stg.int(ano) AS ano, stg.num(valor) * 1000 AS pib
-                     FROM stg.pib WHERE variavel_codigo = '37'),
+        WITH pib AS (SELECT municipio_codigo AS cod, stg.int(ano) AS ano,
+                            max(stg.num(valor)) FILTER (WHERE variavel_codigo = '37')   * 1000 AS pib,
+                            max(stg.num(valor)) FILTER (WHERE variavel_codigo = '513')  * 1000 AS vab_agro,
+                            max(stg.num(valor)) FILTER (WHERE variavel_codigo = '517')  * 1000 AS vab_ind,
+                            max(stg.num(valor)) FILTER (WHERE variavel_codigo = '6575') * 1000 AS vab_serv,
+                            max(stg.num(valor)) FILTER (WHERE variavel_codigo = '525')  * 1000 AS vab_adm,
+                            max(stg.num(valor)) FILTER (WHERE variavel_codigo = '543')  * 1000 AS impostos
+                     FROM stg.pib WHERE variavel_codigo IN ('37', '513', '517', '6575', '525', '543')
+                     GROUP BY municipio_codigo, stg.int(ano)),
              pop AS (SELECT municipio_codigo AS cod, stg.int(ano) AS ano, stg.int(valor) AS pop
                      FROM stg.pop_est WHERE variavel_codigo = '9324' AND stg.int(ano) <> 2022
                      UNION ALL
                      SELECT municipio_codigo, 2022, stg.int(valor)
                      FROM stg.pop_censo WHERE variavel_codigo = '93'),
              anos AS (SELECT cod, ano FROM pib UNION SELECT cod, ano FROM pop)
-        INSERT INTO indicador_anual (cod_tse, ano, pib, populacao)
-        SELECT m.cod_tse, a.ano, p.pib, q.pop
+        INSERT INTO indicador_anual (cod_tse, ano, pib, vab_agropecuaria, vab_industria, vab_servicos,
+                                     vab_adm_publica, impostos_liquidos, populacao)
+        SELECT m.cod_tse, a.ano, p.pib, p.vab_agro, p.vab_ind, p.vab_serv, p.vab_adm, p.impostos, q.pop
         FROM anos a
         JOIN municipio m ON m.cod_ibge = a.cod
         LEFT JOIN pib p ON p.cod = a.cod AND p.ano = a.ano
         LEFT JOIN pop q ON q.cod = a.cod AND q.ano = a.ano
-    """, etapa='indicador_anual', detalhe='SIDRA 5938 (PIB x 1000), 6579 e 4709 (Censo em 2022)')
-    for t in ('mun_tse_ibge', 'ibge_mun', 'censo9515', 'idhm', 'pib', 'pop_est', 'pop_censo'):
+    """, etapa='indicador_anual', detalhe='SIDRA 5938 (PIB e VAB por atividade x 1000), 6579 e 4709 (Censo em 2022)')
+
+    c.prepara('homicidios', DADOS / 'atlas_violencia' / 'homicidios_municipios.csv', 'UTF8')
+    c.sql("""
+        INSERT INTO homicidio_municipio (cod_tse, ano, taxa)
+        SELECT m.cod_tse, stg.int(h.ano), round(stg.num(h.taxa_homicidios), 2)
+        FROM stg.homicidios h JOIN municipio m ON left(m.cod_ibge, 6) = btrim(h.cod_ibge)  -- o Atlas omite o dígito verificador
+        WHERE stg.num(h.taxa_homicidios) IS NOT NULL
+    """, etapa='homicidio_municipio', detalhe='Atlas da Violência, taxa de homicídios registrados, UFs do escopo')
+    for t in ('pib', 'pop_est', 'pop_censo', 'homicidios'):
         c.sql(f'DROP TABLE stg.{t}')
 
 
@@ -923,6 +947,7 @@ def etapa_limpeza(c):
 ETAPAS = {
     'esquema': etapa_esquema,
     'territorio': etapa_territorio,
+    'indicadores': etapa_indicadores,
     'preparo': etapa_preparo,
     'nucleo': etapa_nucleo,
     'espectro_camara': etapa_espectro_camara,
