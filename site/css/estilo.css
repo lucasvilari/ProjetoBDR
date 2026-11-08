@@ -1332,3 +1332,11 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 @media (max-width: 600px) { .cabine { padding: var(--m2); } }
 /* o candidato aberto por um link da cabine, nas listas das perguntas 2 e 8 */
 .moradores li.destacado, .torneiras li.destacado { background: var(--ouro-fundo); outline: 2.5px solid var(--ouro-escuro); outline-offset: 2px; border-radius: 6px; }
+
+/* pergunta 11: o ano é uma barra deslizante, e a variação do mandato leva cor na tabela */
+.controle-ano { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1) var(--m2); }
+.controle-ano input[type="range"] { width: min(22rem, 100%); }
+.controle-ano output { font-weight: 800; min-width: 4.5rem; }
+.tabela strong.sobe { color: var(--corrige-texto); }
+.tabela strong.cai { color: var(--confirma-texto); }
+.tabela td strong { display: block; }

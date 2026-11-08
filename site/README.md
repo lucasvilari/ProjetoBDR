@@ -1,12 +1,12 @@
 # Site: Olho do Povo
 
 Site estático que responde às perguntas do projeto com os dados do banco. A página inicial é um
-oráculo: um olho cercado pelas dez perguntas, cada uma com o que responde e como é calculada. As
+oráculo: um olho cercado pelas dez perguntas e por uma extra, cada uma com o que responde e como é calculada. As
 perguntas respondidas têm uma página cada, com uma visualização própria:
 
 | Página | Pergunta | A visualização |
 |---|---|---|
-| `index.html` | apresentação, fontes e a roda das perguntas | o olho que se abre e as dez perguntas em volta dele |
+| `index.html` | apresentação, fontes e a roda das perguntas | o olho que se abre e as perguntas em volta dele |
 | `pergunta-1.html` | Quanto custa uma cadeira? | o plenário em 3D (ou 2D) com a multidão de quem tentou, as moedas do gasto, por partido e por político |
 | `pergunta-2.html` | Patrimônio ajuda a eleger? | um prédio: cada andar uma faixa de patrimônio, cada janela um candidato, acesa quando se elegeu; os moradores de cada andar e patrimônio × votos |
 | `pergunta-3.html` | Município rico vota diferente? | o mapa das 27 UFs (e dos municípios dos seis estados) em relevo 3D: a altura de cada lugar é o índice e a cor, o voto (ou plano, sem WebGL); abaixo, do município escolhido no mapa, o boletim de urna com os partidos mais votados, a posição de cada um e os eleitos, e o santinho com PIB per capita, IDHM, eleitores por habitante, isentos e para que lado votou; o voto médio dos municípios em cinco grupos por índice; tudo para o ano e o cargo escolhidos |
@@ -17,6 +17,7 @@ perguntas respondidas têm uma página cada, com uma visualização própria:
 | `pergunta-8.html` | Dinheiro público elege? | o leitor preenche dez cifrões com a parcela de dinheiro público e vê a taxa de vitória de quem tem pelo menos isso; cada candidato e cada partido como uma torneira |
 | `pergunta-9.html` | Onde gastam em propaganda? | a rua da campanha, com um objeto por tipo de despesa; a seta para o céu afasta a vista e mostra as nuvens, uma por palavra das despesas |
 | `pergunta-10.html` | Como foi a carreira de um político? | a linha do tempo com um santinho por eleição, de 1994 a 2026 (1994 e 1996 ligadas pelo nome e nascimento), com foto de 2004 em diante |
+| `pergunta-11.html` | O que mudou no mandato? (extra, fora das dez da disciplina) | o mapa dos seis estados e dos municípios por indicador e ano (setor que mais pesa, PIB per capita, homicídios e a variação durante o mandato de quem foi eleito), com gráficos e a tabela dos mandatos |
 | `cabine.html` | A cabine do oráculo (a tecla "?") | a pergunta livre ao oráculo: comparar carreiras ou municípios, o resultado de uma eleição |
 
 Os dados cobrem os seis estados do projeto (Amapá, Mato Grosso do Sul, Minas Gerais, Paraíba,

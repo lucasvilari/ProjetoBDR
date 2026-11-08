@@ -28,7 +28,7 @@ export function montaPagina() {
   const rodape = document.querySelector('footer.rodape');
   rodape.innerHTML = `
     <div class="rodape-interno">
-      <span>Dados abertos do TSE, do IBGE, do Atlas do Desenvolvimento Humano e de especialistas em partidos.</span>
+      <span>Dados abertos do TSE, do IBGE, do Atlas do Desenvolvimento Humano, do Atlas da Violência e de especialistas em partidos.</span>
       <a href="${REPOSITORIO}">Código e consultas no GitHub</a>
     </div>`;
   document.addEventListener('click', viraSantinho);
