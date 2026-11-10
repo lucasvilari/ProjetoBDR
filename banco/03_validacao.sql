@@ -17,6 +17,7 @@ SELECT 'despesa', count(*) FROM despesa UNION ALL
 SELECT 'municipio', count(*) FROM municipio UNION ALL
 SELECT 'idhm_municipio', count(*) FROM idhm_municipio UNION ALL
 SELECT 'indicador_anual', count(*) FROM indicador_anual UNION ALL
+SELECT 'homicidio_municipio', count(*) FROM homicidio_municipio UNION ALL
 SELECT 'apuracao', count(*) FROM apuracao UNION ALL
 SELECT 'perfil_comparecimento', count(*) FROM perfil_comparecimento UNION ALL
 SELECT 'votos_cand', count(*) FROM votos_cand UNION ALL
@@ -77,3 +78,26 @@ FROM candidatura c JOIN eleicao e USING (cod_eleicao) GROUP BY 1 ORDER BY 1;
 SELECT etapa, detalhe, linhas
 FROM (SELECT DISTINCT ON (etapa, detalhe) * FROM carga.log ORDER BY etapa, detalhe, id DESC) ult
 WHERE etapa LIKE '%descarte' AND linhas > 0 ORDER BY id;
+
+\echo '== 9. PIB: soma dos quatro setores + impostos x PIB total (a diferença deve ser ~0)'
+SELECT ano, count(*) AS municipios,
+       round(100 * (sum(vab_agropecuaria + vab_industria + vab_servicos + vab_adm_publica + impostos_liquidos)
+                    / sum(pib) - 1), 3) AS dif_pct
+FROM indicador_anual
+WHERE vab_agropecuaria IS NOT NULL AND vab_industria IS NOT NULL AND vab_servicos IS NOT NULL
+  AND vab_adm_publica IS NOT NULL AND impostos_liquidos IS NOT NULL AND pib > 0
+GROUP BY 1 ORDER BY 1;
+
+\echo '== 10. Homicídios: municípios com taxa em cada ano (o Atlas não publica todos todos os anos)'
+SELECT h.ano, count(*) AS com_taxa, (SELECT count(*) FROM municipio) AS municipios,
+       round(100.0 * count(*) / (SELECT count(*) FROM municipio), 1) AS pct
+FROM homicidio_municipio h GROUP BY 1 ORDER BY 1;
+
+\echo '== 11. Retrospecto: eleitos com início e fim medidos (prefeitos e governadores)'
+SELECT 'prefeito' AS cargo, ano_eleicao, count(*) AS eleitos,
+       count(var_pib_pc_pct) AS com_pib, count(var_homicidios) AS com_homicidios
+FROM vw_retrospecto_prefeito GROUP BY 2
+UNION ALL
+SELECT 'governador', ano_eleicao, count(*), count(var_pib_pc_pct), count(var_homicidios)
+FROM vw_retrospecto_governador GROUP BY 2
+ORDER BY 1, 2;

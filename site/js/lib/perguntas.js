@@ -32,4 +32,7 @@ export const PERGUNTAS = [
   { n: 10, titulo: 'Como foi a carreira de um político?', href: 'pergunta-10.html',
     oQue: 'Toda a trajetória de uma pessoa de 1994 a 2026: cargos, partidos, vitórias, derrotas, gastos e votos.',
     como: 'Candidaturas ligadas pelo título eleitoral (em 1994 e 1996, pelo nome e nascimento), numa linha do tempo com o resultado de cada eleição.' },
+  { n: 11, titulo: 'O que mudou no mandato?', href: 'pergunta-11.html',
+    oQue: 'Como o PIB per capita, o peso de cada setor da economia e os homicídios mudaram durante o mandato de prefeitos e governadores eleitos.',
+    como: 'PIB e valor adicionado do IBGE e taxa de homicídios do Atlas da Violência, no ano da eleição e no último ano medido do mandato.' },
 ];

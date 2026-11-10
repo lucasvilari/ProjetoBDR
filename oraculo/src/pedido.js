@@ -1,7 +1,7 @@
 // As partes puras do oráculo: o que se aceita do site, o que se manda ao modelo e como se lê o texto que volta.
 // Ficam fora de index.js para os testes rodarem no Node (testes/oraculo).
 
-export const QUESTOES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+export const QUESTOES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 export const CABINE = 0;     // a cabine do oráculo: perguntas gerais, com o retrato montado pelo site para cada uma
 const MAX_RETRATO = 20000;   // caracteres; o maior retrato de hoje tem uns 3 mil
 const MIN_PERGUNTA = 3;
@@ -166,6 +166,15 @@ votos dados aos candidatos daquele cargo no lugar.`,
 e 1996 ligadas pelo nome e pela data de nascimento, porque o TSE não publica o título eleitoral antes de 1998).
 Votos, gasto, patrimônio e dinheiro público só existem de 2018 em diante. A nota do partido é a dos especialistas
 (0 esquerda, 10 direita) no ano da candidatura.`,
+  11: `Questão 11, "O que mudou no mandato?": para cada estado (e, ao escolher um estado, cada município), a página mostra
+um indicador num ano: o setor que mais pesa no valor adicionado (agropecuária, indústria, serviços ou administração
+pública; IBGE, até 2021), o PIB per capita (IBGE, até 2022) ou a taxa de homicídios por 100 mil habitantes (Ministério
+da Saúde, no Atlas da Violência; nos municípios, média de 3 anos). A variação no mandato compara o ano da eleição do
+governador (no mapa do Brasil) ou do prefeito (no mapa do estado) com o último ano medido do mandato. O PIB per capita é
+a preços correntes: a variação não desconta a inflação, então parte da alta é só preço, e só se comparam lugares no
+mesmo período. Municípios pequenos têm poucos homicídios e a taxa oscila muito de um ano para outro. A página mostra o
+que mudou durante o mandato, não que o eleito causou a mudança: a economia e a violência dependem também do país, do
+estado, dos preços das mercadorias e de quem governou antes.`,
 };
 
 /** As mensagens para o modelo: as regras e o método da questão como instruções; o retrato e a pergunta do leitor. */

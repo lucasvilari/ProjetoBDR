@@ -17,7 +17,7 @@ test('validaPedido recusa retrato vazio ou grande demais, pergunta longa e quest
   assert.equal(validaPedido({ numero: 1, retrato: '' }).ok, false);
   assert.equal(validaPedido({ numero: 1, retrato: 'x'.repeat(20001) }).ok, false);
   assert.equal(validaPedido({ numero: 1, retrato: 'x', pergunta: 'y'.repeat(301) }).ok, false);
-  assert.equal(validaPedido({ numero: 11, retrato: 'x', pergunta: 'p?' }).ok, false);
+  assert.equal(validaPedido({ numero: 12, retrato: 'x', pergunta: 'p?' }).ok, false);
   assert.equal(validaPedido(null).ok, false);
 });
 
@@ -35,6 +35,15 @@ test('montaMensagens diz ao oráculo como recusar, no tom de oráculo, a pergunt
   const [sistema] = montaMensagens({ numero: 1, retrato: 'R', pergunta: 'qual a capital da França?' });
   assert.match(sistema.content, /não entend/i);
   assert.match(sistema.content, /resum/i);       // pedir um resumo da página vale como pergunta
+});
+
+test('a questão 11 é aceita e tem o método dela: preços correntes, setores até 2021 e mudança no mandato sem causa', () => {
+  assert.equal(validaPedido({ numero: 11, retrato: 'x', pergunta: 'o PIB subiu?' }).ok, true);
+  const [sistema] = montaMensagens({ numero: 11, retrato: 'R', pergunta: 'o PIB subiu?' });
+  assert.match(sistema.content, /Questão 11/);
+  assert.match(sistema.content, /preços correntes/);
+  assert.match(sistema.content, /homicídios/i);
+  assert.doesNotMatch(sistema.content, /undefined/);
 });
 
 test('textoDoEvento lê os dois formatos do fluxo do Workers AI e ignora o resto', () => {

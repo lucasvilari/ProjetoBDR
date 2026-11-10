@@ -39,7 +39,31 @@ CONJUNTOS = {
 }
 
 
+ATLAS_VIOLENCIA = "https://www.ipea.gov.br/dados-api/series-values/{serie}/{tipo_regiao}"
+SERIE_HOMICIDIOS_REGISTRADOS = 20   # taxa por 100 mil habitantes, registros do SIM (Ministério da Saúde)
+REGIAO_MUNICIPIO = 4
+
+
+def _coletar_homicidios(cli, raiz: Path) -> list[Path]:
+    """Atlas da Violência (Ipea): taxa de homicídios registrados por município e ano.
+
+    É a mesma API que alimenta o botão CSV do site; devolve todos os municípios de uma vez.
+    As séries estimadas (368) só existem por UF, por isso a de registrados.
+    """
+    linhas = obter_json(cli, ATLAS_VIOLENCIA.format(serie=SERIE_HOMICIDIOS_REGISTRADOS,
+                                                    tipo_regiao=REGIAO_MUNICIPIO))
+    if not linhas:
+        raise RuntimeError("a série de homicídios do Atlas da Violência veio vazia")
+    print(f"    {len(linhas)} valores municipais", flush=True)
+    destino = raiz / "atlas_violencia" / "homicidios_municipios.csv"
+    gravar_csv(destino, ["cod_ibge", "ano", "taxa_homicidios"],
+               sorted([v["regiao_id"], v["periodo"][:4], v["valor"]] for v in linhas))
+    return [destino]
+
+
 def coletar(cli, chave: str, raiz: Path) -> list[Path]:
+    if chave == "atlas_violencia":
+        return _coletar_homicidios(cli, raiz)
     arquivo, series = CONJUNTOS[chave]
     valores: dict[tuple[str, str], dict[str, float]] = {}
     for codigo, coluna in series.items():

@@ -253,7 +253,8 @@ p, li { max-width: var(--medida); }
 .roda-anel { position: absolute; inset: 7%; border-radius: 50%; border: 2.5px dashed var(--tecla); opacity: 0.55; }
 .roda-centro {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: 46%; display: grid; justify-items: center; gap: var(--m2); text-align: center;
+  /* o centro cabe entre as perguntas das laterais, que têm até 12,5rem (.roda-pergunta) */
+  width: min(46%, calc(100% - 2 * 12.5rem - 2rem)); display: grid; justify-items: center; gap: var(--m2); text-align: center;
 }
 .roda-olho { width: 9rem; height: auto; }
 #pupila { transition: transform 260ms var(--sai); }
@@ -699,6 +700,7 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .tabela-compacta td, .tabela-compacta th { padding-block: 0.25rem; }
 @media (max-width: 640px) {
   .quem-votos li { grid-template-columns: 2.2rem minmax(0, 1fr) 8rem; }
+  .quem-votos-n { white-space: normal; }   /* o número e a porcentagem quebram em duas linhas, sem passar da coluna */
   .quem-barra { grid-column: 2 / -1; grid-row: 2; }
 }
 
@@ -1265,6 +1267,10 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .quintis-jovens .quintil { grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 1.6fr) 5rem; }
 .idade-trilho::after { display: none; }
 .quintis-jovens + .quintis-escala { padding-right: calc(5rem + var(--m2) + 0.5rem); }
+@media (max-width: 600px) {   /* como os outros quintis no celular: o trilho desce para a linha de baixo */
+  .quintis-jovens .quintil { grid-template-columns: minmax(0, 1fr) 5rem; }
+  .quintis-jovens + .quintis-escala { padding: 0 0.5rem; }
+}
 
 /* a etiqueta dos mapas planos (questões 3, 4 e 6): o nome do lugar sob o ponteiro */
 .mapa:has(> .mapa-dica), .mini-mapa { position: relative; }
@@ -1332,3 +1338,11 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 @media (max-width: 600px) { .cabine { padding: var(--m2); } }
 /* o candidato aberto por um link da cabine, nas listas das perguntas 2 e 8 */
 .moradores li.destacado, .torneiras li.destacado { background: var(--ouro-fundo); outline: 2.5px solid var(--ouro-escuro); outline-offset: 2px; border-radius: 6px; }
+
+/* pergunta 11: o ano é uma barra deslizante, e a variação do mandato leva cor na tabela */
+.controle-ano { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1) var(--m2); }
+.controle-ano input[type="range"] { width: min(22rem, 100%); }
+.controle-ano output { font-weight: 800; min-width: 4.5rem; }
+.tabela strong.sobe { color: var(--corrige-texto); }
+.tabela strong.cai { color: var(--confirma-texto); }
+.tabela td strong { display: block; }

@@ -25,9 +25,12 @@ class Tabela:
 
 TABELAS = {
     # PIB a preços correntes (mil R$); dividido pela população do ano dá o per capita.
-    "ibge_pib": Tabela(5938, (37,), "pib/pib_municipios_tabela5938.csv", ano_min=2017),
+    # Mesma tabela traz o valor adicionado bruto por atividade: agropecuária (513), indústria (517),
+    # serviços exclusive administração pública (6575), administração pública (525) e impostos (543).
+    # A série começa em 2010 para cobrir os mandatos eleitos em 2012, 2016 e 2020.
+    "ibge_pib": Tabela(5938, (37, 513, 517, 6575, 525, 543), "pib/pib_municipios_tabela5938.csv", ano_min=2010),
     # Estimativas anuais. Não existem para 2022 e 2023: em 2022 use o Censo.
-    "ibge_populacao_estimada": Tabela(6579, (9324,), "populacao/estimativas_populacao_tabela6579.csv", ano_min=2017),
+    "ibge_populacao_estimada": Tabela(6579, (9324,), "populacao/estimativas_populacao_tabela6579.csv", ano_min=2010),
     "ibge_censo2022_populacao": Tabela(4709, (93,), "populacao/censo2022_populacao_tabela4709.csv"),
     # Índice de envelhecimento (10612) e idade mediana (10613).
     "ibge_censo2022_idade": Tabela(9515, (10612, 10613), "censo2022/idade_mediana_envelhecimento_tabela9515.csv"),

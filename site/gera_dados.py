@@ -34,6 +34,8 @@ e grava os resultados em arquivos pequenos.
                  pergunta 4: o nível de quem votou e de quem recebeu os votos em cada uma das 27 UFs (banco nacional)
     idade        pergunta 6: perfil etário de cada município, prefeitos eleitos de 2000 a 2024 e idade de quem recebeu
                  os votos ao lado da parcela de votantes até 34 anos (banco dos seis estados)
+    retrospecto  pergunta 11: PIB per capita, setores e homicídios por UF e município, e a variação
+                 durante o mandato de prefeitos e governadores eleitos (banco dos seis estados)
 
 Uso (com o ambiente de banco/.venv):
     ../banco/.venv/bin/python gera_dados.py                 # tudo
@@ -1346,6 +1348,126 @@ def parte_propaganda(nacional, seis):
         f'{tamanho_pasta(DADOS / "propaganda") / 1e6:.1f} MB, maior arquivo de pessoas {maior / 1e3:.0f} kB')
 
 
+# --------------------------------------------------------------------------- retrospecto do mandato (pergunta 11)
+
+# O que mudou no território durante o mandato de quem foi eleito: PIB per capita, peso de cada setor e
+# taxa de homicídios, por UF e por município, e a variação entre o ano da eleição e o último ano medido
+# do mandato (views vw_retrospecto_prefeito e vw_retrospecto_governador). O PIB per capita é a preços
+# correntes: a variação é nominal, não desconta a inflação. É retrato do período, não prova de causa.
+ANO_INICIAL_RETRO, ANO_FINAL_RETRO = 2010, 2024
+SETORES = ['AGROPECUÁRIA', 'INDÚSTRIA', 'SERVIÇOS', 'ADMINISTRAÇÃO PÚBLICA']
+ELEICOES_PREFEITO = (2012, 2016, 2020, 2024)
+ELEICOES_GOVERNADOR = (2014, 2018, 2022)
+CAMPOS_ANO_UF = ['ano', 'pib', 'populacao', 'pib_per_capita', 'homicidios',
+                 'pct_agro', 'pct_industria', 'pct_servicos', 'pct_adm_publica']
+CAMPOS_ANO_MUN = ['ano', 'pib_per_capita', 'homicidios_3a',
+                  'pct_agro', 'pct_industria', 'pct_servicos', 'pct_adm_publica', 'setor']
+CAMPOS_MANDATO = ['ano_eleicao', 'nome', 'partido', 'pib_pc_inicio', 'ano_fim_pib', 'pib_pc_fim',
+                  'var_pib_pc_nominal_pct', 'homicidios_inicio', 'ano_fim_homicidios', 'homicidios_fim',
+                  'var_homicidios']
+
+SQL_RETRO_UF = """
+SELECT u.uf, u.ano, u.pib, u.populacao, u.pib_per_capita, u.taxa_homicidios,
+       s.agro, s.industria, s.servicos, s.adm
+FROM vw_indicador_uf u
+LEFT JOIN (
+    SELECT m.uf, i.ano,
+           100 * SUM(i.vab_agropecuaria) / NULLIF(SUM(i.vab_agropecuaria + i.vab_industria + i.vab_servicos + i.vab_adm_publica), 0) AS agro,
+           100 * SUM(i.vab_industria)    / NULLIF(SUM(i.vab_agropecuaria + i.vab_industria + i.vab_servicos + i.vab_adm_publica), 0) AS industria,
+           100 * SUM(i.vab_servicos)     / NULLIF(SUM(i.vab_agropecuaria + i.vab_industria + i.vab_servicos + i.vab_adm_publica), 0) AS servicos,
+           100 * SUM(i.vab_adm_publica)  / NULLIF(SUM(i.vab_agropecuaria + i.vab_industria + i.vab_servicos + i.vab_adm_publica), 0) AS adm
+    FROM indicador_anual i JOIN municipio m USING (cod_tse)
+    WHERE i.vab_agropecuaria IS NOT NULL AND i.vab_industria IS NOT NULL
+      AND i.vab_servicos IS NOT NULL AND i.vab_adm_publica IS NOT NULL
+    GROUP BY 1, 2
+) s ON s.uf = u.uf AND s.ano = u.ano
+WHERE u.ano BETWEEN %(de)s AND %(ate)s
+ORDER BY u.uf, u.ano
+"""
+SQL_RETRO_MUNICIPIO = """
+SELECT m.uf, v.cod_tse, m.nome, v.ano, v.pib_per_capita, v.taxa_homicidios_3a,
+       v.pct_agro, v.pct_industria, v.pct_servicos, v.pct_adm_publica, v.setor_dominante
+FROM vw_indicador_municipio v
+JOIN municipio m USING (cod_tse)
+WHERE v.ano BETWEEN %(de)s AND %(ate)s
+ORDER BY m.uf, v.cod_tse, v.ano
+"""
+SQL_RETRO_PREFEITO = """
+SELECT r.uf, r.cod_tse, r.ano_eleicao, p.nome, pa.sigla,
+       r.pib_pc_inicio, r.ano_fim_pib, r.pib_pc_fim, r.var_pib_pc_pct,
+       r.homicidios_inicio, r.ano_fim_homicidios, r.homicidios_fim, r.var_homicidios
+FROM vw_retrospecto_prefeito r
+JOIN politico p ON p.titulo_eleitoral = r.titulo_eleitoral
+JOIN partido pa ON pa.id_partido = r.id_partido
+WHERE r.ano_eleicao = ANY(%(anos)s)
+ORDER BY r.uf, r.cod_tse, r.ano_eleicao
+"""
+SQL_RETRO_GOVERNADOR = """
+SELECT r.uf, r.ano_eleicao, p.nome, pa.sigla,
+       r.pib_pc_inicio, r.ano_fim_pib, r.pib_pc_fim, r.var_pib_pc_pct,
+       r.homicidios_inicio, r.ano_fim_homicidios, r.homicidios_fim, r.var_homicidios
+FROM vw_retrospecto_governador r
+JOIN politico p ON p.titulo_eleitoral = r.titulo_eleitoral
+JOIN partido pa ON pa.id_partido = r.id_partido
+WHERE r.ano_eleicao = ANY(%(anos)s) AND r.uf = ANY(%(ufs)s)
+ORDER BY r.uf, r.ano_eleicao
+"""
+
+
+def arred(v, casas):
+    """NUMERIC -> número JSON arredondado (None continua None; 0 casas dá inteiro)."""
+    if v is None:
+        return None
+    return int(round(float(v))) if casas == 0 else round(float(v), casas)
+
+
+def linha_mandato(r):
+    """[ano_eleicao, nome, partido, pib_pc_inicio, ano_fim_pib, pib_pc_fim, var_pib, hom_inicio, ano_fim_hom, hom_fim, var_hom]"""
+    ano, nome, sigla, pib_i, ano_pib, pib_f, var_pib, hom_i, ano_hom, hom_f, var_hom = r
+    return [ano, nome, sigla, arred(pib_i, 0), ano_pib, arred(pib_f, 0), arred(var_pib, 1),
+            arred(hom_i, 2), ano_hom, arred(hom_f, 2), arred(var_hom, 2)]
+
+
+def parte_retrospecto(conn):
+    log('retrospecto: PIB, setores e homicídios por UF e município, e variação nos mandatos (banco dos seis estados)')
+    periodo = {'de': ANO_INICIAL_RETRO, 'ate': ANO_FINAL_RETRO}
+    shutil.rmtree(DADOS / 'retrospecto', ignore_errors=True)
+    with conn.cursor() as cur:
+        cur.execute(SQL_RETRO_UF, periodo)
+        series_uf = defaultdict(list)
+        for uf, ano, pib, pop, pib_pc, hom, agro, ind, serv, adm in cur.fetchall():
+            linha = [ano, arred(pib, 0), pop, arred(pib_pc, 0), arred(hom, 2),
+                     arred(agro, 1), arred(ind, 1), arred(serv, 1), arred(adm, 1)]
+            if any(x is not None for x in linha[1:]):
+                series_uf[uf].append(linha)
+
+        cur.execute(SQL_RETRO_GOVERNADOR, {'anos': list(ELEICOES_GOVERNADOR), 'ufs': list(UFS_PROJETO)})
+        governadores = defaultdict(list)
+        for r in cur.fetchall():
+            governadores[r[0]].append(linha_mandato(r[1:]))
+        grava('retrospecto/uf.json', {'campos_ano': CAMPOS_ANO_UF, 'campos_mandato': CAMPOS_MANDATO,
+                                      'ufs': {u: {'anos': series_uf[u], 'governadores': governadores[u]}
+                                              for u in UFS_PROJETO}})
+
+        cur.execute(SQL_RETRO_MUNICIPIO, periodo)
+        municipios = defaultdict(dict)
+        for uf, cod, nome, ano, pib_pc, hom3, agro, ind, serv, adm, setor in cur.fetchall():
+            linha = [ano, arred(pib_pc, 0), arred(hom3, 2), arred(agro, 1), arred(ind, 1), arred(serv, 1),
+                     arred(adm, 1), SETORES.index(setor) if setor else None]
+            if any(x is not None for x in linha[1:]):
+                municipios[uf].setdefault(cod, {'nome': nome, 'anos': [], 'prefeitos': []})['anos'].append(linha)
+
+        cur.execute(SQL_RETRO_PREFEITO, {'anos': list(ELEICOES_PREFEITO)})
+        for r in cur.fetchall():
+            uf, cod = r[0], r[1]
+            municipios[uf].setdefault(cod, {'nome': None, 'anos': [], 'prefeitos': []})['prefeitos'].append(linha_mandato(r[2:]))
+    for uf in UFS_PROJETO:
+        grava(f'retrospecto/municipios/{uf}.json', {'campos_ano': CAMPOS_ANO_MUN, 'campos_mandato': CAMPOS_MANDATO,
+                                                    'setores': SETORES, 'municipios': municipios[uf]})
+    log(f'retrospecto: {sum(map(len, municipios.values())):,} municípios; '
+        f'{tamanho_pasta(DADOS / "retrospecto") / 1e6:.1f} MB')
+
+
 _MUNICIPIOS = {}                         # UF -> códigos dos municípios, lidos uma vez
 
 
@@ -1803,7 +1925,8 @@ PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
           'propaganda': parte_propaganda, 'partidos_recorte': parte_partidos_recorte,
           'dependencia': parte_dependencia, 'indices': parte_indices,
           'indices_estados': parte_indices_estados, 'escolaridade': parte_escolaridade,
-          'escolaridade_estados': parte_escolaridade_estados, 'idade': parte_idade}
+          'escolaridade_estados': parte_escolaridade_estados, 'idade': parte_idade,
+          'retrospecto': parte_retrospecto}
 # partes que leem os dois bancos: recebem (nacional, seis estados)
 DOIS_BANCOS = {'candidaturas', 'propaganda', 'politicos'}
 
@@ -1819,7 +1942,7 @@ def main():
             with psycopg.connect(args.nacional) as nacional, psycopg.connect(args.banco) as seis:
                 PARTES[parte](nacional, seis)
             continue
-        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade') else args.nacional
+        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade', 'retrospecto') else args.nacional
         with psycopg.connect(dsn) as conn:
             PARTES[parte](conn)
 

@@ -8,13 +8,13 @@
 // candidaturas/<ue>-<ano>.json (cada candidato, com receita, receita pública e votos).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { comparacao } from './lib/retrato.js?v=20261157';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261157';
-import { COR } from './lib/cores.js?v=20261157';
-import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261157';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261157';
-import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261157';
+import { comparacao } from './lib/retrato.js?v=20261158';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261158';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261158';
+import { COR } from './lib/cores.js?v=20261158';
+import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261158';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261158';
+import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261158';
 
 montaPagina();
 

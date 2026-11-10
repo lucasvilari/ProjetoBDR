@@ -6,14 +6,14 @@
 // dos eleitos por partido quando não há a lista de candidatos, como nos vereadores de um estado inteiro, e a
 // nota de cada partido em cada ano, inclusive dos que já não existem).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { comparacao } from './lib/retrato.js?v=20261157';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
-import { corIdeologia, COR } from './lib/cores.js?v=20261157';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261157';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261157';
-import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261157';
-import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes, AVISO_CONTAS_2026 } from './pecas.js?v=20261157';
-import { montaPlenario2D } from './plenario-2d.js?v=20261157';
+import { comparacao } from './lib/retrato.js?v=20261158';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261158';
+import { corIdeologia, COR } from './lib/cores.js?v=20261158';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261158';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261158';
+import { assentos, ordenaPorLado, agrupa, bolinhasPorGrupo } from './lib/plenario.js?v=20261158';
+import { montaSeletor, leCandidaturas, dispersaoDinheiroVotos, cartaoPolitico, UFS_PROJETO, nomeDe, grupoOpcoes, AVISO_CONTAS_2026 } from './pecas.js?v=20261158';
+import { montaPlenario2D } from './plenario-2d.js?v=20261158';
 
 montaPagina();
 
@@ -133,7 +133,7 @@ async function desenhaPlenario(dados) {
   marcaVista(false);
   if (podeUsar3D()) {
     try {
-      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261157');
+      const { montaPlenario3D } = await import('./plenario-3d.js?v=20261158');
       cena = montaPlenario3D(alvo, dados, aoEscolher);
       marcaVista(true);
       if (partidoFixo != null) cena.destaca(partidoFixo);
