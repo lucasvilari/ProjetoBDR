@@ -112,6 +112,9 @@ a:hover { text-decoration-thickness: 3px; }
 .nav { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .nav a { display: inline-block; padding: var(--m1) var(--m2); text-decoration: none; color: var(--creme); }
 .nav .nav-tecla { min-width: 2.6rem; text-align: center; padding-inline: 0.6rem; font-variant-numeric: tabular-nums; }
+.nav .som-botao { color: var(--creme); min-width: 2.6rem; padding-inline: 0.6rem; display: inline-flex; align-items: center; justify-content: center; }
+.nav .som-botao svg { width: 1.25rem; height: 1.25rem; }
+.nav .som-botao[aria-pressed="false"] { color: rgb(243 228 192 / 0.55); }
 
 .rodape { background: var(--urna-funda); border-top: 6px solid var(--veludo); box-shadow: inset 0 2px 0 var(--ouro); margin-top: var(--m8); }
 .rodape-interno {
@@ -239,6 +242,17 @@ p, li { max-width: var(--medida); }
   background: rgb(232 220 196 / 0.96); cursor: pointer;
 }
 .olho-grande { width: min(60vw, 26rem); height: auto; transform-origin: center; }
+/* o portão antes da abertura: o olho fechado espera o toque que libera o som (js/inicio.js) */
+.abertura-olho { align-content: center; gap: var(--m4); }
+.abertura-entrar {
+  font: inherit; font-size: 1.05rem; font-weight: 700; font-stretch: 112%; letter-spacing: 0.02em;
+  color: var(--creme); background: var(--veludo); border: 1px solid var(--ouro-escuro); border-radius: 999px;
+  padding: 0.7rem 1.4rem; cursor: pointer; box-shadow: inset 0 0 0 2px rgb(212 163 69 / 0.35), 0 6px 14px rgb(60 20 10 / 0.3);
+  animation: convite 2.4s ease-in-out infinite;
+}
+.abertura-entrar:focus-visible { outline: 3px solid var(--ouro); outline-offset: 4px; }
+@keyframes convite { 50% { box-shadow: inset 0 0 0 2px rgb(212 163 69 / 0.8), 0 6px 22px rgb(212 163 69 / 0.45); } }
+@media (prefers-reduced-motion: reduce) { .abertura-entrar { animation: none; } }
 .olho-palpebra { transform-box: fill-box; transform-origin: center; }
 /* enquanto o olho grande voa, a tecla e o olhinho esperam invisíveis (a abertura os faz surgir aos poucos) */
 .marca-tecla.marca-esperando, .marca-tecla.marca-esperando svg { opacity: 0; }

@@ -5,6 +5,8 @@
 // js/transicao.js chama fecha() ao clicar num link do site e abre() na página nova; a imagem da cortina fechada passa
 // de uma página para a outra pelo sessionStorage, para a página nova já nascer coberta.
 
+import { toca } from './som.js?v=20261159';
+
 const FECHAR = 620, ABRIR = 820;   // ms
 export const CHAVE = 'cortina-fechada';
 
@@ -115,6 +117,7 @@ export async function fecha(endereco) {
   const topo = Math.max(0, document.querySelector('header.topo')?.getBoundingClientRect().bottom ?? 0);
   const cena = montaCena(topo);
   if (!cena) { location.href = endereco; return; }
+  toca('cortinaFecha');
   await anima(FECHAR, (t, s) => cena.desenha(1 - suave(t), s, false));
   cena.desenha(0, 0, false);
   try {
@@ -131,6 +134,7 @@ export async function abre({ topo }, tirarImagem) {
   if (!cena) { tirarImagem(); return; }
   cena.desenha(0, 0, true);
   tirarImagem();
+  toca('cortinaAbre');   // a página nova veio de um clique: o navegador costuma deixar tocar
   await anima(ABRIR, (t, s) => cena.desenha(suave(t), s, true));
   cena.tela.remove();
 }

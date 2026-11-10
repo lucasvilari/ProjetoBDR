@@ -51,6 +51,15 @@ veludo cobrem o resto da página, vindas dos lados, e se abrem já na nova. A co
 imagem dela fechada passa para a página nova, e `js/transicao.js` a mantém fechada até a página estar montada (no
 máximo 1,5 s). Sem WebGL, e para quem pede menos movimento no sistema, a página só troca.
 
+## Sons
+
+Os efeitos sonoros são sintetizados pelo próprio navegador (Web Audio, `js/som.js`), sem arquivos de áudio: um acorde
+místico na abertura da página inicial, o farfalhar do veludo quando a cortina fecha e abre, um toque de cristal ao
+abrir o olho do oráculo e, na cabine, um sino quando o oráculo responde e um tom grave quando a pupila foge. Como o
+navegador só deixa tocar som depois de um gesto do leitor, a abertura espera, com o olho fechado, um toque em "Toque
+para entrar na cabine". O alto-falante no topo liga e desliga os sons; a escolha fica guardada no navegador, e com o
+som desligado a abertura começa sem esperar o toque.
+
 ## O oráculo
 
 Em toda página de pergunta, o olho no canto da tela abre o oráculo: ele lê o que a página mostra naquele momento (o
@@ -94,6 +103,7 @@ site/
 ├── js/transicao.js               segura a cortina entre páginas até a página nova estar montada
 ├── js/cortina.js                 a cortina em WebGL: fecha antes de sair, abre na página nova
 ├── js/oraculo.js                 o olho do oráculo: o painel, o retrato da página e a chamada à IA
+├── js/som.js                     os efeitos sonoros, sintetizados no navegador, e o botão que os liga e desliga
 ├── cabine.html, js/cabine.js     a cabine do oráculo: pergunta livre, pedido de dados e retrato montado na hora
 ├── js/pergunta-N.js              uma por página (e plenario-2d.js, plenario-3d.js, rua.js, relevo-3d.js, mapa-lugares.js)
 ├── js/lib/                       funções puras, testadas em testes/site/js

@@ -1,8 +1,9 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-import { PERGUNTAS } from './lib/perguntas.js?v=20261158';
-import { montaOraculo, registraRetrato } from './oraculo.js?v=20261158';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261159';
+import { montaOraculo, registraRetrato } from './oraculo.js?v=20261159';
+import { ligado as somLigado, liga as ligaSom, destrava, toca } from './som.js?v=20261159';
 
 // cada página registra aqui como montar o retrato do que mostra, que o oráculo lê
 export { registraRetrato };
@@ -23,6 +24,7 @@ export function montaPagina() {
         <a class="nav-todas" href="index.html"${atual === 'inicio' ? ' aria-current="page"' : ''}>Perguntas</a>
         ${PAGINAS.map(p => `<a class="nav-tecla" href="${p.href}" title="${p.titulo}" aria-label="Pergunta ${p.rotulo}: ${p.titulo}"${p.id === atual ? ' aria-current="page"' : ''}>${p.rotulo}</a>`).join('')}
         <a class="nav-tecla nav-cabine" href="cabine.html" title="Pergunte ao oráculo" aria-label="A cabine do oráculo: faça uma pergunta geral"${atual === 'cabine' ? ' aria-current="page"' : ''}>?</a>
+        <button type="button" class="botao som-botao" id="som-botao"></button>
       </nav>
     </div>`;
   const rodape = document.querySelector('footer.rodape');
@@ -32,9 +34,31 @@ export function montaPagina() {
       <a href="${REPOSITORIO}">Código e consultas no GitHub</a>
     </div>`;
   document.addEventListener('click', viraSantinho);
+  montaBotaoSom();
   apertaTeclas();
   montaOraculo();
   confereSePronta();
+}
+
+// o alto-falante do topo: liga e desliga os efeitos sonoros (js/som.js); a escolha fica guardada no navegador
+const ALTO_FALANTE = '<path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor"/>';
+const ONDAS = '<path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+const MUDO = '<path d="M15.5 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+function montaBotaoSom() {
+  const botao = document.getElementById('som-botao');
+  const desenha = () => {
+    const sim = somLigado();
+    botao.setAttribute('aria-pressed', String(sim));
+    botao.setAttribute('aria-label', 'Efeitos sonoros');
+    botao.title = sim ? 'Desligar os sons' : 'Ligar os sons';
+    botao.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ALTO_FALANTE}${sim ? ONDAS : MUDO}</svg>`;
+  };
+  botao.addEventListener('click', () => {
+    ligaSom(!somLigado());
+    desenha();
+    if (somLigado()) { destrava(); toca('oraculo'); }   // ao religar, um toque curto confirma que o som voltou
+  });
+  desenha();
 }
 
 // as teclas afundam ao clique (css/estilo.css, :active); um clique rápido dura menos que a descida, e a tecla mal se
@@ -134,7 +158,7 @@ const cache = new Map();
 
 /** Lê um arquivo JSON de dados/, uma vez por página. */
 // a mesma versão do ?v= dos scripts: depois de publicar, o navegador não mistura script novo com dado velho
-const VERSAO = '20261158';
+const VERSAO = '20261159';
 
 export function carregaDados(caminho) {
   if (!cache.has(caminho)) {

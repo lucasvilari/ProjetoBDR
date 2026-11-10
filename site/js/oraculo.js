@@ -1,7 +1,8 @@
 // O oráculo: um olho flutuante, no canto da tela, que acompanha o ponteiro. Clicado, abre um painel que lê o que a
 // página mostra agora (o retrato: o recorte escolhido, os números calculados e o que o leitor abriu) e pede uma
 // interpretação desses dados à função do oráculo na Cloudflare (pasta oraculo/ do repositório), que responde aos poucos.
-import { retratoEmTexto } from './lib/retrato.js?v=20261158';
+import { retratoEmTexto } from './lib/retrato.js?v=20261159';
+import { toca } from './som.js?v=20261159';
 
 let montaRetrato = null;
 
@@ -59,6 +60,7 @@ export function montaOraculo() {
   });
 
   const abre = async () => {
+    toca('oraculo');
     painel.hidden = false;
     olho.setAttribute('aria-expanded', 'true');
     const retrato = await montaRetrato?.();

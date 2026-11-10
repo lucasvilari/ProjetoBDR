@@ -7,12 +7,14 @@
 //
 // Dados: politicos/ (busca e carreiras), indices/municipios.json e idade/idade.json (municípios),
 // candidaturas/<ue>-<ano>.json, mapa/ e vies/ (eleições).
-import { montaPagina, carregaDados, formata, NOME_UF, fotoCandidato } from './comum.js?v=20261158';
-import { ENDERECO, AVISOS } from './oraculo.js?v=20261158';
-import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261158';
-import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261158';
-import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261158';
-import { achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from './lib/cabine.js?v=20261158';
+import { montaPagina, carregaDados, formata, NOME_UF, fotoCandidato } from './comum.js?v=20261159';
+import { ENDERECO, AVISOS } from './oraculo.js?v=20261159';
+import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261159';
+import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261159';
+import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261159';
+import { achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from './lib/cabine.js?v=20261159';
+import { ehRecusa } from './lib/som.js?v=20261159';
+import { toca, destrava } from './som.js?v=20261159';
 
 montaPagina();
 
@@ -245,7 +247,12 @@ document.querySelector('.cabine-exemplos').addEventListener('click', e => {
 });
 
 // o olho da cabine: fechado enquanto espera e pensa, aberto quando responde; sem resposta, a pupila sobe e some
-const olhoFica = como => { olho.dataset.estado = como; };
+// cada mudança para aberto ou vazio tem o seu som: o sino da resposta, o tom grave de quando ela não vem
+const SOM_DO_OLHO = { aberto: 'resposta', vazio: 'vazio' };
+const olhoFica = como => {
+  if (olho.dataset.estado !== como && SOM_DO_OLHO[como]) toca(SOM_DO_OLHO[como]);
+  olho.dataset.estado = como;
+};
 const semResposta = texto => { estado.textContent = ''; resposta.textContent = texto; olhoFica('vazio'); };
 
 const pede = corpo => fetch(ENDERECO, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
@@ -287,22 +294,31 @@ async function pergunta(texto) {
   const r2 = await pede({ numero: 0, retrato, pergunta: texto });
   if (!r2.ok) { semResposta(AVISOS[r2.status] ?? 'O oráculo não conseguiu responder agora.'); return; }
   const leitor = r2.body.getReader(), decodifica = new TextDecoder();
-  let primeiro = true;
+  // o olho só se abre (com o sino) quando o começo do texto mostra que não é a recusa das névoas; se for, a pupila foge
+  let primeiro = true, decidido = false;
+  const decide = final => {
+    const recusa = ehRecusa(resposta.textContent);
+    if (recusa === null && !final) return;
+    olhoFica(recusa ? 'vazio' : 'aberto');
+    decidido = true;
+  };
   for (;;) {
     const { done, value } = await leitor.read();
     if (done) break;
-    if (primeiro) { estado.textContent = ''; olhoFica('aberto'); primeiro = false; }
+    if (primeiro) { estado.textContent = ''; primeiro = false; }
     resposta.textContent += decodifica.decode(value, { stream: true });
+    if (!decidido) decide(false);
   }
   estado.textContent = '';
-  if (primeiro) semResposta('O oráculo não conseguiu responder agora.');
-  else if (/^\s*As névoas/.test(resposta.textContent)) olhoFica('vazio');   // a recusa do próprio oráculo
-  else mostraCartoes(cartoes, resposta.textContent);
+  if (primeiro) { semResposta('O oráculo não conseguiu responder agora.'); return; }
+  if (!decidido) decide(true);
+  if (olho.dataset.estado === 'aberto') mostraCartoes(cartoes, resposta.textContent);
 }
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
   if (!temPergunta() || botao.classList.contains('esperando')) return;
+  destrava();   // o envio é o gesto que libera o áudio; o sino toca segundos depois, quando a resposta chega
   botao.disabled = true;
   botao.classList.add('esperando');
   form.closest('.cabine').classList.add('consultando');
