@@ -254,6 +254,10 @@ p, li { max-width: var(--medida); }
 @keyframes convite { 50% { box-shadow: inset 0 0 0 2px rgb(212 163 69 / 0.8), 0 6px 22px rgb(212 163 69 / 0.45); } }
 @media (prefers-reduced-motion: reduce) { .abertura-entrar { animation: none; } }
 .olho-palpebra { transform-box: fill-box; transform-origin: center; }
+/* esperando o toque, o olho aparece fechado de verdade (pálpebra e cílios), não o aberto achatado */
+.olho-fechado { display: none; }
+.esperando-toque .olho-fechado { display: inline; }
+.esperando-toque .olho-palpebra { visibility: hidden; }
 /* enquanto o olho grande voa, a tecla e o olhinho esperam invisíveis (a abertura os faz surgir aos poucos) */
 .marca-tecla.marca-esperando, .marca-tecla.marca-esperando svg { opacity: 0; }
 

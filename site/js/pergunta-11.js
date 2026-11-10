@@ -7,10 +7,10 @@
 // O PIB per capita é a preços correntes: a variação não desconta a inflação. É retrato, não prova de causa.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261159';
-import { COR } from './lib/cores.js?v=20261159';
-import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261159';
-import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261159';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261160';
+import { COR } from './lib/cores.js?v=20261160';
+import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261160';
+import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261160';
 
 montaPagina();
 

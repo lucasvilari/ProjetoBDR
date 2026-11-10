@@ -1,9 +1,9 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-import { PERGUNTAS } from './lib/perguntas.js?v=20261159';
-import { montaOraculo, registraRetrato } from './oraculo.js?v=20261159';
-import { ligado as somLigado, liga as ligaSom, destrava, toca } from './som.js?v=20261159';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261160';
+import { montaOraculo, registraRetrato } from './oraculo.js?v=20261160';
+import { ligado as somLigado, liga as ligaSom, destrava, toca } from './som.js?v=20261160';
 
 // cada página registra aqui como montar o retrato do que mostra, que o oráculo lê
 export { registraRetrato };
