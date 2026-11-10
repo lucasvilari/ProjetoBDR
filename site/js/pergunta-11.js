@@ -7,10 +7,10 @@
 // O PIB per capita é a preços correntes: a variação não desconta a inflação. É retrato, não prova de causa.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261157';
-import { COR } from './lib/cores.js?v=20261157';
-import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261157';
-import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe } from './lib/retrospecto.js?v=20261157';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261158';
+import { COR } from './lib/cores.js?v=20261158';
+import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261158';
+import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261158';
 
 montaPagina();
 
@@ -314,7 +314,7 @@ function desenhaSantinho() {
     numero = textoValor(ind, v);
     rotulo = ind === 'var_pib' ? `de variação do PIB per capita (preços correntes), do ano da eleição ao último medido do mandato.`
       : 'de variação na taxa de homicídios (média de 3 anos), do ano da eleição ao último ano medido do mandato.';
-    linhas = [[estado.mun ? 'Prefeito eleito' : 'Governador eleito', m[D.nome].split(' ').slice(0, 3).join(' ').toLowerCase().replace(/(^| )(.)/g, (_, a, b) => a + b.toUpperCase())],
+    linhas = [[estado.mun ? 'Prefeito eleito' : 'Governador eleito', nomeCurto(m[D.nome])],
       ['Partido', m[D.partido]],
       ind === 'var_pib' ? ['PIB per capita', `${real(m[D.pibIni])} → ${real(m[D.pibFim])} (${m[D.anoPib]})`]
         : ['Homicídios', `${numeroBr(m[D.homIni])} → ${numeroBr(m[D.homFim])} (${m[D.anoHom]})`]];
@@ -335,7 +335,12 @@ function desenhaSantinho() {
 
 // ---------------------------------------------------------------- painel
 
-const nomeCurto = n => n.split(' ').slice(0, 3).join(' ').toLowerCase().replace(/(^| )(.)/g, (_, a, b) => a + b.toUpperCase());
+const LIGA = new Set(['DA', 'DE', 'DO', 'DAS', 'DOS', 'E']);
+const nomeCurto = n => {
+  const partes = n.split(' ').slice(0, 3);
+  while (partes.length > 1 && LIGA.has(partes.at(-1).toUpperCase())) partes.pop();   // "José Alexandre De" → "José Alexandre"
+  return partes.join(' ').toLowerCase().replace(/(^| )(.)/g, (_, a, b) => a + b.toUpperCase());
+};
 
 function linhasDaSerie() {
   if (estado.mun) {
@@ -444,31 +449,71 @@ function desenhaPainel() {
 
 // ---------------------------------------------------------------- retrato para o oráculo
 
+// os lugares do nível aberto (os seis estados, ou os municípios do estado) no indicador e ano escolhidos
+function secaoDosLugares(nome) {
+  const ind = estado.ind, ano = estado.ano, rot = IND[ind].rotulo;
+  const lugares = estado.uf ? Object.keys(MUN) : UFS_PROJETO;
+  const nomeDe = estado.uf ? nomeMun : nomeUF;
+  const quem = ehMandato(ind) ? (estado.uf ? `prefeitos eleitos em ${ano}` : `governadores eleitos em ${ano}`) : String(ano);
+  const pares = lugares.map(t => [t, valor(t, ind, ano)]);
+  if (IND[ind].tipo === 'categorias') {
+    const conta = SETORES.map((_, i) => pares.filter(([, v]) => v === i).length);
+    const linhas = SETORES.map((s, i) => [s, `${conta[i]} ${estado.uf ? (conta[i] === 1 ? 'município' : 'municípios') : (conta[i] === 1 ? 'estado' : 'estados')}`]);
+    if (!estado.uf) pares.forEach(([t, v]) => linhas.push([nomeUF(t), v == null ? 'sem dado' : SETORES[v]]));
+    return { titulo: `${estado.uf ? `Municípios ${em(nome)}` : 'Os seis estados'}: setor que mais pesa em ${ano}`, linhas };
+  }
+  if (!estado.uf) {
+    const quando = ehMandato(ind) ? `no mandato do governador eleito em ${ano}` : `em ${ano}`;
+    return { titulo: `Os seis estados: ${rot} ${quando} (o que o mapa pinta agora)`, linhas: pares.map(([t, v]) => {
+      const m = ehMandato(ind) ? mandatoUF(t, ano) : null;
+      return [nomeUF(t), `${v == null ? 'sem dado' : `${textoValor(ind, v)} ${quando}`}${m ? ` (${nomeCurto(m[D.nome])}, ${m[D.partido]})` : ''}`];
+    }) };
+  }
+  const r = extremos(pares, 5);
+  const item = ([t, v]) => {
+    const m = ehMandato(ind) ? mandatoMun(t, ano) : null;
+    return `${nomeDe(t)}: ${textoValor(ind, v)}${m ? ` (prefeito ${nomeCurto(m[D.nome])}, ${m[D.partido]})` : ''}`;
+  };
+  return { titulo: `Municípios ${em(nome)}: ${rot}, ${quem}`, linhas: [
+    ['Municípios com dado', `${formata.numero(r.comDado)} de ${formata.numero(r.total)}`],
+    ['Mediana dos municípios', r.mediana == null ? 'sem dado' : textoValor(ind, r.mediana)],
+    ['Maiores valores', r.maiores.map(item).join('; ') || 'nenhum'],
+    ['Menores valores', r.menores.map(item).join('; ') || 'nenhum']] };
+}
+
 const textoMandato = m => {
   const pib = m[D.varPib] == null ? 'sem dado'
     : `${numeroBr(m[D.varPib], 1, true)}% (${real(m[D.pibIni])} em ${m[D.eleicao]} para ${real(m[D.pibFim])} em ${m[D.anoPib]}, a preços correntes)`;
   const hom = m[D.varHom] == null ? 'sem dado'
-    : `${numeroBr(m[D.varHom], 1, true)} por 100 mil (${numeroBr(m[D.homIni])} para ${numeroBr(m[D.homFim])} em ${m[D.anoHom]})`;
+    : `${numeroBr(m[D.varHom], 1, true)} por 100 mil (${numeroBr(m[D.homIni])} em ${m[D.eleicao]} para ${numeroBr(m[D.homFim])} em ${m[D.anoHom]})`;
   return `${nomeCurto(m[D.nome])} (${m[D.partido]}); PIB per capita: ${pib}; homicídios: ${hom}`;
 };
 
 registraRetrato(() => {
   const terr = territorio(), nome = nomeDoLugar();
-  const rotulo = `${IND[estado.ind].rotulo}, ${ehMandato(estado.ind) ? `eleição de ${estado.ano}` : estado.ano}`;
+  const ind = estado.ind, ano = estado.ano;
+  const rotulo = `${IND[ind].rotulo}, ${ehMandato(ind) ? `eleição de ${ano}` : ano}`;
   const secoes = [];
+  if (estado.mun || !estado.uf || !ehMandato(ind)) {
+    if (terr) {
+      const v = valor(terr, ind, ano);
+      secoes.push({ titulo: `${nome}: ${rotulo}`, linhas: [[IND[ind].rotulo, v == null ? 'sem dado' : textoValor(ind, v)]] });
+    }
+  }
+  if (!estado.mun) secoes.push(secaoDosLugares(nome));
   if (terr) {
-    const v = valor(terr, estado.ind, estado.ano);
-    secoes.push({ titulo: `${nome}: ${rotulo}`, linhas: [[IND[estado.ind].rotulo, v == null ? 'sem dado' : textoValor(estado.ind, v)]] });
     const mandatos = (estado.mun ? MUN[estado.mun]?.prefeitos : uf.ufs[estado.uf]?.governadores) ?? [];
-    secoes.push({ titulo: `${estado.mun ? 'Prefeitos' : 'Governadores'} eleitos e o que mudou no mandato (variação do ano da eleição ao último ano medido)`,
-      linhas: mandatos.map(m => [`Mandato ${mandatoDe(m[D.eleicao]).de} a ${mandatoDe(m[D.eleicao]).ate}`, textoMandato(m)]) });
+    secoes.push({ titulo: `${estado.mun ? 'Prefeitos' : 'Governadores'} ${em(nome)} e o que mudou no mandato (do ano da eleição ao último ano medido do mandato)`,
+      linhas: mandatos.map(m => [rotuloMandato(m[D.eleicao]), textoMandato(m)]) });
     secoes.push({ titulo: `Série anual ${em(nome)}`, linhas: linhasDaSerie().map(l => [String(l.ano),
       `PIB per capita ${l.pib == null ? 'sem dado' : real(l.pib)}; homicídios ${l.hom == null ? 'sem dado' : `${numeroBr(l.hom)} por 100 mil`}; setor que mais pesa ${indiceDoMaior(l.pcts) == null ? 'sem dado' : SETORES[indiceDoMaior(l.pcts)]}`]) });
   } else {
-    secoes.push({ titulo: `Governadores dos seis estados e o que mudou no mandato`, linhas: UFS_PROJETO.flatMap(u =>
-      (uf.ufs[u]?.governadores ?? []).map(m => [`${u}, mandato ${mandatoDe(m[D.eleicao]).de} a ${mandatoDe(m[D.eleicao]).ate}`, textoMandato(m)])) });
+    secoes.push({ titulo: 'Governadores dos seis estados e o que mudou no mandato', linhas: UFS_PROJETO.flatMap(u =>
+      (uf.ufs[u]?.governadores ?? []).map(m => [`${nomeUF(u)}, ${rotuloMandato(m[D.eleicao])}`, textoMandato(m)])) });
   }
   secoes.push({ titulo: 'Cuidados na leitura', linhas: [
+    ['Mapa', estado.uf && !estado.mun ? 'o mapa do estado mostra os municípios; nos indicadores do mandato, os prefeitos eleitos no ano escolhido'
+      : 'o mapa do Brasil mostra os seis estados; nos indicadores do mandato, os governadores eleitos no ano escolhido'],
     ['PIB per capita', 'a preços correntes, sem descontar a inflação: parte da alta é só preço'],
     ['Setores', 'o IBGE publica o valor adicionado por setor só até 2021; o PIB per capita, até 2022'],
     ['Homicídios', 'registros do Ministério da Saúde no Atlas da Violência; nos municípios, média de 3 anos, e os pequenos oscilam muito'],

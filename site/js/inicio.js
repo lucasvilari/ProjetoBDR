@@ -1,9 +1,9 @@
 // Página inicial: a abertura (o olho se abre e voa até o logo) e a roda do oráculo, com as dez
 // perguntas em volta do olho; apontar uma pergunta faz o olho olhar para ela e mostra o que ela
 // responde e como é calculada.
-import { montaPagina } from './comum.js?v=20261157';
-import { PERGUNTAS } from './lib/perguntas.js?v=20261157';
-import { posicoesNaRoda, olharPara } from './lib/roda.js?v=20261157';
+import { montaPagina } from './comum.js?v=20261158';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261158';
+import { posicoesNaRoda, olharPara, posicoesPorTamanho } from './lib/roda.js?v=20261158';
 
 montaPagina();
 
@@ -70,7 +70,8 @@ const detalhe = document.getElementById('detalhe');
 const pupila = document.getElementById('pupila');
 const estreita = matchMedia('(max-width: 640px)');
 
-const posicoes = posicoesNaRoda(PERGUNTAS.length, 43, 50, 50);   // em % da roda
+// começa com as posições por igual (em % da roda); posiciona() as troca pelas que respeitam o tamanho de cada botão
+let posicoes = posicoesNaRoda(PERGUNTAS.length, 43, 50, 50);
 
 lista.innerHTML = PERGUNTAS.map((p, i) => {
   const rotulo = `<span class="roda-n">${p.n}</span><span class="roda-titulo">${p.titulo}</span>`;
@@ -79,6 +80,21 @@ lista.innerHTML = PERGUNTAS.map((p, i) => {
     ? `<a class="roda-pergunta" href="${p.href}">${rotulo}</a>`
     : `<button type="button" class="roda-pergunta" aria-disabled="true">${rotulo}<span class="so-leitor"> (ainda não respondida)</span></button>`}</li>`;
 }).join('');
+
+/** Reparte o círculo pelo tamanho de cada botão (os largos, no alto e no pé, ganham mais espaço) para não se encostarem. */
+function posiciona() {
+  if (estreita.matches) return;
+  const lado = roda.clientWidth;
+  if (!lado) return;
+  const itens = [...lista.children];
+  const tamanhos = itens.map(li => ({ w: li.offsetWidth, h: li.offsetHeight }));
+  posicoes = posicoesPorTamanho(tamanhos, 0.43 * lado, lado).map(p => ({ ...p, x: (100 * p.x) / lado, y: (100 * p.y) / lado }));
+  itens.forEach((li, i) => { li.style.setProperty('--x', `${posicoes[i].x}%`); li.style.setProperty('--y', `${posicoes[i].y}%`); });
+}
+posiciona();
+document.fonts?.ready.then(posiciona);
+let ladoAntes = roda.clientWidth;
+new ResizeObserver(() => { if (roda.clientWidth !== ladoAntes) { ladoAntes = roda.clientWidth; posiciona(); } }).observe(roda);
 
 function mostra(i) {
   const p = PERGUNTAS[i];
@@ -97,7 +113,7 @@ function mostra(i) {
 lista.addEventListener('mouseover', e => { const li = e.target.closest('li'); if (li) mostra(Number(li.dataset.i)); });
 lista.addEventListener('focusin', e => { const li = e.target.closest('li'); if (li) mostra(Number(li.dataset.i)); });
 lista.addEventListener('click', e => { if (e.target.closest('[aria-disabled="true"]')) e.preventDefault(); });
-estreita.addEventListener('change', () => { const ativa = lista.querySelector('li.ativa'); if (ativa) mostra(Number(ativa.dataset.i)); });
+estreita.addEventListener('change', () => { const ativa = lista.querySelector('li.ativa'); if (ativa) mostra(Number(ativa.dataset.i)); posiciona(); });
 
 detalhe.innerHTML = '<strong>O oráculo está de olho.</strong><span>Escolha uma das perguntas em volta.</span>';
 abertura();

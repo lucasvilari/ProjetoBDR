@@ -50,3 +50,15 @@ export function numeroBr(v, casas = 1, comSinal = false) {
 
 /** Os anos de um mandato iniciado na eleição de `ano`: o prefeito e o governador tomam posse no ano seguinte. */
 export const mandatoDe = ano => ({ de: ano + 1, ate: ano + 4 });
+
+/** Como o retrato chama um mandato: o ano da eleição e os anos em que o eleito governou. */
+export const rotuloMandato = ano => `eleito em ${ano} (mandato de ${mandatoDe(ano).de} a ${mandatoDe(ano).ate})`;
+
+/** Resumo de pares [lugar, valor]: quantos têm dado, a mediana e os `n` maiores e menores (ausentes ignorados). */
+export function extremos(pares, n) {
+  const com = pares.filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
+  const meio = com.length / 2;
+  const mediana = !com.length ? null
+    : com.length % 2 ? com[Math.floor(meio)][1] : (com[meio - 1][1] + com[meio][1]) / 2;
+  return { total: pares.length, comDado: com.length, mediana, maiores: com.slice(0, n), menores: com.slice(-n).reverse() };
+}
