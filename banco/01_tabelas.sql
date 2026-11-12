@@ -150,8 +150,9 @@ CREATE TABLE indicador_anual (
 );
 
 -- Atlas da Violência (Ipea), série "taxa de homicídios registrados": mortes por
--- 100 mil habitantes, a partir do SIM do Ministério da Saúde. Nem todo município
--- tem valor em todos os anos.
+-- 100 mil habitantes, a partir do SIM do Ministério da Saúde. O Atlas não publica
+-- taxa zero: município sem homicídio no ano não tem linha aqui. vw_homicidio_anual
+-- (02_indices_visoes.sql) completa esses anos com taxa 0.
 CREATE TABLE homicidio_municipio (
     cod_tse  VARCHAR(5)    NOT NULL REFERENCES municipio (cod_tse) ON DELETE CASCADE,
     ano      SMALLINT      NOT NULL,

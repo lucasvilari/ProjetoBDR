@@ -44,7 +44,7 @@ const IND = {
   pib: { rotulo: 'PIB per capita', anos: d3.range(2011, 2023), paleta: VERDES, texto: real,
     explica: 'PIB por habitante a preços correntes (IBGE, até 2022). Não desconta a inflação: compare lugares no mesmo ano, não anos distantes entre si.' },
   homicidios: { rotulo: 'homicídios', anos: d3.range(2010, 2025), paleta: LARANJAS, texto: v => `${numeroBr(v)} por 100 mil`,
-    explica: 'Homicídios por 100 mil habitantes (Atlas da Violência, registros do Ministério da Saúde, até 2024). Nos municípios, média dos últimos 3 anos; os que o Atlas não publica ficam hachurados.' },
+    explica: 'Homicídios por 100 mil habitantes (Atlas da Violência, registros do Ministério da Saúde, até 2024). Nos municípios, média dos últimos 3 anos. O Atlas não publica município sem homicídio no ano, e ele entra como taxa zero.' },
   var_pib: { rotulo: 'variação do PIB per capita no mandato', mandato: true, paleta: VERDES, texto: v => `${numeroBr(v, 1, true)}%`,
     explica: 'Quanto o PIB per capita mudou entre o ano da eleição e o último ano medido do mandato de quem foi eleito (governador no mapa do Brasil, prefeito no mapa do estado). É a preços correntes: parte da alta é só inflação.' },
   var_hom: { rotulo: 'variação dos homicídios no mandato', mandato: true, paleta: DIVERGE, divergente: true, texto: v => `${numeroBr(v, 1, true)} por 100 mil`,
@@ -517,6 +517,7 @@ registraRetrato(() => {
     ['PIB per capita', 'a preços correntes, sem descontar a inflação: parte da alta é só preço'],
     ['Setores', 'o IBGE publica o valor adicionado por setor só até 2021; o PIB per capita, até 2022'],
     ['Homicídios', 'registros do Ministério da Saúde no Atlas da Violência; nos municípios, média de 3 anos, e os pequenos oscilam muito'],
+    ['Homicídios sem registro', 'o Atlas não publica município sem nenhum homicídio no ano; a página conta o ausente como taxa zero (as taxas dos estados, somadas assim, batem com as do Atlas)'],
     ['Causa', 'mostra o que mudou durante o mandato, não que o eleito causou a mudança']] });
   return { numero: 11, pergunta: 'O que mudou no mandato?', recorte: `${nome} · ${rotulo}`, secoes };
 });

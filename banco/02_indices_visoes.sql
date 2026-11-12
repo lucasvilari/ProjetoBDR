@@ -58,26 +58,37 @@ CROSS JOIN LATERAL (
 ) d
 WHERE v.vab_total IS NOT NULL;
 
--- Tudo por município/ano. Os homicídios começam em 2000 e o PIB em 2010, por isso a
--- junção é completa. taxa_homicidios_3a é a média dos últimos 3 anos (2 antes e o
+-- Taxa de homicídios de cada município em cada ano do Atlas (2000 a 2024). O Atlas não publica
+-- taxa zero: município sem homicídio no ano simplesmente não tem linha (nenhum dos 18 mil valores
+-- carregados é zero, e os ausentes são, em média, os municípios menores, em número parecido com o de
+-- municípios sem nenhuma morte que a população de cada UF faria esperar). Por isso o ausente entra
+-- como taxa 0, com sem_registro verdadeiro. taxa_3a é a média dos últimos 3 anos (2 antes e o
 -- próprio), que suaviza a oscilação dos municípios pequenos, onde uma morte muda a taxa.
-CREATE VIEW vw_indicador_municipio AS
-SELECT cod_tse, ano, pib, populacao, pib_per_capita, taxa_homicidios,
-       CASE WHEN ano <= (SELECT MAX(ano) FROM homicidio_municipio)   -- sem dado, sem média: não inventa anos futuros
-            THEN ROUND(AVG(taxa_homicidios) OVER (PARTITION BY cod_tse ORDER BY ano
-                                                  RANGE BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS taxa_homicidios_3a,
-       pct_agro, pct_industria, pct_servicos, pct_adm_publica, setor_dominante
+CREATE VIEW vw_homicidio_anual AS
+SELECT g.cod_tse, g.ano, g.taxa, g.sem_registro,
+       ROUND(AVG(g.taxa) OVER (PARTITION BY g.cod_tse ORDER BY g.ano
+                               RANGE BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS taxa_3a
 FROM (
-    SELECT COALESCE(i.cod_tse, h.cod_tse) AS cod_tse, COALESCE(i.ano, h.ano) AS ano,
-           i.pib, i.populacao, i.pib_per_capita, h.taxa AS taxa_homicidios,
-           s.pct_agro, s.pct_industria, s.pct_servicos, s.pct_adm_publica, s.setor_dominante
-    FROM indicador_anual i
-    FULL JOIN homicidio_municipio h ON h.cod_tse = i.cod_tse AND h.ano = i.ano
-    LEFT JOIN vw_estrutura_setorial s ON s.cod_tse = i.cod_tse AND s.ano = i.ano
-) x;
+    SELECT m.cod_tse, a.ano, COALESCE(h.taxa, 0) AS taxa, h.taxa IS NULL AS sem_registro
+    FROM municipio m
+    CROSS JOIN (SELECT generate_series(MIN(ano)::int, MAX(ano)::int)::smallint AS ano FROM homicidio_municipio) a
+    LEFT JOIN homicidio_municipio h ON h.cod_tse = m.cod_tse AND h.ano = a.ano
+) g;
 
--- Por UF: PIB e população somados; taxa de homicídios ponderada pela população dos
--- municípios que têm taxa no ano (o Atlas não publica todos os municípios todos os anos).
+-- Tudo por município/ano, de 2010 em diante (os anos do PIB e da população). Junção à esquerda
+-- e não completa: assim o banco filtra por município dentro da média móvel, que é bem mais rápido.
+CREATE VIEW vw_indicador_municipio AS
+SELECT i.cod_tse, i.ano,
+       i.pib, i.populacao, i.pib_per_capita,
+       h.taxa AS taxa_homicidios, h.taxa_3a AS taxa_homicidios_3a,
+       s.pct_agro, s.pct_industria, s.pct_servicos, s.pct_adm_publica, s.setor_dominante,
+       h.sem_registro AS homicidio_sem_registro
+FROM indicador_anual i
+LEFT JOIN vw_homicidio_anual h ON h.cod_tse = i.cod_tse AND h.ano = i.ano
+LEFT JOIN vw_estrutura_setorial s ON s.cod_tse = i.cod_tse AND s.ano = i.ano;
+
+-- Por UF: PIB e população somados; taxa de homicídios ponderada pela população dos municípios
+-- (os sem registro entram como taxa zero, então a taxa da UF é o total de mortes sobre a população).
 CREATE VIEW vw_indicador_uf AS
 SELECT m.uf, v.ano,
        SUM(v.pib) AS pib,
