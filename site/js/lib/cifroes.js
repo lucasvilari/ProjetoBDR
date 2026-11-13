@@ -1,11 +1,5 @@
-// Os dez cifrões da pergunta 8 (a parcela de dinheiro público que o leitor escolhe, em meios cifrões de 5%) e as
-// faixas de patrimônio da pergunta 2.
-
-/** Quanto de cada um dos 10 cifrões fica preenchido para um percentual (75 → sete cheios e meio). */
-export function preenchimento(taxa) {
-  const t = Math.max(0, Math.min(100, Number(taxa) || 0));
-  return Array.from({ length: 10 }, (_, i) => Math.max(0, Math.min(1, (t - 10 * i) / 10)));
-}
+// As faixas de dinheiro público da pergunta 8 (os dados vêm em meios cifrões, fatias de 5% da receita) e as faixas de
+// patrimônio da pergunta 2.
 
 /** A faixa de patrimônio de um candidato, com os mesmos cortes da consulta do gerador
  *  (sem bens, até 100 mil, até 500 mil, até 1 milhão, até 5 milhões, acima de 5 milhões). */
@@ -16,16 +10,22 @@ export function faixaDePatrimonio(valor) {
 }
 
 
-const soma = linhas => {
-  const candidatos = linhas.reduce((t, l) => t + l.candidatos, 0), eleitos = linhas.reduce((t, l) => t + l.eleitos, 0);
-  return { candidatos, eleitos, taxa: candidatos ? (100 * eleitos) / candidatos : null };
-};
-
-/** Pergunta 8: candidatos e eleitos com pelo menos `meios` meios cifrões de dinheiro público (cada meio = 5% da
- *  receita) e com menos que isso. `fatias`: [{meio_cifrao, candidatos, eleitos}]. */
-export function comPeloMenos(fatias, meios) {
-  return { com: soma(fatias.filter(f => f.meio_cifrao >= meios)), sem: soma(fatias.filter(f => f.meio_cifrao < meios)) };
+/** A faixa de 10% de uma parcela de dinheiro público (0 a 100): 0 (menos de 10%) a 9 (90% a menos de 100%), e 10 para a
+ *  campanha toda pública. Os mesmos cortes do meio cifrão do gerador, de dois em dois. */
+export function faixaDaParcela(pct) {
+  if (pct == null) return null;
+  const meio = Math.min(20, Math.floor((20 * pct) / 100));
+  return meio === 20 ? 10 : Math.floor(meio / 2);
 }
 
-/** Quantos meios cifrões vale um clique no cifrão `i` (0 a 9), na posição `x` (0 a 1) dentro dele. */
-export const meiosDoClique = (i, x) => 2 * i + (x < 0.5 ? 1 : 2);
+/** Pergunta 8: os candidatos e os eleitos de cada faixa de dinheiro público, cada faixa só com quem está nela.
+ *  `fatias`: [{meio_cifrao, candidatos, eleitos}]; devolve as 11 faixas, mesmo as vazias. */
+export function porFaixa(fatias) {
+  const faixas = Array.from({ length: 11 }, (_, faixa) => ({ faixa, de: faixa * 10, ate: Math.min(100, faixa * 10 + 10), candidatos: 0, eleitos: 0, taxa: null }));
+  for (const f of fatias) {
+    const x = faixas[f.meio_cifrao === 20 ? 10 : Math.floor(f.meio_cifrao / 2)];
+    x.candidatos += f.candidatos; x.eleitos += f.eleitos;
+  }
+  for (const x of faixas) if (x.candidatos) x.taxa = (100 * x.eleitos) / x.candidatos;
+  return faixas;
+}

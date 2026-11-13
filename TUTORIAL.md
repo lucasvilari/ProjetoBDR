@@ -70,7 +70,7 @@ psql -d eleicoes -v cod_tse=20516 -f banco/sql/p03a_indices_municipio.sql
 | `p04b_escolaridade_municipio.sql` | 4. Escolaridade de eleitores e votados | `-v ano=2024 -v cargo=VEREADOR` |
 | `p05_eleitos_legenda.sql` | 5. Eleitos por votos de legenda | `-v sigla=PT` |
 | `p06a_alternancia.sql` | 6. Alternância de poder | nenhum |
-| `p06b_jovem_vota_jovem.sql` | 6. Jovem vota no jovem? | `-v ano=2024 -v cargo=VEREADOR` |
+| `p06b_idade_eleitores_eleitos.sql` | 6. Quem é eleito tem a idade de quem vota? | `-v ano=2024 -v cargo=VEREADOR` |
 | `p07_vies_ideologico.sql` | 7. Viés ideológico | `-v nivel=uf` (ou `regiao`, `municipio`) |
 | `p07b_ideologia_coligacoes.sql` | 7. Ideologia pelas coligações | `-v ano=2024 -v sigla=` |
 | `p08_dependencia_publica.sql` | 8. Dependência de recursos públicos | nenhum |

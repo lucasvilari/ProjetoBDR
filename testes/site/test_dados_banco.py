@@ -486,21 +486,21 @@ def test_alternancia_e_idade_dos_prefeitos_batem_com_p06a():
 
 @pytest.mark.banco
 @pytest.mark.parametrize('ano,cargo', [(2024, 'VEREADOR'), (2020, 'PREFEITO')])
-def test_jovem_vota_jovem_bate_com_p06b(ano, cargo):
-    """A parcela de votantes até 34 anos e a idade média de quem recebeu os votos, município a município, como a p06b."""
+def test_regua_de_idades_bate_com_p06b(ano, cargo):
+    """A idade média de quem foi votar e a dos eleitos, município a município, como a p06b."""
     ida = json.loads((DADOS / 'idade/idade.json').read_text())
     cods = [m[0] for m in ida['municipios']]
-    jovens, votada = ida['jovens'][str(ano)][cargo], ida['idade_votada'][str(ano)][cargo]
-    sql = _consulta('p06b_jovem_vota_jovem.sql', ano=ano, cargo=cargo)
-    assert len(sql) == sum(1 for j, v in zip(jovens, votada) if j is not None and v is not None)
-    for quintil, cod, pct, idade in sql:
+    votantes, eleitos = ida['regua'][str(ano)]['votantes'], ida['regua'][str(ano)][cargo]
+    sql = _consulta('p06b_idade_eleitores_eleitos.sql', ano=ano, cargo=cargo)
+    assert len(sql) == sum(1 for e in eleitos if e is not None)
+    for cod, idade_v, n_v, idade_e, n_e, _ in sql:
         i = cods.index(cod)
-        assert jovens[i] == pytest.approx(float(pct), abs=0.006)
-        assert votada[i] == pytest.approx(float(idade), abs=0.051)
+        assert votantes[i] == [pytest.approx(float(idade_v), abs=0.006), n_v]
+        assert eleitos[i] == [pytest.approx(float(idade_e), abs=0.006), n_e]
 
 
 @pytest.mark.banco
-def test_jovem_vota_jovem_so_tem_cargos_do_municipio():
+def test_regua_so_tem_cargos_do_municipio():
     ida = json.loads((DADOS / 'idade/idade.json').read_text())
-    assert ida['anos'] == [2020, 2024]
-    assert all(set(c) <= {'PREFEITO', 'VEREADOR'} for c in ida['cargos'].values())
+    assert ida['anos'] == [2020, 2024] and ida['cargos'] == ['PREFEITO', 'VEREADOR']
+    assert all(set(r) == {'votantes', 'PREFEITO', 'VEREADOR'} for r in ida['regua'].values())
