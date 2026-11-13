@@ -1099,6 +1099,14 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .oraculo-pergunta textarea { font: inherit; font-size: 0.9rem; padding: 0.5rem; border: 1.5px solid var(--tecla); border-radius: 6px;
   background: #fff; resize: vertical; }
 .oraculo-pergunta .botao { justify-self: start; }
+.oraculo-mudanca { display: grid; gap: 0.3rem; padding: 0.5rem 0.7rem; border-left: 4px solid var(--ouro);
+  background: var(--ouro-fundo); border-radius: 0 6px 6px 0; font-size: 0.85rem; }
+.oraculo-mudanca[hidden] { display: none; }
+.oraculo-mudanca p { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.2rem 0.6rem; }
+.oraculo-mudanca-aviso { color: var(--corrige-texto); }
+.oraculo-desfaz { font: inherit; font-size: 0.8rem; font-weight: 700; padding: 0.1rem 0.5rem; border: 1.5px solid var(--tecla);
+  border-radius: 4px; background: var(--visor); cursor: pointer; }
+.oraculo-desfaz:disabled { opacity: 0.5; cursor: default; }
 .oraculo-resposta { font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap; }
 .oraculo-resposta:empty { display: none; }
 .oraculo-aviso { margin: 0; font-size: 0.78rem; color: var(--tinta-2); border-top: 1px solid var(--linha); padding-top: 0.5rem; }

@@ -2,7 +2,7 @@
 // da abertura, o farfalhar da cortina ao fechar e abrir, o brilho do olho do oráculo, o sino da resposta da cabine e
 // o tom grave de quando não há resposta. O leitor liga e desliga no botão do topo (comum.js), e a escolha fica guardada.
 // O navegador só deixa tocar depois de um gesto do leitor (clique, toque, tecla); antes disso, os sons não tocam.
-import { somLigado, guardaSom } from './lib/som.js?v=20261161';
+import { somLigado, guardaSom } from './lib/som.js?v=20261162';
 
 const VOLUME = 0.32;
 const PRAZO = 250;   // ms: se o navegador não liberar o áudio nesse tempo, o som perde a hora e não toca atrasado

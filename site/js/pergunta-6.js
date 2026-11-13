@@ -7,12 +7,13 @@
 // Dados: idade/idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos e, em 2020 e 2024,
 // a idade média de quem foi votar e a dos eleitos para prefeito e vereador, por município).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261161';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261161';
-import { comparacao } from './lib/retrato.js?v=20261161';
-import { corIdeologia } from './lib/cores.js?v=20261161';
-import { trocas, alternancia, mediaPonderada, diferencaDeIdade } from './lib/idade.js?v=20261161';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261161';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261162';
+import { registraRecortes } from './oraculo.js?v=20261162';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261162';
+import { comparacao } from './lib/retrato.js?v=20261162';
+import { corIdeologia } from './lib/cores.js?v=20261162';
+import { trocas, alternancia, mediaPonderada, diferencaDeIdade } from './lib/idade.js?v=20261162';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261162';
 
 montaPagina();
 
@@ -356,4 +357,23 @@ registraRetrato(() => {
           ...g.cargos.map(linhaCargo)] },
     ],
   };
+});
+
+// ---------------------------------------------------------------- o recorte pedido ao oráculo
+
+// a pergunta do leitor pode pedir outro ano ou lugar; "Brasil" aqui são os seis estados
+const recorteAtual = () => {
+  const m = POR_COD.get(estado.lugar);
+  return { ano: estado.ano, ...(m ? { uf: m.uf, mun: m.cod } : estado.lugar === SEIS ? {} : { uf: estado.lugar }) };
+};
+registraRecortes({
+  opcoes: { anos: ida.anos, lugar: 'mun', brasil: 'seis' },
+  atual: recorteAtual,
+  aplica: async novo => {
+    history.replaceState(null, '', `#${new URLSearchParams({ ano: novo.ano, lugar: novo.mun ?? novo.uf ?? SEIS })}`);
+    leEndereco();
+    estado.prefeito = null;
+    atualiza();
+    return recorteAtual();
+  },
 });

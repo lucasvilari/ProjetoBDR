@@ -66,6 +66,15 @@ Em toda página de pergunta, o olho no canto da tela abre o oráculo: ele lê o 
 "retrato": o recorte escolhido, os números calculados e o que o leitor abriu; `js/oraculo.js`, e em cada página a
 chamada a `registraRetrato`) e pede uma interpretação a uma IA, que pode também responder a uma pergunta do leitor.
 
+Antes de responder, o olho procura na pergunta um ano, um cargo, um estado, um município ou o Brasil
+(`js/lib/leitor.js`, sem IA) e, se a página tiver esse recorte, muda a página para ele: "como foi a disputa por
+cadeira para presidente em 2026?" leva a pergunta 1 para presidente · Brasil · 2026, e o leitor vê na tela os números
+que a IA leu. O painel diz para onde a página mudou, com um botão de desfazer, e avisa o que a página não tem (um ano
+sem dados, um cargo que não houve naquele ano, um município de nome repetido sem o estado). Cada página diz o que
+aceita com `registraRecortes` (as do seletor comum, dentro de `montaSeletor`); a pergunta 10, de um político, não muda.
+Município de uma palavra só ("Oliveira", "Esperança") só conta depois de "em", "no", "na" ou de "município de",
+"prefeito de", para sobrenomes e palavras comuns não mudarem a página.
+
 A IA roda numa função da Cloudflare (pasta `oraculo/` na raiz do repositório, fora do site), no plano gratuito do
 Workers AI: sem chave de API e sem custo, com uma cota diária que, quando acaba, faz o olho avisar que o oráculo está
 descansando. A função só aceita pedidos do site publicado e do servidor local, limita cada visitante a 6 pedidos por
@@ -102,7 +111,7 @@ site/
 ├── js/busca.js                   busca de políticos por nome e leitura da carreira
 ├── js/transicao.js               segura a cortina entre páginas até a página nova estar montada
 ├── js/cortina.js                 a cortina em WebGL: fecha antes de sair, abre na página nova
-├── js/oraculo.js                 o olho do oráculo: o painel, o retrato da página e a chamada à IA
+├── js/oraculo.js                 o olho do oráculo: o painel, o retrato da página, o recorte pedido e a chamada à IA
 ├── js/som.js                     os efeitos sonoros, sintetizados no navegador, e o botão que os liga e desliga
 ├── cabine.html, js/cabine.js     a cabine do oráculo: pergunta livre, pedido de dados e retrato montado na hora
 ├── js/pergunta-N.js              uma por página (e plenario-2d.js, plenario-3d.js, rua.js, relevo-3d.js, mapa-lugares.js)
@@ -118,7 +127,8 @@ site/
     ├── partidos.json    medidas de ideologia e eleitos por partido
     ├── indices/         pergunta 3: municipios.json (índices, partido do prefeito e voto ideológico de cada município, combinado e por cargo, por ano) ranking/<UF>[-<cargo>].json e estados.json (os índices das 27 UFs)
     ├── escolaridade/    pergunta 4: escolaridade.json (candidatos e eleitos por grau e lugar; o nível de quem votou e de quem recebeu os votos em cada município) e estados.json (os mesmos níveis nas 27 UFs, no texto do mini mapa); candidatos/<lugar>-<ano>.json (cada candidato com o grau dele e a nota de quem votou nele)
-    ├── idade/           pergunta 6: idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos, votantes até 34 anos e idade de quem recebeu os votos)
+    ├── idade/           pergunta 6: idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos, idade média de quem votou e dos eleitos)
+    ├── lugares.json     o nome dos municípios dos seis estados, para o oráculo achar o município citado numa pergunta
     ├── propaganda/      pergunta 9: <unidade>.json, pessoas/<n>.json e exemplos/ (despesas de cada palavra do céu, baixadas só ao clicar)
     ├── geo/             contornos do IBGE (estados e municípios dos seis estados)
     └── politicos/       índice de busca, fichas e carreiras, em fatias
@@ -148,7 +158,7 @@ As fotos dos candidatos de 2004 a 2016 precisam dos arquivos de candidatos do TS
 candidato no TSE, e a parte `politicos` o lê desses arquivos. Sem eles, o site sai igual, só sem essas fotos.
 
 Uma parte só: `--partes politicos` (ou `mapa`, `geo`, `partidos`, `vies`, `partidos_recorte`,
-`dependencia`, `candidaturas`, `legenda`, `propaganda`, `indices`, `indices_estados`, `escolaridade`, `escolaridade_estados`, `idade`). A docstring de `gera_dados.py` diz o que cada parte grava e de qual banco
+`dependencia`, `candidaturas`, `legenda`, `propaganda`, `indices`, `indices_estados`, `escolaridade`, `escolaridade_estados`, `idade`, `lugares`). A docstring de `gera_dados.py` diz o que cada parte grava e de qual banco
 lê. Título eleitoral, CPF e data de nascimento não saem do banco: cada político recebe um número
 sequencial próprio.
 

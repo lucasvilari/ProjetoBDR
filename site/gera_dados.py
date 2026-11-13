@@ -1921,6 +1921,15 @@ def parte_idade(conn):
         f'{tamanho_pasta(DADOS / "idade") / 1e6:.1f} MB')
 
 
+# o nome dos municípios dos seis estados, para o leitor de pedidos do oráculo achar o município citado numa pergunta
+def parte_lugares(conn):
+    with conn.cursor() as cur:
+        cur.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
+        municipios = [list(l) for l in cur.fetchall()]
+    grava('lugares.json', {'campos': ['cod', 'nome', 'uf'], 'municipios': municipios})
+    log(f'lugares: {len(municipios):,} municípios')
+
+
 PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
           'partidos': parte_partidos, 'vies': parte_vies,
           'candidaturas': parte_candidaturas, 'legenda': parte_legenda,
@@ -1928,7 +1937,7 @@ PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
           'dependencia': parte_dependencia, 'indices': parte_indices,
           'indices_estados': parte_indices_estados, 'escolaridade': parte_escolaridade,
           'escolaridade_estados': parte_escolaridade_estados, 'idade': parte_idade,
-          'retrospecto': parte_retrospecto}
+          'retrospecto': parte_retrospecto, 'lugares': parte_lugares}
 # partes que leem os dois bancos: recebem (nacional, seis estados)
 DOIS_BANCOS = {'candidaturas', 'propaganda', 'politicos'}
 
@@ -1944,7 +1953,7 @@ def main():
             with psycopg.connect(args.nacional) as nacional, psycopg.connect(args.banco) as seis:
                 PARTES[parte](nacional, seis)
             continue
-        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade', 'retrospecto') else args.nacional
+        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade', 'retrospecto', 'lugares') else args.nacional
         with psycopg.connect(dsn) as conn:
             PARTES[parte](conn)
 

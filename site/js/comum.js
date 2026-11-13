@@ -1,9 +1,9 @@
 // Partes comuns às páginas: cabeçalho, rodapé, leitura dos dados e formatos.
 // Cada página importa este módulo e chama montaPagina() antes do próprio conteúdo.
 
-import { PERGUNTAS } from './lib/perguntas.js?v=20261161';
-import { montaOraculo, registraRetrato } from './oraculo.js?v=20261161';
-import { ligado as somLigado, liga as ligaSom, destrava, toca } from './som.js?v=20261161';
+import { PERGUNTAS } from './lib/perguntas.js?v=20261162';
+import { montaOraculo, registraRetrato } from './oraculo.js?v=20261162';
+import { ligado as somLigado, liga as ligaSom, destrava, toca } from './som.js?v=20261162';
 
 // cada página registra aqui como montar o retrato do que mostra, que o oráculo lê
 export { registraRetrato };
@@ -158,7 +158,7 @@ const cache = new Map();
 
 /** Lê um arquivo JSON de dados/, uma vez por página. */
 // a mesma versão do ?v= dos scripts: depois de publicar, o navegador não mistura script novo com dado velho
-const VERSAO = '20261161';
+const VERSAO = '20261162';
 
 export function carregaDados(caminho) {
   if (!cache.has(caminho)) {

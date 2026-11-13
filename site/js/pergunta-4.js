@@ -7,14 +7,15 @@
 // de quem recebeu os votos em cada município) e escolaridade/estados.json (os mesmos níveis nas 27 UFs, no texto que
 // aparece ao passar o ponteiro pelo mini mapa).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261161';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261161';
-import { comparacao } from './lib/retrato.js?v=20261161';
-import { forcaDaRelacao } from './lib/dinheiro.js?v=20261161';
-import { quintis } from './lib/indices.js?v=20261161';
-import { janelasDoAndar } from './lib/predio.js?v=20261161';
-import { NOMES_NIVEIS, nivelEmPalavras, taxa, pearson } from './lib/escolaridade.js?v=20261161';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261161';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261162';
+import { registraRecortes } from './oraculo.js?v=20261162';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261162';
+import { comparacao } from './lib/retrato.js?v=20261162';
+import { forcaDaRelacao } from './lib/dinheiro.js?v=20261162';
+import { quintis } from './lib/indices.js?v=20261162';
+import { janelasDoAndar } from './lib/predio.js?v=20261162';
+import { NOMES_NIVEIS, nivelEmPalavras, taxa, pearson } from './lib/escolaridade.js?v=20261162';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261162';
 
 montaPagina();
 
@@ -374,4 +375,24 @@ registraRetrato(() => {
       { titulo: 'Ressalva', linhas: [[null, 'A escolaridade do eleitor no TSE é a declarada ao tirar o título e quase nunca é atualizada, então subestima a escolaridade real; a do candidato é declarada a cada registro. Os dois números não medem exatamente a mesma coisa.']] },
     ],
   };
+});
+
+// ---------------------------------------------------------------- o recorte pedido ao oráculo
+
+// a pergunta do leitor pode pedir outro ano, cargo ou lugar; "Brasil" aqui são os seis estados
+const recorteAtual = () => {
+  const m = POR_COD.get(estado.lugar);
+  return { ano: estado.ano, ...(estado.cargo === TODOS ? {} : { cargo: estado.cargo }),
+    ...(m ? { uf: m.uf, mun: m.cod } : estado.lugar === SEIS ? {} : { uf: estado.lugar }) };
+};
+registraRecortes({
+  opcoes: { anos: esc.anos, cargosDoAno: ano => esc.cargos[ano], lugar: 'mun', brasil: 'seis' },
+  atual: recorteAtual,
+  aplica: async novo => {
+    const lugar = novo.mun ?? novo.uf;
+    history.replaceState(null, '', `#${new URLSearchParams({ ano: novo.ano, ...(novo.cargo ? { cargo: novo.cargo } : {}), ...(lugar ? { lugar } : {}) })}`);
+    leEndereco();
+    atualiza();
+    return recorteAtual();
+  },
 });

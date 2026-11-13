@@ -504,3 +504,14 @@ def test_regua_so_tem_cargos_do_municipio():
     ida = json.loads((DADOS / 'idade/idade.json').read_text())
     assert ida['anos'] == [2020, 2024] and ida['cargos'] == ['PREFEITO', 'VEREADOR']
     assert all(set(r) == {'votantes', 'PREFEITO', 'VEREADOR'} for r in ida['regua'].values())
+
+
+@pytest.mark.banco
+def test_lugares_tem_os_municipios_dos_seis_estados():
+    """O nome dos municípios que o oráculo procura nas perguntas: os 1.238 dos seis estados, como na tabela municipio."""
+    import psycopg
+    lug = json.loads((DADOS / 'lugares.json').read_text())
+    assert lug['campos'] == ['cod', 'nome', 'uf']
+    with psycopg.connect('dbname=eleicoes') as conn:
+        banco = conn.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s)', (list(gera_dados.UFS_PROJETO),)).fetchall()
+    assert sorted(map(tuple, lug['municipios'])) == sorted(banco)

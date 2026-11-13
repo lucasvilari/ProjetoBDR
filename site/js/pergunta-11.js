@@ -7,10 +7,11 @@
 // O PIB per capita é a preços correntes: a variação não desconta a inflação. É retrato, não prova de causa.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261161';
-import { COR } from './lib/cores.js?v=20261161';
-import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261161';
-import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261161';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261162';
+import { registraRecortes } from './oraculo.js?v=20261162';
+import { COR } from './lib/cores.js?v=20261162';
+import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261162';
+import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261162';
 
 montaPagina();
 
@@ -547,3 +548,21 @@ new ResizeObserver(() => {
 leEndereco();
 if (estado.uf) MUN = (await carregaMunicipios(estado.uf)).municipios;
 await atualiza();
+
+// ---------------------------------------------------------------- o recorte pedido ao oráculo
+
+// a pergunta do leitor pode pedir outro ano ou lugar (o indicador fica); o lugar sem estado é o Brasil
+const recorteAtual = () => ({ ano: estado.ano, ...(estado.uf ? { uf: estado.uf } : {}), ...(estado.mun ? { mun: estado.mun } : {}) });
+registraRecortes({
+  opcoes: () => ({ anos: anosDe(estado.ind), lugar: 'mun', brasil: true }),
+  atual: recorteAtual,
+  aplica: async novo => {
+    const p = new URLSearchParams({ ind: estado.ind, ano: novo.ano });
+    if (novo.uf) p.set('uf', novo.uf);
+    if (novo.mun) p.set('mun', novo.mun);
+    history.replaceState(null, '', `#${p}`);
+    leEndereco();
+    await atualiza();
+    return recorteAtual();
+  },
+});
