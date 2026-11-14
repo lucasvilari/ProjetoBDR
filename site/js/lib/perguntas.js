@@ -35,4 +35,7 @@ export const PERGUNTAS = [
   { n: 11, titulo: 'O que mudou no mandato?', href: 'pergunta-11.html',
     oQue: 'Como o PIB per capita, o peso de cada setor da economia e os homicídios mudaram durante o mandato de prefeitos e governadores eleitos.',
     como: 'PIB e valor adicionado do IBGE e taxa de homicídios do Atlas da Violência, no ano da eleição e no último ano medido do mandato.' },
+  { n: 12, titulo: 'Quanto cresceu o patrimônio?', href: 'pergunta-12.html',
+    oQue: 'Quanto o patrimônio declarado ao TSE cresceu de uma eleição para outra, para prefeitos, governadores, deputados federais e estaduais eleitos.',
+    como: 'Soma dos bens declarados ao TSE em cada eleição (dados abertos, de 2018 em diante); variação entre a eleição atual e a anterior para o mesmo cargo, pelo título eleitoral.' },
 ];

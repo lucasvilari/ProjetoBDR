@@ -36,6 +36,27 @@ GROUP BY p.titulo_eleitoral;
 
 -- Retrospecto do mandato (pergunta 11) ----------------------------------------------
 
+-- Deflator IPCA para converter PIB nominal a preços constantes de 2022.
+-- Cada linha diz por quanto multiplicar o valor do ano para obter R$ de 2022.
+-- Fontes: IBGE/IPCA acumulado no ano (https://sidra.ibge.gov.br/tabela/1737).
+CREATE VIEW vw_deflator_ipca AS
+SELECT * FROM (VALUES
+    (2010::smallint, 2.0262::numeric),
+    (2011::smallint, 1.9025::numeric),
+    (2012::smallint, 1.7975::numeric),
+    (2013::smallint, 1.6972::numeric),
+    (2014::smallint, 1.5949::numeric),
+    (2015::smallint, 1.4413::numeric),
+    (2016::smallint, 1.3560::numeric),
+    (2017::smallint, 1.3171::numeric),
+    (2018::smallint, 1.2695::numeric),
+    (2019::smallint, 1.2170::numeric),
+    (2020::smallint, 1.1643::numeric),
+    (2021::smallint, 1.0579::numeric),
+    (2022::smallint, 1.0000::numeric),
+    (2023::smallint, 0.9559::numeric)
+) AS t(ano, deflator);
+
 -- Participação de cada setor no valor adicionado e o setor que domina, por município/ano.
 CREATE VIEW vw_estrutura_setorial AS
 SELECT i.cod_tse, i.ano, v.vab_total,
@@ -80,12 +101,25 @@ FROM (
 CREATE VIEW vw_indicador_municipio AS
 SELECT i.cod_tse, i.ano,
        i.pib, i.populacao, i.pib_per_capita,
+       ROUND(i.pib_per_capita * COALESCE(d.deflator, 1), 2) AS pib_per_capita_real,
        h.taxa AS taxa_homicidios, h.taxa_3a AS taxa_homicidios_3a,
        s.pct_agro, s.pct_industria, s.pct_servicos, s.pct_adm_publica, s.setor_dominante,
-       h.sem_registro AS homicidio_sem_registro
+       h.sem_registro AS homicidio_sem_registro,
+       ef.pessoal_ocupado AS empregos_formais,
+       ROUND(1000.0 * ef.pessoal_ocupado / NULLIF(i.populacao, 0), 1) AS empregos_por_mil_hab,
+       san.pct_agua_rede, san.pct_esgoto_adequado, san.ano AS ano_saneamento
 FROM indicador_anual i
+LEFT JOIN vw_deflator_ipca d ON d.ano = i.ano
 LEFT JOIN vw_homicidio_anual h ON h.cod_tse = i.cod_tse AND h.ano = i.ano
-LEFT JOIN vw_estrutura_setorial s ON s.cod_tse = i.cod_tse AND s.ano = i.ano;
+LEFT JOIN vw_estrutura_setorial s ON s.cod_tse = i.cod_tse AND s.ano = i.ano
+LEFT JOIN emprego_formal ef ON ef.cod_tse = i.cod_tse AND ef.ano = i.ano
+LEFT JOIN LATERAL (
+    SELECT sc.pct_agua_rede, sc.pct_esgoto_adequado, sc.ano
+    FROM saneamento_censo sc
+    WHERE sc.cod_tse = i.cod_tse
+    ORDER BY ABS(sc.ano - i.ano)
+    LIMIT 1
+) san ON TRUE;
 
 -- Por UF: PIB e população somados; taxa de homicídios ponderada pela população dos municípios
 -- (os sem registro entram como taxa zero, então a taxa da UF é o total de mortes sobre a população).
@@ -94,10 +128,19 @@ SELECT m.uf, v.ano,
        SUM(v.pib) AS pib,
        SUM(v.populacao) AS populacao,
        SUM(v.pib) / NULLIF(SUM(v.populacao), 0) AS pib_per_capita,
+       SUM(v.pib_per_capita_real * v.populacao)
+           / NULLIF(SUM(v.populacao), 0) AS pib_per_capita_real,
        SUM(v.taxa_homicidios * v.populacao)
-           / NULLIF(SUM(v.populacao) FILTER (WHERE v.taxa_homicidios IS NOT NULL), 0) AS taxa_homicidios
+           / NULLIF(SUM(v.populacao) FILTER (WHERE v.taxa_homicidios IS NOT NULL), 0) AS taxa_homicidios,
+       SUM(v.empregos_formais) AS empregos_formais,
+       ROUND(1000.0 * SUM(v.empregos_formais) / NULLIF(SUM(v.populacao), 0), 1) AS empregos_por_mil_hab,
+       MAX(p.taxa_desocupacao) AS taxa_desocupacao,
+       MAX(p.taxa_informalidade) AS taxa_informalidade,
+       ROUND(AVG(v.pct_agua_rede) FILTER (WHERE v.pct_agua_rede IS NOT NULL), 2) AS pct_agua_rede,
+       ROUND(AVG(v.pct_esgoto_adequado) FILTER (WHERE v.pct_esgoto_adequado IS NOT NULL), 2) AS pct_esgoto_adequado
 FROM vw_indicador_municipio v
 JOIN municipio m USING (cod_tse)
+LEFT JOIN pnad_emprego_uf p ON p.uf = m.uf AND p.ano = v.ano
 GROUP BY m.uf, v.ano;
 
 -- Prefeito eleito: indicador no ano da eleição x último ano disponível dentro do mandato
@@ -106,20 +149,28 @@ GROUP BY m.uf, v.ano;
 -- Mostra o que mudou durante o mandato, não que o prefeito causou a mudança.
 CREATE VIEW vw_retrospecto_prefeito AS
 SELECT c.sq_candidato, c.titulo_eleitoral, c.id_partido, c.ano AS ano_eleicao, m.cod_tse, m.uf,
-       ini.pib_per_capita AS pib_pc_inicio,
-       fp.ano             AS ano_fim_pib,
-       fp.pib_per_capita  AS pib_pc_fim,
-       ROUND(100 * (fp.pib_per_capita / NULLIF(ini.pib_per_capita, 0) - 1), 1) AS var_pib_pc_pct,
+       ini.pib_per_capita_real AS pib_pc_inicio,
+       fp.ano                  AS ano_fim_pib,
+       fp.pib_per_capita_real  AS pib_pc_fim,
+       ROUND(100 * (fp.pib_per_capita_real / NULLIF(ini.pib_per_capita_real, 0) - 1), 1) AS var_pib_pc_pct,
        ini.taxa_homicidios_3a AS homicidios_inicio,
        fh.ano                 AS ano_fim_homicidios,
        fh.taxa_homicidios_3a  AS homicidios_fim,
-       fh.taxa_homicidios_3a - ini.taxa_homicidios_3a AS var_homicidios
+       fh.taxa_homicidios_3a - ini.taxa_homicidios_3a AS var_homicidios,
+       ini.empregos_por_mil_hab AS empregos_inicio,
+       fe.ano                   AS ano_fim_empregos,
+       fe.empregos_por_mil_hab  AS empregos_fim,
+       ROUND(fe.empregos_por_mil_hab - ini.empregos_por_mil_hab, 1) AS var_empregos,
+       pat.patrimonio           AS patrimonio_eleicao,
+       pat_ant.patrimonio       AS patrimonio_anterior,
+       pat_ant.ano              AS ano_patrimonio_anterior,
+       ROUND(100 * (pat.patrimonio / NULLIF(pat_ant.patrimonio, 0) - 1), 1) AS var_patrimonio_pct
 FROM vw_candidatura c
 JOIN municipio m ON m.cod_tse = c.ue
 LEFT JOIN vw_indicador_municipio ini ON ini.cod_tse = m.cod_tse AND ini.ano = c.ano
 LEFT JOIN LATERAL (
-    SELECT f.ano, f.pib_per_capita FROM vw_indicador_municipio f
-    WHERE f.cod_tse = m.cod_tse AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.pib_per_capita IS NOT NULL
+    SELECT f.ano, f.pib_per_capita_real FROM vw_indicador_municipio f
+    WHERE f.cod_tse = m.cod_tse AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.pib_per_capita_real IS NOT NULL
     ORDER BY f.ano DESC LIMIT 1
 ) fp ON TRUE
 LEFT JOIN LATERAL (
@@ -127,24 +178,61 @@ LEFT JOIN LATERAL (
     WHERE f.cod_tse = m.cod_tse AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.taxa_homicidios_3a IS NOT NULL
     ORDER BY f.ano DESC LIMIT 1
 ) fh ON TRUE
+LEFT JOIN LATERAL (
+    SELECT f.ano, f.empregos_por_mil_hab FROM vw_indicador_municipio f
+    WHERE f.cod_tse = m.cod_tse AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.empregos_por_mil_hab IS NOT NULL
+    ORDER BY f.ano DESC LIMIT 1
+) fe ON TRUE
+LEFT JOIN LATERAL (
+    SELECT SUM(b.valor) AS patrimonio
+    FROM bem b WHERE b.sq_candidato = c.sq_candidato
+    HAVING COUNT(*) > 0
+) pat ON TRUE
+LEFT JOIN LATERAL (
+    SELECT e2.ano, SUM(b2.valor) AS patrimonio
+    FROM candidatura c2
+    JOIN eleicao e2 ON e2.cod_eleicao = c2.cod_eleicao
+    JOIN bem b2 ON b2.sq_candidato = c2.sq_candidato
+    WHERE c2.titulo_eleitoral = c.titulo_eleitoral
+      AND c2.cargo = 'PREFEITO'
+      AND e2.ano < c.ano
+    GROUP BY e2.ano
+    ORDER BY e2.ano DESC LIMIT 1
+) pat_ant ON TRUE
 WHERE c.eleito AND c.cargo = 'PREFEITO';
 
 -- Governador eleito: mesma leitura, sobre os indicadores agregados da UF (candidatura.ue = sigla da UF).
 CREATE VIEW vw_retrospecto_governador AS
 SELECT c.sq_candidato, c.titulo_eleitoral, c.id_partido, c.ano AS ano_eleicao, c.ue AS uf,
-       ini.pib_per_capita AS pib_pc_inicio,
-       fp.ano             AS ano_fim_pib,
-       fp.pib_per_capita  AS pib_pc_fim,
-       ROUND(100 * (fp.pib_per_capita / NULLIF(ini.pib_per_capita, 0) - 1), 1) AS var_pib_pc_pct,
+       ini.pib_per_capita_real AS pib_pc_inicio,
+       fp.ano                  AS ano_fim_pib,
+       fp.pib_per_capita_real  AS pib_pc_fim,
+       ROUND(100 * (fp.pib_per_capita_real / NULLIF(ini.pib_per_capita_real, 0) - 1), 1) AS var_pib_pc_pct,
        ini.taxa_homicidios AS homicidios_inicio,
        fh.ano              AS ano_fim_homicidios,
        fh.taxa_homicidios  AS homicidios_fim,
-       fh.taxa_homicidios - ini.taxa_homicidios AS var_homicidios
+       fh.taxa_homicidios - ini.taxa_homicidios AS var_homicidios,
+       ini.empregos_por_mil_hab AS empregos_inicio,
+       fe.ano                   AS ano_fim_empregos,
+       fe.empregos_por_mil_hab  AS empregos_fim,
+       ROUND(fe.empregos_por_mil_hab - ini.empregos_por_mil_hab, 1) AS var_empregos,
+       ini.taxa_desocupacao AS desocupacao_inicio,
+       fd.ano               AS ano_fim_desocupacao,
+       fd.taxa_desocupacao  AS desocupacao_fim,
+       ROUND(fd.taxa_desocupacao - ini.taxa_desocupacao, 1) AS var_desocupacao,
+       ini.taxa_informalidade AS informalidade_inicio,
+       fi.ano                 AS ano_fim_informalidade,
+       fi.taxa_informalidade   AS informalidade_fim,
+       ROUND(fi.taxa_informalidade - ini.taxa_informalidade, 1) AS var_informalidade,
+       pat.patrimonio           AS patrimonio_eleicao,
+       pat_ant.patrimonio       AS patrimonio_anterior,
+       pat_ant.ano              AS ano_patrimonio_anterior,
+       ROUND(100 * (pat.patrimonio / NULLIF(pat_ant.patrimonio, 0) - 1), 1) AS var_patrimonio_pct
 FROM vw_candidatura c
 LEFT JOIN vw_indicador_uf ini ON ini.uf = c.ue AND ini.ano = c.ano
 LEFT JOIN LATERAL (
-    SELECT f.ano, f.pib_per_capita FROM vw_indicador_uf f
-    WHERE f.uf = c.ue AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.pib_per_capita IS NOT NULL
+    SELECT f.ano, f.pib_per_capita_real FROM vw_indicador_uf f
+    WHERE f.uf = c.ue AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.pib_per_capita_real IS NOT NULL
     ORDER BY f.ano DESC LIMIT 1
 ) fp ON TRUE
 LEFT JOIN LATERAL (
@@ -152,6 +240,37 @@ LEFT JOIN LATERAL (
     WHERE f.uf = c.ue AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.taxa_homicidios IS NOT NULL
     ORDER BY f.ano DESC LIMIT 1
 ) fh ON TRUE
+LEFT JOIN LATERAL (
+    SELECT f.ano, f.empregos_por_mil_hab FROM vw_indicador_uf f
+    WHERE f.uf = c.ue AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.empregos_por_mil_hab IS NOT NULL
+    ORDER BY f.ano DESC LIMIT 1
+) fe ON TRUE
+LEFT JOIN LATERAL (
+    SELECT f.ano, f.taxa_desocupacao FROM vw_indicador_uf f
+    WHERE f.uf = c.ue AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.taxa_desocupacao IS NOT NULL
+    ORDER BY f.ano DESC LIMIT 1
+) fd ON TRUE
+LEFT JOIN LATERAL (
+    SELECT f.ano, f.taxa_informalidade FROM vw_indicador_uf f
+    WHERE f.uf = c.ue AND f.ano BETWEEN c.ano + 1 AND c.ano + 4 AND f.taxa_informalidade IS NOT NULL
+    ORDER BY f.ano DESC LIMIT 1
+) fi ON TRUE
+LEFT JOIN LATERAL (
+    SELECT SUM(b.valor) AS patrimonio
+    FROM bem b WHERE b.sq_candidato = c.sq_candidato
+    HAVING COUNT(*) > 0
+) pat ON TRUE
+LEFT JOIN LATERAL (
+    SELECT e2.ano, SUM(b2.valor) AS patrimonio
+    FROM candidatura c2
+    JOIN eleicao e2 ON e2.cod_eleicao = c2.cod_eleicao
+    JOIN bem b2 ON b2.sq_candidato = c2.sq_candidato
+    WHERE c2.titulo_eleitoral = c.titulo_eleitoral
+      AND c2.cargo = 'GOVERNADOR'
+      AND e2.ano < c.ano
+    GROUP BY e2.ano
+    ORDER BY e2.ano DESC LIMIT 1
+) pat_ant ON TRUE
 WHERE c.eleito AND c.cargo = 'GOVERNADOR';
 
 CREATE FUNCTION nivel_escolaridade(texto VARCHAR) RETURNS SMALLINT

@@ -7,7 +7,7 @@
 // O PIB per capita é a preços correntes: a variação não desconta a inflação. É retrato, não prova de causa.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, em, registraRetrato } from './comum.js?v=20261162';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261162';
 import { registraRecortes } from './oraculo.js?v=20261162';
 import { COR } from './lib/cores.js?v=20261162';
 import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261162';
@@ -21,10 +21,14 @@ const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ESTILO = { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background: 'transparent' };
 
 // posições dos campos nas linhas dos JSON (campos_ano e campos_mandato de retrospecto/)
-const A = { ano: 0, pib: 1, pop: 2, pibPc: 3, hom: 4, agro: 5, ind: 6, serv: 7, adm: 8 };    // série anual de uma UF
-const M = { ano: 0, pibPc: 1, hom3: 2, agro: 3, ind: 4, serv: 5, adm: 6, setor: 7 };         // série anual de um município
-const D = { eleicao: 0, nome: 1, partido: 2, pibIni: 3, anoPib: 4, pibFim: 5, varPib: 6, homIni: 7, anoHom: 8, homFim: 9, varHom: 10 };
-
+const A = { ano: 0, pib: 1, pop: 2, pibPc: 3, hom: 4, agro: 5, ind: 6, serv: 7, adm: 8,
+             empMil: 9, desoc: 10, inf: 11, agua: 12, esgoto: 13 };
+const M = { ano: 0, pibPc: 1, hom3: 2, agro: 3, ind: 4, serv: 5, adm: 6, setor: 7, empMil: 8, agua: 9, esgoto: 10 };
+const D = { eleicao: 0, nome: 1, partido: 2, pibIni: 3, anoPib: 4, pibFim: 5, varPib: 6,
+            homIni: 7, anoHom: 8, homFim: 9, varHom: 10,
+            empIni: 11, anoEmp: 12, empFim: 13, varEmp: 14,
+            desocIni: 15, anoDesoc: 16, desocFim: 17, varDesoc: 18,
+            infIni: 19, anoInf: 20, infFim: 21, varInf: 22 };
 const form = document.getElementById('controles');
 const svgCaixa = document.getElementById('mapa');
 const painel = document.getElementById('painel');
@@ -34,22 +38,71 @@ const virgula = v => (v == null ? '—' : String(v).replace('.', ','));
 
 const COR_SETOR = ['#4e9a3a', '#3b6ea8', '#d9a21b', '#8c5a9e'];
 const VERDES = ['#ddd0b4', '#bcd5a2', '#8dbb7a', '#5a9c57', '#2f7d3d', '#0b5a2e'];
+const AZUIS = ['#ddd0b4', '#b3cde3', '#6baed6', '#3182bd', '#1a6dad', '#08519c'];
 const LARANJAS = ['#ddd0b4', '#f2c49b', '#ee9a5e', '#e2692a', '#b8431a', '#7a2208'];
 // a variação dos homicídios diverge: queda em verde (bom), alta em laranja (ruim)
 const DIVERGE = ['#0b5a2e', '#5a9c57', '#bcd5a2', '#f2c49b', '#e2692a', '#7a2208'];
 
 const real = v => formata.real(v);
+
+const DEFINICAO_SETOR = {
+  'Agropecuária': 'Agricultura, pecuária, produção florestal, pesca e aquicultura. Inclui tudo o que vem da terra e do mar: plantações, criações, extração vegetal.',
+  'Indústria': 'Indústrias extrativas (mineração), de transformação (fábricas), construção civil e distribuição de eletricidade, gás, água e esgoto.',
+  'Serviços': 'Comércio, transporte, alimentação, informação, finanças, seguros, imóveis, serviços profissionais, educação e saúde privadas, artes e outros serviços.',
+  'Administração pública': 'Administração pública, defesa, seguridade social, educação e saúde públicas. É o peso do Estado (federal, estadual e municipal) na economia do lugar.',
+};
+const DEFINICAO_SEM_DADO = 'O dado não está disponível para este lugar e ano. Os setores vão até 2021, o PIB per capita até 2022, os homicídios até 2024 e os empregos formais até 2024. A desocupação e a informalidade vêm da PNAD e só existem por estado (não por município); não há dado estadual em 2020-2021 por causa da pandemia. O saneamento (água e esgoto) vem do Censo e só tem dado em 2010 e 2022. No mapa de variação do mandato, a eleição de 2024 ainda não tem desfecho medido.';
+const DEFINICAO_SEM_REGISTRO = 'O Atlas da Violência (Ipea) não publica município sem nenhum homicídio no ano. Esses municípios entram com taxa zero, que é a melhor estimativa (as taxas dos estados, somadas assim, batem com as do Atlas).';
+
+function criaInfoBtn(texto, container) {
+  const btn = document.createElement('button');
+  btn.className = 'info-btn'; btn.type = 'button'; btn.textContent = '?';
+  btn.setAttribute('aria-label', 'O que é isso?');
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const antigo = container.querySelector('.balao.aberto');
+    if (antigo) { antigo.classList.remove('aberto'); if (antigo.dataset.dono === btn.dataset.id) return; }
+    let balao = container.querySelector(`.balao[data-dono="${btn.dataset.id = btn.dataset.id || Math.random().toString(36).slice(2)}"]`);
+    if (!balao) {
+      balao = document.createElement('div'); balao.className = 'balao'; balao.dataset.dono = btn.dataset.id;
+      const fechar = document.createElement('button'); fechar.className = 'balao-fechar'; fechar.type = 'button';
+      fechar.textContent = '×'; fechar.setAttribute('aria-label', 'Fechar');
+      fechar.addEventListener('click', ev => { ev.stopPropagation(); balao.classList.remove('aberto'); });
+      balao.append(fechar, document.createTextNode(texto));
+      container.append(balao);
+    }
+    balao.classList.add('aberto');
+  });
+  return btn;
+}
+
 const IND = {
   setor: { rotulo: 'setor que mais pesa', anos: d3.range(2010, 2022), tipo: 'categorias',
     explica: 'O setor da economia que mais pesa no valor adicionado do lugar: agropecuária, indústria, serviços ou administração pública (IBGE, até 2021).' },
   pib: { rotulo: 'PIB per capita', anos: d3.range(2011, 2023), paleta: VERDES, texto: real,
-    explica: 'PIB por habitante a preços correntes (IBGE, até 2022). Não desconta a inflação: compare lugares no mesmo ano, não anos distantes entre si.' },
+    explica: 'PIB por habitante a preços constantes de 2022, corrigido pelo IPCA (IBGE, até 2022). Valores de anos anteriores foram atualizados pela inflação acumulada.' },
   homicidios: { rotulo: 'homicídios', anos: d3.range(2010, 2025), paleta: LARANJAS, texto: v => `${numeroBr(v)} por 100 mil`,
     explica: 'Homicídios por 100 mil habitantes (Atlas da Violência, registros do Ministério da Saúde, até 2024). Nos municípios, média dos últimos 3 anos. O Atlas não publica município sem homicídio no ano, e ele entra como taxa zero.' },
   var_pib: { rotulo: 'variação do PIB per capita no mandato', mandato: true, paleta: VERDES, texto: v => `${numeroBr(v, 1, true)}%`,
-    explica: 'Quanto o PIB per capita mudou entre o ano da eleição e o último ano medido do mandato de quem foi eleito (governador no mapa do Brasil, prefeito no mapa do estado). É a preços correntes: parte da alta é só inflação.' },
+    explica: 'Quanto o PIB per capita real (corrigido pelo IPCA) mudou entre o ano da eleição e o último ano medido do mandato de quem foi eleito (governador no mapa do Brasil, prefeito no mapa do estado). Já desconta a inflação.' },
   var_hom: { rotulo: 'variação dos homicídios no mandato', mandato: true, paleta: DIVERGE, divergente: true, texto: v => `${numeroBr(v, 1, true)} por 100 mil`,
     explica: 'Quanto a taxa de homicídios (média de 3 anos) mudou entre o ano da eleição e o último ano medido do mandato. Verde: caiu; laranja: subiu. Os mandatos sem desfecho medido (eleição de 2024, e governador de 2022 no PIB) ficam hachurados.' },
+  emprego: { rotulo: 'empregos formais / mil hab', anos: d3.range(2011, 2025), paleta: VERDES, texto: v => `${numeroBr(v, 1)} / mil`,
+    explica: 'Empregos formais por mil habitantes (CEMPRE/IBGE, Cadastro Central de Empresas, até 2024). Conta o pessoal ocupado total em empresas e organizações formalmente registradas; não inclui trabalhadores informais.' },
+  desocupacao: { rotulo: 'taxa de desocupação', anos: d3.range(2012, 2026), paleta: LARANJAS, somenteUF: true, texto: v => `${numeroBr(v, 1)}%`,
+    explica: 'Porcentagem da força de trabalho que procura emprego e não encontra (PNAD Contínua/IBGE, 4º trimestre, até 2025). Só existe por estado, não por município. Não há dado estadual em 2020 e 2021 por causa das restrições da pandemia.' },
+  informalidade: { rotulo: 'taxa de informalidade', anos: d3.range(2015, 2026), paleta: LARANJAS, somenteUF: true, texto: v => `${numeroBr(v, 1)}%`,
+    explica: 'Porcentagem dos ocupados em trabalho informal (PNAD Contínua/IBGE, 4º trimestre, a partir de 2015). Inclui empregados sem carteira, conta-própria sem CNPJ e trabalhadores familiares. Só existe por estado. Sem dado em 2020-2021.' },
+  var_emp: { rotulo: 'variação dos empregos no mandato', mandato: true, paleta: VERDES, texto: v => `${numeroBr(v, 1, true)} / mil`,
+    explica: 'Quanto os empregos formais por mil habitantes mudaram entre o ano da eleição e o último ano medido do mandato. Mais verde: mais empregos formais criados.' },
+  var_desoc: { rotulo: 'variação da desocupação no mandato', mandato: true, paleta: DIVERGE, divergente: true, somenteUF: true, texto: v => `${numeroBr(v, 1, true)} pp`,
+    explica: 'Quanto a taxa de desocupação (em pontos percentuais) mudou entre o ano da eleição e o último medido do mandato. Verde: caiu (bom); laranja: subiu.' },
+  var_inf: { rotulo: 'variação da informalidade no mandato', mandato: true, paleta: DIVERGE, divergente: true, somenteUF: true, texto: v => `${numeroBr(v, 1, true)} pp`,
+    explica: 'Quanto a taxa de informalidade (em pontos percentuais) mudou entre o ano da eleição e o último medido do mandato. Verde: caiu; laranja: subiu.' },
+  agua: { rotulo: '% domicílios com água da rede', anos: [2010, 2022], paleta: AZUIS, texto: v => `${numeroBr(v, 1)}%`,
+    explica: 'Porcentagem de domicílios com abastecimento de água da rede geral (Censo/IBGE, 2010 e 2022). Nos anos entre os censos, o valor é o do censo mais próximo.' },
+  esgoto: { rotulo: '% domicílios com esgoto adequado', anos: [2010, 2022], paleta: AZUIS, texto: v => `${numeroBr(v, 1)}%`,
+    explica: 'Porcentagem de domicílios com esgotamento sanitário adequado: rede geral/pluvial ou fossa séptica (Censo/IBGE, 2010 e 2022). Nos anos entre os censos, o valor é o do censo mais próximo.' },
 };
 const ehMandato = ind => Boolean(IND[ind].mandato);
 const anosDe = ind => (ehMandato(ind) ? (estado.uf ? [2012, 2016, 2020] : [2014, 2018, 2022]) : IND[ind].anos);
@@ -64,6 +117,7 @@ function leEndereco() {
   estado.ind = IND[p.get('ind')] ? p.get('ind') : PADRAO.ind;
   estado.uf = ufsProjeto.has(p.get('uf')) ? p.get('uf') : null;
   estado.mun = estado.uf && /^\d{5}$/.test(p.get('mun') ?? '') ? p.get('mun') : null;
+  if (estado.uf && IND[estado.ind].somenteUF) estado.ind = PADRAO.ind;
   const ano = Number(p.get('ano'));
   estado.ano = anosDe(estado.ind).includes(ano) ? ano : PADRAO.ano;
   ajustaAno();
@@ -96,16 +150,22 @@ const mandatoUF = (u, ano) => uf.ufs[u]?.governadores.find(m => m[D.eleicao] ===
 const mandatoMun = (cod, ano) => MUN[cod]?.prefeitos.find(m => m[D.eleicao] === ano);
 
 /** O valor de um indicador num lugar e ano: número, ou o índice do setor; null sem dado. */
+const POS_VAR = { var_pib: D.varPib, var_hom: D.varHom, var_emp: D.varEmp, var_desoc: D.varDesoc, var_inf: D.varInf };
 function valor(terr, ind, ano) {
   const ehMun = /^\d{5}$/.test(terr);
   if (ehMandato(ind)) {
     const m = ehMun ? mandatoMun(terr, ano) : mandatoUF(terr, ano);
-    return m ? m[ind === 'var_pib' ? D.varPib : D.varHom] ?? null : null;
+    return m ? m[POS_VAR[ind]] ?? null : null;
   }
   const l = ehMun ? linhaMun(terr, ano) : linhaUF(terr, ano);
   if (!l) return null;
   if (ind === 'pib') return l[ehMun ? M.pibPc : A.pibPc] ?? null;
   if (ind === 'homicidios') return l[ehMun ? M.hom3 : A.hom] ?? null;
+  if (ind === 'emprego') return l[ehMun ? M.empMil : A.empMil] ?? null;
+  if (ind === 'desocupacao') return ehMun ? null : (l[A.desoc] ?? null);
+  if (ind === 'informalidade') return ehMun ? null : (l[A.inf] ?? null);
+  if (ind === 'agua') return l[ehMun ? M.agua : A.agua] ?? null;
+  if (ind === 'esgoto') return l[ehMun ? M.esgoto : A.esgoto] ?? null;
   return ehMun ? l[M.setor] ?? null : indiceDoMaior([l[A.agro], l[A.ind], l[A.serv], l[A.adm]]);
 }
 const territorios = () => (estado.uf ? Object.keys(MUN) : UFS_PROJETO);
@@ -133,9 +193,16 @@ function montaEscala(ind) {
 function montaControles() {
   const ativo = document.activeElement;
   const foco = form.contains(ativo) ? ativo.name || ativo.id : null;
-  trocaMantendoTeclas(document.getElementById('grupo-indicador'), grupoOpcoes('ind', 'Indicador', [
+  const opcInd = [
     ['setor', 'setor que mais pesa'], ['pib', 'PIB per capita'], ['homicidios', 'homicídios'],
-    ['var_pib', 'variação do PIB no mandato'], ['var_hom', 'variação dos homicídios no mandato']], estado.ind));
+    ['emprego', 'empregos formais'],
+    ...(!estado.uf ? [['desocupacao', 'desocupação'], ['informalidade', 'informalidade']] : []),
+    ['agua', 'água da rede'], ['esgoto', 'esgoto adequado'],
+    ['var_pib', 'var. PIB no mandato'], ['var_hom', 'var. homicídios no mandato'],
+    ['var_emp', 'var. empregos no mandato'],
+    ...(!estado.uf ? [['var_desoc', 'var. desocupação no mandato'], ['var_inf', 'var. informalidade no mandato']] : []),
+  ];
+  trocaMantendoTeclas(document.getElementById('grupo-indicador'), grupoOpcoes('ind', 'Indicador', opcInd, estado.ind));
   const anos = anosDe(estado.ind), campo = document.getElementById('ano');
   campo.max = anos.length - 1;
   campo.value = anos.indexOf(estado.ano);
@@ -231,10 +298,19 @@ function pintaMapa(animar) {
     const nome = naUF ? nomeMun(k) : NOME_UF[f.properties.uf];
     return `${nome}: ${v == null ? 'sem dado' : textoValor(estado.ind, v)}${!naUF && !ufsProjeto.has(f.properties.uf) ? ' · fora dos seis estados do projeto' : ''}`;
   });
-  document.getElementById('legenda').innerHTML = `
+  const legDiv = document.getElementById('legenda');
+  legDiv.innerHTML = `
     <span class="legenda-titulo">${IND[estado.ind].rotulo[0].toUpperCase() + IND[estado.ind].rotulo.slice(1)}${ehMandato(estado.ind) ? `, eleição de ${estado.ano}` : `, ${estado.ano}`}</span>
     <span class="legenda-faixas">${escala.itens.map(([c, r]) => `<span><i style="background:${c}"></i>${r}</span>`).join('')}
       <span><i class="sem-dado"></i>sem dado</span></span>`;
+  if (IND[estado.ind].tipo === 'categorias') {
+    legDiv.querySelectorAll('.legenda-faixas > span').forEach(sp => {
+      const txt = sp.textContent.trim();
+      if (DEFINICAO_SETOR[txt]) sp.append(criaInfoBtn(DEFINICAO_SETOR[txt], legDiv));
+    });
+  }
+  const semDadoSpan = legDiv.querySelector('.legenda-faixas > span:last-child');
+  if (semDadoSpan) semDadoSpan.append(criaInfoBtn(DEFINICAO_SEM_DADO, legDiv));
   document.getElementById('dica').textContent = naUF
     ? 'Clique num município para ver os números dele; clique de novo para voltar ao estado.'
     : 'Os seis estados do projeto têm contorno escuro e podem ser clicados; os outros não fazem parte da base.';
@@ -253,7 +329,10 @@ async function desenhaMapa(animar = false) {
 
 function seleciona(f) {
   para();
-  if (!estado.uf) { estado.uf = f.properties.uf; estado.mun = null; }
+  if (!estado.uf) {
+    estado.uf = f.properties.uf; estado.mun = null;
+    if (IND[estado.ind].somenteUF) estado.ind = 'setor';
+  }
   else estado.mun = f.properties.mun === estado.mun ? null : f.properties.mun;
   atualiza();
 }
@@ -261,10 +340,11 @@ function seleciona(f) {
 // ---------------------------------------------------------------- santinho
 
 const VERSO_MANDATO = `<p>O PIB e o valor adicionado por setor vêm do IBGE (PIB dos Municípios), a taxa de homicídios do Atlas da Violência
-  (Ipea). Nos estados, o PIB e a população dos municípios são somados e a taxa de homicídios é a média dos municípios
+  (Ipea), os empregos formais do CEMPRE/IBGE (Cadastro Central de Empresas), a desocupação e informalidade da PNAD Contínua/IBGE, o saneamento do Censo/IBGE (2010 e 2022),
+  Nos estados, o PIB e a população dos municípios são somados e a taxa de homicídios é a média dos municípios
   ponderada pela população.</p>
   <p>A variação do mandato compara o ano da eleição com o último ano medido dentro dos quatro anos seguintes. O PIB per
-  capita é a preços correntes, sem descontar a inflação. Mostra o que mudou durante o mandato, não que o eleito causou a mudança.</p>`;
+  capita é a preços constantes de 2022, corrigido pelo IPCA (inflação já descontada). Mostra o que mudou durante o mandato, não que o eleito causou a mudança.</p>`;
 const nomeDoLugar = () => (estado.mun ? `${nomeMun(estado.mun)} (${estado.uf})` : estado.uf ? nomeUF(estado.uf) : 'Brasil');
 const pctsSetores = l => (estado.mun ? [l[M.agro], l[M.ind], l[M.serv], l[M.adm]] : [l[A.agro], l[A.ind], l[A.serv], l[A.adm]]);
 const mandatoDoLugar = ano => (estado.mun ? mandatoMun(estado.mun, ano) : mandatoUF(estado.uf, ano));
@@ -313,17 +393,32 @@ function desenhaSantinho() {
     linhas = pctsSetores(l).map((p, i) => [SETORES[i], p == null ? '—' : `${numeroBr(p)}%`]);
   } else if (ehMandato(ind)) {
     numero = textoValor(ind, v);
-    rotulo = ind === 'var_pib' ? `de variação do PIB per capita (preços correntes), do ano da eleição ao último medido do mandato.`
-      : 'de variação na taxa de homicídios (média de 3 anos), do ano da eleição ao último ano medido do mandato.';
+    const rotulosVar = { var_pib: 'de variação real do PIB per capita (R$ de 2022), do ano da eleição ao último medido do mandato.',
+      var_hom: 'de variação na taxa de homicídios (média de 3 anos), do ano da eleição ao último ano medido do mandato.',
+      var_emp: 'de variação nos empregos formais por mil habitantes, do ano da eleição ao último medido do mandato.',
+      var_desoc: 'de variação na taxa de desocupação (em pontos percentuais), do ano da eleição ao último medido do mandato.',
+      var_inf: 'de variação na taxa de informalidade (em pontos percentuais), do ano da eleição ao último medido do mandato.' };
+    rotulo = rotulosVar[ind];
+    const detalheVar = { var_pib: ['PIB per capita', `${real(m[D.pibIni])} → ${real(m[D.pibFim])} (${m[D.anoPib]})`],
+      var_hom: ['Homicídios', `${numeroBr(m[D.homIni])} → ${numeroBr(m[D.homFim])} (${m[D.anoHom]})`],
+      var_emp: ['Empregos / mil', `${numeroBr(m[D.empIni], 1)} → ${numeroBr(m[D.empFim], 1)} (${m[D.anoEmp]})`],
+      var_desoc: ['Desocupação', `${numeroBr(m[D.desocIni], 1)}% → ${numeroBr(m[D.desocFim], 1)}% (${m[D.anoDesoc]})`],
+      var_inf: ['Informalidade', `${numeroBr(m[D.infIni], 1)}% → ${numeroBr(m[D.infFim], 1)}% (${m[D.anoInf]})`] };
     linhas = [[estado.mun ? 'Prefeito eleito' : 'Governador eleito', nomeCurto(m[D.nome])],
-      ['Partido', m[D.partido]],
-      ind === 'var_pib' ? ['PIB per capita', `${real(m[D.pibIni])} → ${real(m[D.pibFim])} (${m[D.anoPib]})`]
-        : ['Homicídios', `${numeroBr(m[D.homIni])} → ${numeroBr(m[D.homFim])} (${m[D.anoHom]})`]];
+      ['Partido', m[D.partido]], detalheVar[ind]];
   } else {
-    numero = textoValor(ind, v).replace(' por 100 mil', '');
-    rotulo = ind === 'pib' ? 'de PIB por habitante, a preços correntes.' : 'homicídios por 100 mil habitantes.';
-    const base = estado.mun ? [l[M.pibPc], l[M.hom3]] : [l[A.pibPc], l[A.hom]];
-    linhas = [ind === 'pib' ? ['Homicídios', base[1] == null ? '—' : `${numeroBr(base[1])} por 100 mil`] : ['PIB per capita', base[0] == null ? '—' : real(base[0])]];
+    numero = textoValor(ind, v).replace(' por 100 mil', '').replace(' / mil', '');
+    const rotulosInd = { pib: 'de PIB por habitante, em R$ de 2022.', homicidios: 'homicídios por 100 mil habitantes.',
+      emprego: 'empregos formais por mil habitantes.', desocupacao: 'da força de trabalho desocupada.', informalidade: 'dos ocupados em trabalho informal.',
+      agua: 'dos domicílios com água da rede geral.', esgoto: 'dos domicílios com esgoto adequado.' };
+    rotulo = rotulosInd[ind] || '';
+    const base = estado.mun ? [l[M.pibPc], l[M.hom3], l[M.empMil], l[M.agua], l[M.esgoto]] : [l[A.pibPc], l[A.hom], l[A.empMil], l[A.agua], l[A.esgoto]];
+    if (ind === 'pib') linhas = [['Homicídios', base[1] == null ? '—' : `${numeroBr(base[1])} por 100 mil`]];
+    else if (ind === 'homicidios') linhas = [['PIB per capita', base[0] == null ? '—' : real(base[0])]];
+    else if (ind === 'emprego') linhas = [['PIB per capita', base[0] == null ? '—' : real(base[0])], ['Homicídios', base[1] == null ? '—' : `${numeroBr(base[1])} por 100 mil`]];
+    else if (ind === 'agua') linhas = [['Esgoto adequado', base[4] == null ? '—' : `${numeroBr(base[4], 1)}%`], ['Empregos formais', base[2] == null ? '—' : `${numeroBr(base[2], 1)} / mil hab`]];
+    else if (ind === 'esgoto') linhas = [['Água da rede', base[3] == null ? '—' : `${numeroBr(base[3], 1)}%`], ['Empregos formais', base[2] == null ? '—' : `${numeroBr(base[2], 1)} / mil hab`]];
+    else linhas = [['Empregos formais', base[2] == null ? '—' : `${numeroBr(base[2], 1)} / mil hab`]];
     const s = indiceDoMaior(pctsSetores(l));
     if (s != null) linhas.push(['Setor que mais pesa', SETORES[s]]);
   }
@@ -346,10 +441,10 @@ const nomeCurto = n => {
 function linhasDaSerie() {
   if (estado.mun) {
     return (MUN[estado.mun]?.anos ?? []).map(l => ({ ano: l[M.ano], pib: l[M.pibPc], hom: l[M.hom3],
-      pcts: [l[M.agro], l[M.ind], l[M.serv], l[M.adm]] }));
+      pcts: [l[M.agro], l[M.ind], l[M.serv], l[M.adm]], empMil: l[M.empMil], agua: l[M.agua], esgoto: l[M.esgoto] }));
   }
   return (uf.ufs[estado.uf]?.anos ?? []).map(l => ({ ano: l[A.ano], pib: l[A.pibPc], hom: l[A.hom],
-    pcts: [l[A.agro], l[A.ind], l[A.serv], l[A.adm]] }));
+    pcts: [l[A.agro], l[A.ind], l[A.serv], l[A.adm]], empMil: l[A.empMil], desoc: l[A.desoc], inf: l[A.inf], agua: l[A.agua], esgoto: l[A.esgoto] }));
 }
 
 /** Faixas dos mandatos no fundo dos gráficos, com a sigla do partido de quem foi eleito. */
@@ -380,6 +475,28 @@ function graficoLinha(dados, campo, cor, rotulo, mandatos, largura, formato, mar
   return g;
 }
 
+function graficoSaneamento(dados, mandatos, largura) {
+  const aguaVal = dados.filter(d => d.agua != null);
+  const esgotoVal = dados.filter(d => d.esgoto != null);
+  if (!aguaVal.length && !esgotoVal.length) return document.createTextNode('Sem dados de saneamento para este lugar.');
+  const longo = [
+    ...aguaVal.map(d => ({ ano: d.ano, valor: d.agua, tipo: 'Água da rede' })),
+    ...esgotoVal.map(d => ({ ano: d.ano, valor: d.esgoto, tipo: 'Esgoto adequado' })),
+  ];
+  return Plot.plot({
+    width: largura, height: 200, marginLeft: 40, marginRight: 14, style: ESTILO,
+    x: { tickFormat: d => String(d), label: null, domain: [2009.5, 2024.5] },
+    y: { label: null, grid: true, tickFormat: v => `${v}%`, domain: [0, 100] },
+    color: { domain: ['Água da rede', 'Esgoto adequado'], range: ['#3182bd', '#08519c'], legend: true },
+    marks: [
+      ...faixasMandatos(mandatos, 2024),
+      Plot.line(longo, { x: 'ano', y: 'valor', stroke: 'tipo', strokeWidth: 2.5 }),
+      Plot.dot(longo, { x: 'ano', y: 'valor', fill: 'tipo', r: 4, title: d => `${d.ano}: ${d.tipo} ${numeroBr(d.valor, 1)}%` }),
+      Plot.text(longo.filter(d => d.ano === 2022), { x: 'ano', y: 'valor', text: d => `${numeroBr(d.valor, 1)}%`, dx: 0, dy: -12, fontWeight: 700, fill: d => d.tipo === 'Água da rede' ? '#3182bd' : '#08519c' }),
+    ],
+  });
+}
+
 function graficoSetores(dados, largura) {
   const longo = dados.flatMap(d => (d.pcts.every(p => p == null) ? [] : d.pcts.map((p, i) => ({ ano: d.ano, setor: SETORES[i], pct: p ?? 0 }))));
   if (!longo.length) return `<p class="aviso-vazio">Sem peso por setor para este lugar.</p>`;
@@ -392,24 +509,140 @@ function graficoSetores(dados, largura) {
   });
 }
 
+let tabelaOrdem = { col: 'eleicao', dir: 'asc' };
+
+function extraiDadosMandato(m, comLugar, uf) {
+  return {
+    uf: comLugar ? uf : null,
+    eleicao: m[D.eleicao],
+    nome: m[D.nome],
+    partido: m[D.partido],
+    varPib: m[D.varPib],
+    pibIni: m[D.pibIni], pibFim: m[D.pibFim], anoPib: m[D.anoPib],
+    varHom: m[D.varHom],
+    homIni: m[D.homIni], homFim: m[D.homFim], anoHom: m[D.anoHom],
+    varEmp: m[D.varEmp],
+    empIni: m[D.empIni], empFim: m[D.empFim], anoEmp: m[D.anoEmp],
+    varDesoc: m.length > 22 ? m[D.varDesoc] : null,
+    desocIni: m.length > 22 ? m[D.desocIni] : null, desocFim: m.length > 22 ? m[D.desocFim] : null, anoDesoc: m.length > 22 ? m[D.anoDesoc] : null,
+    varInf: m.length > 22 ? m[D.varInf] : null,
+    infIni: m.length > 22 ? m[D.infIni] : null, infFim: m.length > 22 ? m[D.infFim] : null, anoInf: m.length > 22 ? m[D.anoInf] : null,
+    temGov: m.length > 22,
+    foto: m.at(-1) || null,
+    _m: m,
+  };
+}
+
+function ordenaMandatos(dados) {
+  const { col, dir } = tabelaOrdem;
+  return [...dados].sort((a, b) => {
+    let va = a[col], vb = b[col];
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'string') return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    return dir === 'asc' ? va - vb : vb - va;
+  });
+}
+
+function mostraModalMandato(d) {
+  const velho = document.querySelector('.modal-santinho');
+  if (velho) velho.remove();
+
+  const de = mandatoDe(d.eleicao);
+  const cargo = d.temGov ? 'Governador' : 'Prefeito';
+  const lugar = d.uf ? nomeUF(d.uf) : nomeDoLugar();
+  const faixa = `${cargo} · ${lugar} · ${de.de}–${de.ate}`;
+
+  const linhas = [['Partido', d.partido]];
+  linhas.push(['PIB per capita', d.varPib == null ? 'sem dado' : `${numeroBr(d.varPib, 1, true)}% (${real(d.pibIni)} → ${real(d.pibFim)}, ${d.anoPib})`]);
+  linhas.push(['Homicídios', d.varHom == null ? 'sem dado' : `${numeroBr(d.varHom, 1, true)} por 100 mil (${numeroBr(d.homIni)} → ${numeroBr(d.homFim)}, ${d.anoHom})`]);
+  linhas.push(['Empregos formais', d.varEmp == null ? 'sem dado' : `${numeroBr(d.varEmp, 1, true)} / mil hab (${numeroBr(d.empIni, 1)} → ${numeroBr(d.empFim, 1)}, ${d.anoEmp})`]);
+  if (d.temGov) {
+    linhas.push(['Desocupação', d.varDesoc == null ? 'sem dado' : `${numeroBr(d.varDesoc, 1, true)} pp (${numeroBr(d.desocIni, 1)}% → ${numeroBr(d.desocFim, 1)}%, ${d.anoDesoc})`]);
+    linhas.push(['Informalidade', d.varInf == null ? 'sem dado' : `${numeroBr(d.varInf, 1, true)} pp (${numeroBr(d.infIni, 1)}% → ${numeroBr(d.infFim, 1)}%, ${d.anoInf})`]);
+  }
+
+  const numero = d.varPib != null ? `${numeroBr(d.varPib, 1, true)}%` : '—';
+  const rotulo = d.varPib != null ? 'de variação real do PIB per capita (R$ de 2022).' : 'PIB sem dado para este mandato.';
+
+  const foto = d.foto ? fotoCandidato(d.foto, 'santinho-foto') : '';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-santinho';
+  modal.innerHTML = `<button class="modal-fechar" aria-label="Fechar">×</button>` +
+    santinho({ faixa, nome: d.nome, numero, rotulo, linhas, foto,
+      verso: VERSO_MANDATO, fonte: 'IBGE, Atlas da Violência, CEMPRE, PNAD, Censo' });
+  document.body.append(modal);
+  modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('.modal-fechar')) modal.remove(); });
+  document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', esc); } });
+}
+
 function tabelaMandatos(linhas, comLugar = false) {
   if (!linhas.length) return '<p class="aviso-vazio">Sem mandatos para mostrar.</p>';
-  const celula = (m) => {
-    const pib = m[D.varPib] == null ? '<span class="sem-info">sem dado</span>'
-      : `<strong>${numeroBr(m[D.varPib], 1, true)}%</strong><span class="situacao">${real(m[D.pibIni])} → ${real(m[D.pibFim])} (${m[D.anoPib]})</span>`;
-    const hom = m[D.varHom] == null ? '<span class="sem-info">sem dado</span>'
-      : `<strong class="${m[D.varHom] > 0 ? 'sobe' : 'cai'}">${numeroBr(m[D.varHom], 1, true)}</strong><span class="situacao">${numeroBr(m[D.homIni])} → ${numeroBr(m[D.homFim])} (${m[D.anoHom]})</span>`;
-    return [pib, hom];
+  const dados = linhas.map(l => {
+    const m = comLugar ? l.m : l;
+    return extraiDadosMandato(m, comLugar, comLugar ? l.uf : null);
+  });
+  const temGov = dados[0].temGov;
+  const ordenados = ordenaMandatos(dados);
+
+  const celula = d => {
+    const pib = d.varPib == null ? '<span class="sem-info">sem dado</span>'
+      : `<strong>${numeroBr(d.varPib, 1, true)}%</strong><span class="situacao">${real(d.pibIni)} → ${real(d.pibFim)} (${d.anoPib})</span>`;
+    const hom = d.varHom == null ? '<span class="sem-info">sem dado</span>'
+      : `<strong class="${d.varHom > 0 ? 'sobe' : 'cai'}">${numeroBr(d.varHom, 1, true)}</strong><span class="situacao">${numeroBr(d.homIni)} → ${numeroBr(d.homFim)} (${d.anoHom})</span>`;
+    const emp = d.varEmp == null ? '<span class="sem-info">sem dado</span>'
+      : `<strong class="${d.varEmp >= 0 ? 'cai' : 'sobe'}">${numeroBr(d.varEmp, 1, true)}</strong><span class="situacao">${numeroBr(d.empIni, 1)} → ${numeroBr(d.empFim, 1)} (${d.anoEmp})</span>`;
+    const r = [pib, hom, emp];
+    if (temGov) {
+      const desoc = d.varDesoc == null ? '<span class="sem-info">sem dado</span>'
+        : `<strong class="${d.varDesoc > 0 ? 'sobe' : 'cai'}">${numeroBr(d.varDesoc, 1, true)} pp</strong><span class="situacao">${numeroBr(d.desocIni, 1)}% → ${numeroBr(d.desocFim, 1)}% (${d.anoDesoc})</span>`;
+      const inf = d.varInf == null ? '<span class="sem-info">sem dado</span>'
+        : `<strong class="${d.varInf > 0 ? 'sobe' : 'cai'}">${numeroBr(d.varInf, 1, true)} pp</strong><span class="situacao">${numeroBr(d.infIni, 1)}% → ${numeroBr(d.infFim, 1)}% (${d.anoInf})</span>`;
+      r.push(desoc, inf);
+    }
+    return r;
   };
-  return `<div class="rolagem"><table class="tabela">
-    <thead><tr>${comLugar ? '<th>Estado</th>' : ''}<th>Mandato</th><th>Eleito</th><th>Partido</th>
-      <th class="num">PIB per capita<span class="situacao">variação nominal</span></th>
-      <th class="num">Homicídios<span class="situacao">variação por 100 mil</span></th></tr></thead>
-    <tbody>${linhas.map(l => {
-      const m = comLugar ? l.m : l, [pib, hom] = celula(m);
-      return `<tr>${comLugar ? `<td>${l.uf}</td>` : ''}<td>${mandatoDe(m[D.eleicao]).de}–${mandatoDe(m[D.eleicao]).ate}</td><td>${nomeCurto(m[D.nome])}</td><td>${m[D.partido]}</td>
-        <td class="num">${pib}</td><td class="num">${hom}</td></tr>`;
+
+  const th = (chave, rotulo, extra = '') => {
+    const cls = `num ordenavel${tabelaOrdem.col === chave ? ` ${tabelaOrdem.dir}` : ''}`;
+    return `<th class="${cls}" data-col="${chave}">${rotulo}${extra}</th>`;
+  };
+
+  const html = `<div class="rolagem"><table class="tabela" data-tabela-mandatos>
+    <thead><tr>${comLugar ? th('uf', 'Estado') : ''}${th('eleicao', 'Mandato')}${th('nome', 'Eleito')}${th('partido', 'Partido')}
+      ${th('varPib', 'PIB per capita', '<span class="situacao">var. real (R$ 2022)</span>')}
+      ${th('varHom', 'Homicídios', '<span class="situacao">var. por 100 mil</span>')}
+      ${th('varEmp', 'Empregos', '<span class="situacao">formais / mil hab</span>')}
+      ${temGov ? `${th('varDesoc', 'Desocupação', '<span class="situacao">var. em pp</span>')}${th('varInf', 'Informalidade', '<span class="situacao">var. em pp</span>')}` : ''}
+      </tr></thead>
+    <tbody>${ordenados.map((d, i) => {
+      const cols = celula(d);
+      return `<tr class="clicavel" data-midx="${i}">${comLugar ? `<td>${d.uf}</td>` : ''}<td>${mandatoDe(d.eleicao).de}–${mandatoDe(d.eleicao).ate}</td><td>${nomeCurto(d.nome)}</td><td>${d.partido}</td>
+        ${cols.map(c => `<td class="num">${c}</td>`).join('')}</tr>`;
     }).join('')}</tbody></table></div>`;
+
+  // attach events after render via setTimeout
+  setTimeout(() => {
+    const tabela = document.querySelector('[data-tabela-mandatos]');
+    if (!tabela) return;
+    tabela.querySelector('thead').addEventListener('click', e => {
+      const thEl = e.target.closest('th[data-col]');
+      if (!thEl) return;
+      const col = thEl.dataset.col;
+      if (tabelaOrdem.col === col) tabelaOrdem.dir = tabelaOrdem.dir === 'desc' ? 'asc' : 'desc';
+      else { tabelaOrdem.col = col; tabelaOrdem.dir = 'desc'; }
+      desenhaPainel();
+    });
+    tabela.querySelector('tbody').addEventListener('click', e => {
+      const tr = e.target.closest('tr[data-midx]');
+      if (!tr) return;
+      mostraModalMandato(ordenados[+tr.dataset.midx]);
+    });
+  }, 0);
+
+  return html;
 }
 
 let pedido = 0;
@@ -419,8 +652,9 @@ function desenhaPainel() {
     const todos = UFS_PROJETO.flatMap(u => (uf.ufs[u]?.governadores ?? []).map(m => ({ uf: u, m }))).sort((a, b) => a.uf.localeCompare(b.uf) || a.m[D.eleicao] - b.m[D.eleicao]);
     painel.innerHTML = `<h3>Os governadores dos seis estados e o que mudou no mandato</h3>
       ${tabelaMandatos(todos, true)}
-      <p class="apoio">A variação do PIB per capita é a preços correntes, sem descontar a inflação. O mandato de 2022 vai até 2026 e ainda não tem o PIB medido
-        (o IBGE publica o PIB com cerca de dois anos de atraso); a taxa de homicídios vai até 2024.</p>`;
+      <p class="apoio">A variação do PIB per capita é real (R$ de 2022, corrigida pelo IPCA). O mandato de 2022 vai até 2026 e ainda não tem o PIB medido
+        (o IBGE publica o PIB com cerca de dois anos de atraso); a taxa de homicídios vai até 2024; os empregos formais vêm do CEMPRE/IBGE (até 2024).
+        A desocupação e a informalidade vêm da PNAD Contínua (4º trimestre).</p>`;
     return;
   }
   const meu = ++pedido;
@@ -430,20 +664,33 @@ function desenhaPainel() {
   const largura = Math.min(760, painel.clientWidth || 560);
   const quem = estado.mun ? 'prefeitos' : 'governadores';
   const caixa = document.createElement('div');
+  const ehUF = !estado.mun;
   caixa.innerHTML = `
     <h3>O que mudou ${em(nm)}</h3>
     <p>As faixas cinzas dos gráficos são os mandatos de ${quem} eleitos, com o partido de cada um. Veja se a linha sobe ou desce dentro da faixa, e lembre
       que várias coisas, de fora do poder do eleito, empurram esses números.</p>
-    <h4>PIB per capita, a preços correntes</h4><div class="grafico" id="g-pib"></div>
+    <h4>PIB per capita, em R$ de 2022</h4><div class="grafico" id="g-pib"></div>
     <h4>Homicídios por 100 mil habitantes${estado.mun ? ' (média de 3 anos)' : ''}</h4><div class="grafico" id="g-hom"></div>
+    <h4>Empregos formais por mil habitantes</h4><div class="grafico" id="g-emp"></div>
+    ${ehUF ? '<h4>Taxa de desocupação (%)</h4><div class="grafico" id="g-desoc"></div>' : ''}
+    ${ehUF ? '<h4>Taxa de informalidade (%)</h4><div class="grafico" id="g-inf"></div>' : ''}
+    <h4>Saneamento: água da rede e esgoto adequado (%)</h4><div class="grafico" id="g-san"></div>
     <h4>Peso de cada setor no valor adicionado</h4><div class="grafico" id="g-setor"></div>
     <h4>${estado.mun ? 'Prefeitos eleitos' : 'Governadores eleitos'} e o que mudou no mandato</h4>
     ${tabelaMandatos(mandatos)}
-    <p class="apoio">Mandatos em andamento, ou sem o dado publicado ainda, aparecem como "sem dado". O PIB per capita é a preços correntes, e a taxa de homicídios
-      dos municípios pequenos oscila muito de um ano para outro: leia a tendência, não um ano isolado.</p>`;
+    <p class="apoio">Mandatos em andamento, ou sem o dado publicado ainda, aparecem como "sem dado". O PIB per capita é a preços constantes de 2022 (corrigido pelo IPCA), e a taxa de homicídios
+      dos municípios pequenos oscila muito de um ano para outro: leia a tendência, não um ano isolado.
+      Empregos formais vêm do CEMPRE/IBGE. ${ehUF ? 'A desocupação e a informalidade vêm da PNAD Contínua (4º trimestre); não há dado estadual em 2020-2021.' : ''}
+        Os indicadores de saneamento (água e esgoto) vêm do Censo/IBGE e só existem para 2010 e 2022.</p>`;
   if (meu !== pedido) return;
   caixa.querySelector('#g-pib').append(graficoLinha(dados, 'pib', COR.vitoria, 'PIB per capita', mandatos, largura, v => formata.real(v), 84));
   caixa.querySelector('#g-hom').append(graficoLinha(dados, 'hom', '#e2692a', 'homicídios', mandatos, largura, v => numeroBr(v)));
+  caixa.querySelector('#g-emp').append(graficoLinha(dados, 'empMil', '#3b6ea8', 'empregos formais', mandatos, largura, v => numeroBr(v, 1)));
+  if (ehUF) {
+    caixa.querySelector('#g-desoc').append(graficoLinha(dados, 'desoc', '#e2692a', 'desocupação', mandatos, largura, v => `${numeroBr(v, 1)}%`));
+    caixa.querySelector('#g-inf').append(graficoLinha(dados, 'inf', '#8c5a9e', 'informalidade', mandatos, largura, v => `${numeroBr(v, 1)}%`));
+  }
+  caixa.querySelector('#g-san').append(graficoSaneamento(dados, mandatos, largura));
   caixa.querySelector('#g-setor').append(graficoSetores(dados, largura));
   painel.replaceChildren(caixa);
 }
@@ -484,10 +731,20 @@ function secaoDosLugares(nome) {
 
 const textoMandato = m => {
   const pib = m[D.varPib] == null ? 'sem dado'
-    : `${numeroBr(m[D.varPib], 1, true)}% (${real(m[D.pibIni])} em ${m[D.eleicao]} para ${real(m[D.pibFim])} em ${m[D.anoPib]}, a preços correntes)`;
+    : `${numeroBr(m[D.varPib], 1, true)}% (${real(m[D.pibIni])} em ${m[D.eleicao]} para ${real(m[D.pibFim])} em ${m[D.anoPib]}, R$ de 2022)`;
   const hom = m[D.varHom] == null ? 'sem dado'
     : `${numeroBr(m[D.varHom], 1, true)} por 100 mil (${numeroBr(m[D.homIni])} em ${m[D.eleicao]} para ${numeroBr(m[D.homFim])} em ${m[D.anoHom]})`;
-  return `${nomeCurto(m[D.nome])} (${m[D.partido]}); PIB per capita: ${pib}; homicídios: ${hom}`;
+  const emp = m[D.varEmp] == null ? 'sem dado'
+    : `${numeroBr(m[D.varEmp], 1, true)} / mil hab (${numeroBr(m[D.empIni], 1)} em ${m[D.eleicao]} para ${numeroBr(m[D.empFim], 1)} em ${m[D.anoEmp]})`;
+  let txt = `${nomeCurto(m[D.nome])} (${m[D.partido]}); PIB per capita: ${pib}; homicídios: ${hom}; empregos formais: ${emp}`;
+  if (m.length > 22) {
+    const desoc = m[D.varDesoc] == null ? 'sem dado'
+      : `${numeroBr(m[D.varDesoc], 1, true)} pp (${numeroBr(m[D.desocIni], 1)}% em ${m[D.eleicao]} para ${numeroBr(m[D.desocFim], 1)}% em ${m[D.anoDesoc]})`;
+    const inf = m[D.varInf] == null ? 'sem dado'
+      : `${numeroBr(m[D.varInf], 1, true)} pp (${numeroBr(m[D.infIni], 1)}% em ${m[D.eleicao]} para ${numeroBr(m[D.infFim], 1)}% em ${m[D.anoInf]})`;
+    txt += `; desocupação: ${desoc}; informalidade: ${inf}`;
+  }
+  return txt;
 };
 
 registraRetrato(() => {
@@ -506,8 +763,13 @@ registraRetrato(() => {
     const mandatos = (estado.mun ? MUN[estado.mun]?.prefeitos : uf.ufs[estado.uf]?.governadores) ?? [];
     secoes.push({ titulo: `${estado.mun ? 'Prefeitos' : 'Governadores'} ${em(nome)} e o que mudou no mandato (do ano da eleição ao último ano medido do mandato)`,
       linhas: mandatos.map(m => [rotuloMandato(m[D.eleicao]), textoMandato(m)]) });
-    secoes.push({ titulo: `Série anual ${em(nome)}`, linhas: linhasDaSerie().map(l => [String(l.ano),
-      `PIB per capita ${l.pib == null ? 'sem dado' : real(l.pib)}; homicídios ${l.hom == null ? 'sem dado' : `${numeroBr(l.hom)} por 100 mil`}; setor que mais pesa ${indiceDoMaior(l.pcts) == null ? 'sem dado' : SETORES[indiceDoMaior(l.pcts)]}`]) });
+    secoes.push({ titulo: `Série anual ${em(nome)}`, linhas: linhasDaSerie().map(l => {
+      let txt = `PIB per capita ${l.pib == null ? 'sem dado' : real(l.pib)}; homicídios ${l.hom == null ? 'sem dado' : `${numeroBr(l.hom)} por 100 mil`}; empregos formais ${l.empMil == null ? 'sem dado' : `${numeroBr(l.empMil, 1)} / mil hab`}`;
+      if (l.desoc !== undefined) txt += `; desocupação ${l.desoc == null ? 'sem dado' : `${numeroBr(l.desoc, 1)}%`}; informalidade ${l.inf == null ? 'sem dado' : `${numeroBr(l.inf, 1)}%`}`;
+      if (l.agua != null || l.esgoto != null) txt += `; água da rede ${l.agua == null ? 'sem dado' : `${numeroBr(l.agua, 1)}%`}; esgoto adequado ${l.esgoto == null ? 'sem dado' : `${numeroBr(l.esgoto, 1)}%`}`;
+      txt += `; setor que mais pesa ${indiceDoMaior(l.pcts) == null ? 'sem dado' : SETORES[indiceDoMaior(l.pcts)]}`;
+      return [String(l.ano), txt];
+    }) });
   } else {
     secoes.push({ titulo: 'Governadores dos seis estados e o que mudou no mandato', linhas: UFS_PROJETO.flatMap(u =>
       (uf.ufs[u]?.governadores ?? []).map(m => [`${nomeUF(u)}, ${rotuloMandato(m[D.eleicao])}`, textoMandato(m)])) });
@@ -515,13 +777,69 @@ registraRetrato(() => {
   secoes.push({ titulo: 'Cuidados na leitura', linhas: [
     ['Mapa', estado.uf && !estado.mun ? 'o mapa do estado mostra os municípios; nos indicadores do mandato, os prefeitos eleitos no ano escolhido'
       : 'o mapa do Brasil mostra os seis estados; nos indicadores do mandato, os governadores eleitos no ano escolhido'],
-    ['PIB per capita', 'a preços correntes, sem descontar a inflação: parte da alta é só preço'],
+    ['PIB per capita', 'a preços constantes de 2022, corrigido pelo IPCA: a inflação já foi descontada'],
     ['Setores', 'o IBGE publica o valor adicionado por setor só até 2021; o PIB per capita, até 2022'],
     ['Homicídios', 'registros do Ministério da Saúde no Atlas da Violência; nos municípios, média de 3 anos, e os pequenos oscilam muito'],
     ['Homicídios sem registro', 'o Atlas não publica município sem nenhum homicídio no ano; a página conta o ausente como taxa zero (as taxas dos estados, somadas assim, batem com as do Atlas)'],
+    ['Empregos formais', 'do CEMPRE/IBGE (Cadastro Central de Empresas, até 2024): só conta trabalhadores em empresas e organizações formais'],
+    ['Desocupação e informalidade', 'da PNAD Contínua/IBGE (4º trimestre); só existem por estado, não por município; sem dado estadual em 2020 e 2021 por causa da pandemia'],
+    ['Saneamento', 'do Censo/IBGE, só em 2010 e 2022; água da rede: % com abastecimento da rede geral; esgoto adequado: % com rede geral/pluvial ou fossa séptica; nos anos entre censos, usa o dado do censo mais próximo'],
     ['Causa', 'mostra o que mudou durante o mandato, não que o eleito causou a mudança']] });
   return { numero: 11, pergunta: 'O que mudou no mandato?', recorte: `${nome} · ${rotulo}`, secoes };
 });
+
+// ---------------------------------------------------------------- busca de municípios
+
+const buscaCaixa = document.getElementById('busca-mun');
+const buscaInput = document.getElementById('busca-mun-input');
+const buscaLista = document.getElementById('busca-mun-lista');
+
+function normaliza(t) { return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+
+function atualizaBusca() {
+  buscaCaixa.hidden = !estado.uf;
+  if (!estado.uf) { buscaInput.value = ''; buscaLista.innerHTML = ''; return; }
+}
+
+buscaInput.addEventListener('input', () => {
+  const q = normaliza(buscaInput.value.trim());
+  if (q.length < 2) { buscaLista.innerHTML = ''; return; }
+  const resultados = Object.entries(MUN)
+    .filter(([, m]) => normaliza(m.nome).includes(q))
+    .sort((a, b) => {
+      const ai = normaliza(a[1].nome).indexOf(q), bi = normaliza(b[1].nome).indexOf(q);
+      return ai - bi || a[1].nome.localeCompare(b[1].nome);
+    })
+    .slice(0, 12);
+  buscaLista.innerHTML = resultados.map(([cod, m]) => {
+    const inicio = normaliza(m.nome).indexOf(q);
+    const nome = m.nome;
+    const marcado = nome.slice(0, inicio) + '<mark>' + nome.slice(inicio, inicio + q.length) + '</mark>' + nome.slice(inicio + q.length);
+    return `<li role="option" data-cod="${cod}">${marcado}</li>`;
+  }).join('');
+});
+
+buscaLista.addEventListener('click', e => {
+  const li = e.target.closest('li[data-cod]');
+  if (!li) return;
+  para();
+  estado.mun = li.dataset.cod;
+  buscaInput.value = '';
+  buscaLista.innerHTML = '';
+  atualiza();
+});
+
+buscaInput.addEventListener('keydown', e => {
+  const itens = [...buscaLista.querySelectorAll('li')];
+  if (!itens.length) return;
+  const atual = itens.findIndex(li => li.classList.contains('ativo'));
+  if (e.key === 'ArrowDown') { e.preventDefault(); itens.forEach(li => li.classList.remove('ativo')); itens[Math.min(atual + 1, itens.length - 1)].classList.add('ativo'); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); itens.forEach(li => li.classList.remove('ativo')); itens[Math.max(atual - 1, 0)].classList.add('ativo'); }
+  else if (e.key === 'Enter') { e.preventDefault(); const ativo = itens.find(li => li.classList.contains('ativo')); if (ativo) ativo.click(); }
+  else if (e.key === 'Escape') { buscaLista.innerHTML = ''; }
+});
+
+document.addEventListener('click', e => { if (!buscaCaixa.contains(e.target)) buscaLista.innerHTML = ''; });
 
 // ---------------------------------------------------------------- tudo junto
 
@@ -534,6 +852,7 @@ async function atualiza({ animar = false } = {}) {
   ajustaAno();
   escreveEndereco();
   montaControles();
+  atualizaBusca();
   await desenhaMapa(animar);
   if (meu !== ultima) return;
   desenhaSantinho();
