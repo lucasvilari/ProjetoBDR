@@ -1,10 +1,11 @@
 // Peças que as páginas das perguntas dividem: o seletor de recorte (ano, cargo, lugar), a leitura
 // dos candidatos de um recorte, o gráfico de dinheiro × votos e o cartão de um político.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261160';
-import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261160';
-import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261160';
-import { COR } from './lib/cores.js?v=20261160';
+import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261162';
+import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261162';
+import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261162';
+import { COR } from './lib/cores.js?v=20261162';
+import { registraRecortes } from './oraculo.js?v=20261162';
 
 export const UFS_PROJETO = ['AP', 'MG', 'MS', 'PB', 'RO', 'RR'];
 // a capital de cada estado, o município aberto quando a página precisa de um
@@ -99,7 +100,8 @@ export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMu
     await desenha();
     // as teclas são redesenhadas: o foco volta para a escolhida do mesmo grupo
     if (foco) form.querySelector(`[name="${foco}"]:checked, select[name="${foco}"]`)?.focus();
-    aoMudar(r);
+    await aoMudar(r);
+    return r;
   }
 
   form.addEventListener('change', e => {
@@ -109,6 +111,17 @@ export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMu
   });
   addEventListener('hashchange', () => aplica(ler()));
   aplica(r);
+  // o oráculo pode mudar o recorte pela pergunta do leitor ("presidente em 2026"): o lugar novo substitui o velho
+  const soRecorte = x => Object.fromEntries(['ano', 'cargo', 'uf', 'mun'].filter(k => x[k] != null).map(k => [k, x[k]]));
+  registraRecortes({
+    opcoes: { anos, cargosDoAno: cargosValidos, lugar: comLugar ? 'mun' : null },
+    atual: () => soRecorte(r),
+    aplica: async novo => {
+      const base = { ...r };
+      delete base.uf; delete base.mun;
+      return soRecorte(await aplica({ ...base, ...novo }));
+    },
+  });
   return { recorte: () => r, muda: novo => aplica({ ...r, ...novo }) };
 }
 

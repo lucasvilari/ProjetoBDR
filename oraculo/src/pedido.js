@@ -131,18 +131,22 @@ A faixa de prefeito lista os prefeitos eleitos de 2000 a 2024 no município esco
 partido, a pessoa ou nada (reeleição); a cor da faixa é a nota do partido (especialistas, 0 esquerda a 10 direita).
 As ampulhetas usam as eleições de prefeito de 2020 e 2024: a idade média dos eleitos na posse e a parcela de eleições em
 que o partido, ou a pessoa, mudou em relação à eleição anterior do mesmo município. Com um estado ou município
-escolhido, as ampulhetas e os grupos usam só os municípios daquele estado. "Jovem vota em jovem" divide os municípios em
-cinco grupos pela parcela de quem foi votar com até 34 anos e dá a idade média de quem recebeu os votos (com peso pelos
-votos) para prefeito ou vereador, em 2020 ou 2024 (só as eleições do município); a correlação é a de Pearson. Diferenças de poucos pontos entre os grupos são pequenas,
-e que duas coisas andem juntas não mostra que uma causa a outra (municípios jovens costumam ser também mais pobres ou
-mais urbanos, por exemplo).`,
+escolhido, as ampulhetas usam só os municípios daquele estado. A régua de idades compara, na eleição municipal de 2020
+ou de 2024, a idade média de quem foi votar no 1º turno com a dos eleitos na posse (vereadores e prefeitos), na mesma
+eleição: o TSE dá a idade de quem votou em faixas e cada faixa conta pelo meio (21 a 24 anos vale 23), então a média de
+quem votou é uma estimativa. Num estado ou nos seis, quem votou pesa pelo comparecimento e cada eleito conta uma vez; num
+município, o "prefeito" é uma pessoa só, não uma média. Quem vota pode ter 16 anos, mas para se eleger vereador é preciso
+ter 18 e prefeito 21, então parte da diferença vem da própria regra. Eleitos mais velhos que quem votou não mostram que o
+eleitor prefere gente mais velha (a carreira política leva tempo, por exemplo).`,
   7: `Questão 7, "Para que lado se vota?": o índice é a média das posições dos partidos, com peso pelos votos de cada um
 no 1º turno. Há duas réguas que não se comparam: a dos especialistas (0 esquerda a 10 direita), pela ideologia
 declarada, e a da Câmara (−100 a +100), pelo modo como o partido vota, que reflete muito o apoio ao governo da vez.
 Votos em partidos sem posição na régua ficam fora da conta. O índice descreve os votos do lugar, não as pessoas.`,
   8: `Questão 8, "Dinheiro público elege?": a parcela pública é o dinheiro dos fundos eleitoral e partidário dividido
-pela receita total da campanha. O leitor escolhe uma parcela nos cifrões e a página compara a taxa de vitória de quem
-tem pelo menos aquela parcela com a de quem tem menos. A parcela mede dependência do dinheiro público, não quanto o
+pela receita total da campanha. A página divide os candidatos em faixas dessa parcela, de 10 em 10%, com uma faixa só
+para quem fez a campanha toda com dinheiro público (100%); cada faixa conta só quem está nela, e para cada uma dá quantos
+candidatos, quantos eleitos e a taxa de vitória (eleitos ÷ candidatos da faixa). Faixas com poucos candidatos têm taxas
+que oscilam muito: um eleito em três candidatos já dá 33%. A parcela mede dependência do dinheiro público, não quanto o
 candidato recebeu: quem arrecada muito de doadores ou do próprio bolso tem parcela pública menor, mesmo recebendo
 bastante dos fundos, e quem quase não arrecada fora deles fica com 100% público mesmo recebendo pouco. Os fundos são
 distribuídos pelos partidos. Por isso a comparação não mostra que o dinheiro público causa (ou impede) a vitória.

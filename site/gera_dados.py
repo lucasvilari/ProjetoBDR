@@ -1842,10 +1842,10 @@ def parte_escolaridade_estados(conn):
     log(f'escolaridade dos estados: {len(eleitorado[anos[0]])} UFs')
 
 
-# Pergunta 6, com as regras de banco/sql/p06a_alternancia.sql e p06b_jovem_vota_jovem.sql: a idade mediana e o
+# Pergunta 6, com as regras de banco/sql/p06a_alternancia.sql e p06b_idade_eleitores_eleitos.sql: a idade mediana e o
 # índice de envelhecimento de cada município; os prefeitos eleitos de 2000 a 2024, na ordem das eleições, com o partido,
-# a idade na posse e a nota do partido (especialistas); a parcela de quem foi votar com até 34 anos e a idade média dos
-# candidatos com peso pelos votos, por município, nas eleições municipais (prefeito e vereador).
+# a idade na posse e a nota do partido (especialistas); e, nas eleições municipais de 2020 e 2024, a idade média de quem
+# foi votar e a dos eleitos para prefeito e vereador, por município.
 # só as eleições municipais: a página é por município, e só prefeito e vereador são disputados nele
 ANOS_JOVENS = (2020, 2024)
 CARGOS_JOVENS = ('PREFEITO', 'VEREADOR')
@@ -1860,26 +1860,30 @@ SQL_NOTAS_PARTIDOS = """
 SELECT i.ano, p.sigla, i.nota_especialistas FROM vw_ideologia_partido i JOIN partido p ON p.id_partido = i.id_partido
 WHERE i.nota_especialistas IS NOT NULL
 """
-# a parcela de jovens vem da mesma eleição do cargo: o TSE separa um ano em várias eleições, cada uma com o seu
-# comparecimento
-SQL_JOVENS = """
-SELECT pc.cod_eleicao, pc.cod_tse,
-       100.0 * SUM(pc.comparecimento) FILTER (WHERE SUBSTRING(pc.faixa_etaria FROM '^[0-9]+')::INT < 35)
-         / NULLIF(SUM(pc.comparecimento), 0)
-FROM perfil_comparecimento pc JOIN eleicao e ON e.cod_eleicao = pc.cod_eleicao
-WHERE pc.turno = 1 AND pc.faixa_etaria ~ '^[0-9]' AND e.ano = ANY(%(anos)s)
-GROUP BY 1, 2
-"""
-SQL_IDADE_VOTADA = """
-SELECT v.ano, v.cargo, v.cod_eleicao, vc.cod_tse, SUM(vc.votos * v.idade_posse)::NUMERIC / NULLIF(SUM(vc.votos), 0)
-FROM votos_cand vc JOIN vw_candidatura v ON v.sq_candidato = vc.sq_candidato
-WHERE vc.turno = 1 AND v.idade_posse > 0 AND v.ano = ANY(%(anos)s)
-GROUP BY 1, 2, 3, 4
+# a idade de quem votou vem da mesma eleição dos eleitos: o TSE separa um ano em várias eleições (a suplementar, a de
+# data adiada), cada uma com o seu comparecimento. As faixas de idade contam pelo meio, como na p06b.
+SQL_REGUA = """
+WITH votantes AS (
+    SELECT pc.cod_eleicao, pc.cod_tse,
+           SUM(pc.comparecimento * CASE
+                 WHEN pc.faixa_etaria ~ '^[0-9]+ anos$' THEN SUBSTRING(pc.faixa_etaria FROM '^[0-9]+')::NUMERIC + 0.5
+                 WHEN pc.faixa_etaria ~ ' a ' THEN (SUBSTRING(pc.faixa_etaria FROM '^[0-9]+')::NUMERIC
+                                                    + SUBSTRING(pc.faixa_etaria FROM ' a ([0-9]+)')::NUMERIC + 1) / 2
+                 ELSE 101 END) / NULLIF(SUM(pc.comparecimento), 0) AS idade,
+           SUM(pc.comparecimento) AS n
+    FROM perfil_comparecimento pc
+    WHERE pc.turno = 1 AND pc.faixa_etaria ~ '^[0-9]'
+    GROUP BY 1, 2
+)
+SELECT v.ano, v.cargo, v.ue, vt.idade, vt.n, AVG(v.idade_posse), COUNT(*)
+FROM vw_candidatura v JOIN votantes vt ON vt.cod_eleicao = v.cod_eleicao AND vt.cod_tse = v.ue
+WHERE v.eleito AND v.idade_posse > 0 AND v.ano = ANY(%(anos)s) AND v.cargo = ANY(%(cargos)s)
+GROUP BY 1, 2, 3, 4, 5
 """
 
 
 def parte_idade(conn):
-    log('idade: prefeitos de 2000 a 2024, perfil etário dos municípios e idade de quem recebeu os votos')
+    log('idade: prefeitos de 2000 a 2024, perfil etário dos municípios e idade de quem votou e de quem se elegeu')
     anos = list(ANOS_JOVENS)
     with conn.cursor() as cur:
         cur.execute('SELECT cod_tse, nome, uf, idade_mediana, indice_envelhecimento FROM municipio '
@@ -1892,13 +1896,12 @@ def parte_idade(conn):
         notas = defaultdict(dict)
         for ano, sigla, nota in cur.fetchall():
             notas[ano][sigla] = round(float(nota), 2)
-        cur.execute(SQL_JOVENS, {'anos': anos})
-        jovens_eleicao = {(el, cod): None if v is None else round(float(v), 2) for el, cod, v in cur.fetchall()}
-        cur.execute(SQL_IDADE_VOTADA, {'anos': anos})
-        votada, jovens = defaultdict(dict), defaultdict(dict)
-        for ano, cargo, el, cod, v in cur.fetchall():
-            votada[(ano, cargo)][cod] = None if v is None else round(float(v), 2)
-            jovens[(ano, cargo)][cod] = jovens_eleicao.get((el, cod))
+        cur.execute(SQL_REGUA, {'anos': anos, 'cargos': list(CARGOS_JOVENS)})
+        # regua[ano]['votantes'][cod] = [idade média, quem votou]; regua[ano][cargo][cod] = [idade média, eleitos]
+        regua = {ano: defaultdict(dict) for ano in anos}
+        for ano, cargo, cod, idade_v, n_v, idade_e, n_e in cur.fetchall():
+            regua[ano]['votantes'][cod] = [round(float(idade_v), 2), int(n_v)]
+            regua[ano][cargo][cod] = [round(float(idade_e), 2), int(n_e)]
     pids = mapa_pid(conn)
     # o partido é sigla e número: há siglas repetidas em partidos diferentes (o PSD de 41 e o de 55)
     partidos = Tabela()
@@ -1907,16 +1910,24 @@ def parte_idade(conn):
         pid, nome = pids.get(titulo, (None, None))
         prefeitos[ue].append(sem_vazios_no_fim([ano, nome, pid, partidos((sigla, numero)), idade,
                                                 f'{ano}/{sq}/{ue}' if sq > 0 and ano >= 2004 else None]))
-    cargos = {ano: [c for c in CARGOS_JOVENS if (ano, c) in votada] for ano in anos}
     grava('idade/idade.json', {
         'municipios': municipios, 'campos_prefeito': CAMPOS_PREFEITO, 'partidos': [list(p) for p in partidos.lista],
         'notas': {ano: notas[ano] for ano in sorted(notas)}, 'prefeitos': dict(prefeitos),
-        'anos': anos, 'cargos': cargos,
-        'jovens': {ano: {c: [jovens[(ano, c)].get(m[0]) for m in municipios] for c in cargos[ano]} for ano in anos},
-        'idade_votada': {ano: {c: [votada[(ano, c)].get(m[0]) for m in municipios] for c in cargos[ano]} for ano in anos},
+        'anos': anos, 'cargos': list(CARGOS_JOVENS),
+        'regua': {ano: {k: [regua[ano][k].get(m[0]) for m in municipios] for k in ('votantes', *CARGOS_JOVENS)}
+                  for ano in anos},
     })
     log(f'idade: {sum(map(len, prefeitos.values())):,} prefeitos em {len(prefeitos):,} municípios; '
         f'{tamanho_pasta(DADOS / "idade") / 1e6:.1f} MB')
+
+
+# o nome dos municípios dos seis estados, para o leitor de pedidos do oráculo achar o município citado numa pergunta
+def parte_lugares(conn):
+    with conn.cursor() as cur:
+        cur.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
+        municipios = [list(l) for l in cur.fetchall()]
+    grava('lugares.json', {'campos': ['cod', 'nome', 'uf'], 'municipios': municipios})
+    log(f'lugares: {len(municipios):,} municípios')
 
 
 PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
@@ -1926,7 +1937,7 @@ PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
           'dependencia': parte_dependencia, 'indices': parte_indices,
           'indices_estados': parte_indices_estados, 'escolaridade': parte_escolaridade,
           'escolaridade_estados': parte_escolaridade_estados, 'idade': parte_idade,
-          'retrospecto': parte_retrospecto}
+          'retrospecto': parte_retrospecto, 'lugares': parte_lugares}
 # partes que leem os dois bancos: recebem (nacional, seis estados)
 DOIS_BANCOS = {'candidaturas', 'propaganda', 'politicos'}
 
@@ -1942,7 +1953,7 @@ def main():
             with psycopg.connect(args.nacional) as nacional, psycopg.connect(args.banco) as seis:
                 PARTES[parte](nacional, seis)
             continue
-        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade', 'retrospecto') else args.nacional
+        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade', 'retrospecto', 'lugares') else args.nacional
         with psycopg.connect(dsn) as conn:
             PARTES[parte](conn)
 

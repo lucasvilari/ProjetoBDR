@@ -7,14 +7,14 @@
 //
 // Dados: politicos/ (busca e carreiras), indices/municipios.json e idade/idade.json (municípios),
 // candidaturas/<ue>-<ano>.json, mapa/ e vies/ (eleições).
-import { montaPagina, carregaDados, formata, NOME_UF, fotoCandidato } from './comum.js?v=20261160';
-import { ENDERECO, AVISOS } from './oraculo.js?v=20261160';
-import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261160';
-import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261160';
-import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261160';
-import { achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from './lib/cabine.js?v=20261160';
-import { ehRecusa } from './lib/som.js?v=20261160';
-import { toca, destrava } from './som.js?v=20261160';
+import { montaPagina, carregaDados, formata, NOME_UF, fotoCandidato } from './comum.js?v=20261162';
+import { ENDERECO, AVISOS } from './oraculo.js?v=20261162';
+import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261162';
+import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261162';
+import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261162';
+import { achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from './lib/cabine.js?v=20261162';
+import { ehRecusa } from './lib/som.js?v=20261162';
+import { toca, destrava } from './som.js?v=20261162';
 
 montaPagina();
 

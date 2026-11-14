@@ -868,23 +868,34 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .partido-escolhido .botao { font-size: 0.85rem; padding: 0.3rem 0.7rem; }
 
 /* pergunta 8: os cifrões que o leitor preenche */
-.p8-escolha { display: flex; flex-wrap: wrap; align-items: center; gap: var(--m1) var(--m3); margin: var(--m2) 0 0; }
-.cifroes-escolha { width: min(100%, 26rem); cursor: pointer; border-radius: 8px; padding: 0.3rem; touch-action: manipulation; }
-.cifroes-escolha svg { display: block; width: 100%; height: auto; }
-.cifroes-escolha:focus-visible { outline: 3px solid var(--corrige); outline-offset: 3px; }
-.alvo-cifrao { fill: transparent; }
-.cifroes-escolha .cifrao-vazio, .cifroes-escolha .cifrao-cheio { font-size: 40px; pointer-events: none; }
-.cifrao-cheio.cifrao-publico { fill: #2e8b7a; }
-.p8-valor { margin: 0; font-size: 1.05rem; }
-.p8-valor b { font-size: 1.6rem; font-weight: 900; font-stretch: 72%; }
-.dica-cifroes { margin: 0.2rem 0 var(--m2); font-size: 0.88rem; }
-.p8-taxas { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--m2); max-width: 46rem; }
-.p8-taxa { display: grid; gap: 0.15rem; padding: var(--m2); border: 2px solid var(--tecla); border-radius: 8px; background: var(--visor); }
-.p8-taxa-escolhida { box-shadow: 0 4px 0 var(--tecla); border-width: 3px; }
-.p8-taxa-titulo { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tinta-2); }
-.p8-taxa strong { font-size: 2.2rem; font-weight: 900; font-stretch: 72%; line-height: 1; }
+/* as colunas da pergunta 8: uma por faixa de dinheiro público; a altura é quantos candidatos, o verde quantos se elegeram */
+.p8-colunas { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)) minmax(0, 1.25fr); column-gap: 0.35rem;
+  max-width: 46rem; height: 17rem; margin: var(--m3) 0 0; }
+.p8-coluna { all: unset; box-sizing: border-box; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 0.3rem;
+  cursor: pointer; border-radius: 4px 4px 0 0; padding: 0 0.1rem; text-align: center; }
+.p8-coluna:disabled { cursor: default; }
+.p8-coluna:focus-visible { outline: 3px solid var(--corrige); outline-offset: 2px; }
+/* a taxa fica logo acima da coluna, presa ao topo dela */
+.p8-coluna-taxa { position: absolute; bottom: calc(100% + 0.2rem); left: 50%; transform: translateX(-50%); font-size: 0.78rem;
+  font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p8-coluna-poco { position: relative; margin-top: 1.4rem; border-bottom: 2px solid var(--tecla); margin-inline: -0.18rem; }
+.p8-coluna-barra { position: absolute; inset: auto 0.18rem 0; display: flex; flex-direction: column-reverse; min-height: 2px;
+  background: #cbbd9d; border: 1.5px solid var(--tecla); border-bottom: 0; transform-origin: bottom; }
+.p8-coluna-barra i { display: block; background: var(--confirma); }
+.p8-coluna-x { font-size: 0.75rem; color: var(--tinta-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p8-eixo-x { max-width: 46rem; margin: 0.2rem 0 0; text-align: center; font-size: 0.8rem; color: var(--tinta-2); }
+.p8-coluna[aria-pressed="true"] .p8-coluna-barra { box-shadow: 0 0 0 3px var(--ouro); }
+.p8-coluna[aria-pressed="true"] .p8-coluna-x { color: var(--tecla); font-weight: 800; }
+.p8-coluna:not(:disabled):hover .p8-coluna-barra { filter: brightness(1.06); }
+.p8-coluna-toda .p8-coluna-x { font-weight: 800; color: var(--tecla); }
+.p8-eleitos-faixa h3 { margin: var(--m3) 0 var(--m1); }
+.p8-eleitos-faixa h3 .apoio { display: block; font-size: 0.85rem; font-weight: 600; }
+@media (max-width: 600px) {
+  .p8-colunas { column-gap: 0.15rem; height: 14rem; }
+  .p8-coluna-taxa { font-size: 0.6rem; }
+  .p8-coluna-x { font-size: 0.58rem; letter-spacing: -0.02em; }
+}
 .p8-frase { margin: var(--m2) 0 0; max-width: var(--medida); }
-.p8-curva-titulo { margin: var(--m3) 0 0; font-weight: 750; }
 .eleitos-cifroes { list-style: none; padding: 0; margin: var(--m1) 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: 0.5rem var(--m2); }
 .eleitos-cifroes li { display: flex; align-items: center; gap: var(--m1); max-width: none; font-weight: 700; font-size: 0.92rem; }
 .eleitos-cifroes small { display: block; font-weight: 600; color: var(--tinta-2); }
@@ -1088,6 +1099,14 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .oraculo-pergunta textarea { font: inherit; font-size: 0.9rem; padding: 0.5rem; border: 1.5px solid var(--tecla); border-radius: 6px;
   background: #fff; resize: vertical; }
 .oraculo-pergunta .botao { justify-self: start; }
+.oraculo-mudanca { display: grid; gap: 0.3rem; padding: 0.5rem 0.7rem; border-left: 4px solid var(--ouro);
+  background: var(--ouro-fundo); border-radius: 0 6px 6px 0; font-size: 0.85rem; }
+.oraculo-mudanca[hidden] { display: none; }
+.oraculo-mudanca p { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.2rem 0.6rem; }
+.oraculo-mudanca-aviso { color: var(--corrige-texto); }
+.oraculo-desfaz { font: inherit; font-size: 0.8rem; font-weight: 700; padding: 0.1rem 0.5rem; border: 1.5px solid var(--tecla);
+  border-radius: 4px; background: var(--visor); cursor: pointer; }
+.oraculo-desfaz:disabled { opacity: 0.5; cursor: default; }
 .oraculo-resposta { font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap; }
 .oraculo-resposta:empty { display: none; }
 .oraculo-aviso { margin: 0; font-size: 0.78rem; color: var(--tinta-2); border-top: 1px solid var(--linha); padding-top: 0.5rem; }
@@ -1118,6 +1137,9 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .lugar-mini { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--m2); align-items: start; padding: 0.8rem 0;
   margin-bottom: var(--m3); border-bottom: 2px solid var(--tecla); }
 .lugar-mini .grupo-rotulo { padding-top: 0.3rem; }
+/* na pergunta 6, o ano e o cargo ficam dentro da seção que eles mudam; o lugar abre a página sozinho */
+body[data-pagina="pergunta-6"] .lugar-mini { border-top: 2px solid var(--tecla); }
+.seletor-secao { margin: var(--m2) 0 var(--m3); }
 .lugar-mini-corpo { display: flex; flex-wrap: wrap; gap: var(--m2) var(--m3); align-items: flex-start; }
 .mini-mapa { width: 260px; max-width: 100%; padding: 0.4rem; background: var(--visor); border: 2px solid var(--tecla); border-radius: var(--raio); }
 .mini-mapa .mapa-svg path { stroke: #7d7262; stroke-width: 0.6; }
@@ -1281,13 +1303,41 @@ section > h2 .sobre { display: block; font-size: 0.8rem; letter-spacing: 0.08em;
 .ampulheta dl div { display: flex; justify-content: space-between; gap: var(--m2); border-top: 1px dashed var(--linha); padding-top: 0.2rem; }
 .ampulheta dt { font-size: 0.85rem; color: var(--tinta-2); }
 .ampulheta dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
-.idade-trilho { background: var(--urna-funda); }
-.quintis-jovens .quintil { grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 1.6fr) 5rem; }
-.idade-trilho::after { display: none; }
-.quintis-jovens + .quintis-escala { padding-right: calc(5rem + var(--m2) + 0.5rem); }
-@media (max-width: 600px) {   /* como os outros quintis no celular: o trilho desce para a linha de baixo */
-  .quintis-jovens .quintil { grid-template-columns: minmax(0, 1fr) 5rem; }
-  .quintis-jovens + .quintis-escala { padding: 0 0.5rem; }
+/* a régua de idades da questão 6: quem foi votar é a linha escura; cada cargo, uma faixa até os eleitos. Cada fila
+   (o rótulo de quem votou, um cargo, o eixo) usa as mesmas três colunas: nome, trilho e diferença */
+.regua-idades { max-width: 52rem; margin: var(--m2) 0; }
+.regua-fila { display: grid; grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr) 7.5rem;
+  grid-template-areas: "nome trilho dif"; column-gap: var(--m2); align-items: center; }
+.regua-fila > .regua-nome { grid-area: nome; line-height: 1.2; }
+.regua-fila > .regua-diferenca { grid-area: dif; }
+.regua-fila > .regua-trilho { grid-area: trilho; position: relative; height: 2.8rem; }
+.regua-fila.regua-topo > .regua-trilho { height: 2.7rem; }
+.regua-fila.regua-eixo > .regua-trilho { height: 1.7rem; border-top: 2px solid var(--tecla); margin-top: 0.4rem; }
+.regua-eixo .regua-trilho > span { position: absolute; top: 0.3rem; transform: translateX(-50%); font-size: 0.8rem; color: var(--tinta-2);
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+.regua-eixo .regua-trilho > span::before { content: ""; position: absolute; left: 50%; top: -0.5rem; width: 1px; height: 0.45rem; background: var(--tecla); }
+.regua-eixo .regua-trilho > span.fim { transform: translateX(calc(-100% + 1ch)); }
+.regua-eixo .regua-trilho > span.fim::before { left: calc(100% - 1ch); }
+.regua-votantes { position: absolute; bottom: 0.2rem; transform: translateX(-50%); text-align: center; white-space: nowrap;
+  font-size: 0.85rem; line-height: 1.15; transition: left 0.5s var(--sai); }
+.regua-votantes b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.regua-votantes.na-borda-esq { transform: none; text-align: left; }
+.regua-votantes.na-borda-dir { transform: translateX(-100%); text-align: right; }
+.regua-linha { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: var(--tecla);
+  transition: left 0.5s var(--sai); }
+.regua-faixa { position: absolute; top: 50%; height: 0.9rem; transform: translateY(-50%); background: var(--cor); opacity: 0.35;
+  border-radius: 2px; transition: left 0.5s var(--sai), width 0.5s var(--sai); }
+.regua-ponto { position: absolute; top: 50%; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--cor);
+  border: 2px solid var(--papel); transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: left 0.5s var(--sai); }
+.regua-nome b { color: var(--cor-texto, var(--cor)); }
+.regua-nome small { display: block; color: var(--tinta-2); font-size: 0.8rem; }
+.regua-diferenca { font-weight: 800; font-size: 1.15rem; color: var(--cor-texto, var(--cor)); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.regua-diferenca small { display: block; font-weight: 400; font-size: 0.75rem; color: var(--tinta-2); }
+@media (prefers-reduced-motion: reduce) { .regua-faixa, .regua-ponto, .regua-linha, .regua-votantes { transition: none; } }
+@media (max-width: 600px) {   /* no celular, o nome e a diferença ficam numa linha e o trilho desce para a de baixo */
+  .regua-fila { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nome dif" "trilho trilho"; }
+  .regua-fila.regua-cargo { margin-top: var(--m1); }
 }
 
 /* a etiqueta dos mapas planos (questões 3, 4 e 6): o nome do lugar sob o ponteiro */

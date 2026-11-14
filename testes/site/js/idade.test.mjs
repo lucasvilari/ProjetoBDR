@@ -30,3 +30,21 @@ test('alternancia soma os municípios nos anos pedidos: idade média e parcela d
   assert.equal(r.pessoa, 25);
   assert.equal(r.eleicoes, 4);
 });
+
+test('mediaPonderada junta os municípios: cada média pesa pelo seu total, e quem não tem dado fica de fora', async () => {
+  const { mediaPonderada } = await import('../../../site/js/lib/idade.js');
+  // dois municípios de votantes: 40 anos com 100 pessoas e 46 com 300
+  assert.deepEqual(mediaPonderada([[40, 100], null, [46, 300]]), { media: 44.5, peso: 400, lugares: 2 });
+  // os eleitos contam um a um: 9 vereadores com 45 anos de média e 11 com 50
+  assert.deepEqual(mediaPonderada([[45, 9], [50, 11]]), { media: 47.75, peso: 20, lugares: 2 });
+  assert.deepEqual(mediaPonderada([null, null]), { media: null, peso: 0, lugares: 0 });
+});
+
+test('diferencaDeIdade diz quantos anos os eleitos têm a mais (ou a menos) que quem foi votar', async () => {
+  const { diferencaDeIdade } = await import('../../../site/js/lib/idade.js');
+  assert.equal(diferencaDeIdade(45.1, 49.7), '4,6 anos a mais');
+  assert.equal(diferencaDeIdade(45.1, 45.7), '0,6 ano a mais');
+  assert.equal(diferencaDeIdade(44, 41.5), '2,5 anos a menos');
+  assert.equal(diferencaDeIdade(44, 44.02), 'a mesma idade');
+  assert.equal(diferencaDeIdade(null, 44), null);
+});

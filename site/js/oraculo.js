@@ -1,10 +1,12 @@
 // O oráculo: um olho flutuante, no canto da tela, que acompanha o ponteiro. Clicado, abre um painel que lê o que a
 // página mostra agora (o retrato: o recorte escolhido, os números calculados e o que o leitor abriu) e pede uma
 // interpretação desses dados à função do oráculo na Cloudflare (pasta oraculo/ do repositório), que responde aos poucos.
-import { retratoEmTexto } from './lib/retrato.js?v=20261160';
-import { toca } from './som.js?v=20261160';
+import { retratoEmTexto } from './lib/retrato.js?v=20261162';
+import { achaNoTexto, recorteDoPedido } from './lib/leitor.js?v=20261162';
+import { toca } from './som.js?v=20261162';
 
 let montaRetrato = null;
+let recortePedido = null;
 
 // a função do oráculo (Cloudflare Workers, plano gratuito); vazia, o painel avisa que o oráculo não está ligado
 export const ENDERECO = 'https://oraculo.olhodopovo.workers.dev';
@@ -13,6 +15,15 @@ export const ENDERECO = 'https://oraculo.olhodopovo.workers.dev';
  *  filtros e as escolhas daquele momento. Devolve (ou promete) { numero, pergunta, recorte, secoes }, ou null. */
 export function registraRetrato(funcao) {
   montaRetrato = funcao;
+}
+
+/** A página diz que recortes a pergunta do leitor pode pedir e como aplicá-los: antes de responder, o oráculo procura
+ *  na pergunta um ano, um cargo, um estado, um município ou o Brasil e, se a página tiver esse recorte, muda a página
+ *  para ele (o leitor vê os mesmos números que a IA leu). `config`: { opcoes: { anos, cargosDoAno?, lugar?: 'mun' |
+ *  'uf', brasil? } (ou função que as devolve), atual: () => { ano, cargo?, uf?, mun? }, aplica: async novo => (a
+ *  página redesenhada) o recorte que ficou, rotulo?: recorte => texto }. */
+export function registraRecortes(config) {
+  recortePedido = config;
 }
 
 const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -38,6 +49,7 @@ export function montaOraculo() {
           <textarea id="oraculo-texto" rows="2" maxlength="300" placeholder="Ex.: resuma a página, ou: por que o gasto dos eleitos é tão maior?"></textarea>
           <button type="submit" class="botao" disabled>Interpretar</button>
         </form>
+        <div class="oraculo-mudanca" id="oraculo-mudanca" aria-live="polite" hidden></div>
         <div class="oraculo-resposta" id="oraculo-resposta" aria-live="polite"></div>
         <p class="oraculo-aviso">O oráculo é uma inteligência artificial e pode errar. Confira os números na página.</p>
       </div>
@@ -90,10 +102,63 @@ export function montaOraculo() {
   document.getElementById('oraculo-form').addEventListener('submit', async e => {
     e.preventDefault();
     if (!temPergunta()) return;
+    const texto = document.getElementById('oraculo-texto').value;
+    // a pergunta pode pedir outro recorte ("presidente em 2026"): a página muda antes, e o retrato já sai do novo
+    await mudaRecorte(texto);
     const retrato = await montaRetrato?.();
     if (!retrato) return;
     // o retrato é montado no envio: se o leitor mudou um filtro com o painel aberto, vale o novo
-    pergunta(retrato.numero, retratoEmTexto(retrato), document.getElementById('oraculo-texto').value);
+    pergunta(retrato.numero, retratoEmTexto(retrato), texto);
+  });
+}
+
+// ---------------------------------------------------------------- o recorte pedido na pergunta
+
+let lugares = null;      // os municípios dos seis estados ([cod, nome, uf]), lidos na primeira pergunta que precisa
+async function municipios() {
+  if (!lugares) {
+    const { carregaDados } = await import('./comum.js?v=20261162');
+    try { lugares = (await carregaDados('lugares.json')).municipios; } catch { lugares = []; }
+  }
+  return lugares;
+}
+
+/** O recorte em palavras: "presidente · Brasil · 2026", "vereador · João Pessoa (PB) · 2024". */
+async function rotuloPadrao(r, opcoes) {
+  const { NOME_UF } = await import('./comum.js?v=20261162');
+  const mun = r.mun ? (await municipios()).find(([cod]) => cod === r.mun) : null;
+  const lugar = mun ? `${mun[1]} (${mun[2]})` : r.uf ? NOME_UF[r.uf] : opcoes.lugar ? (opcoes.brasil === 'seis' ? 'os seis estados' : 'Brasil') : null;
+  return [r.cargo?.toLowerCase(), lugar, r.ano].filter(Boolean).join(' · ');
+}
+
+/** Procura na pergunta um recorte que a página tem e muda a página para ele; mostra no painel o que mudou (com o botão
+ *  de desfazer) e o que a página não tem. */
+async function mudaRecorte(texto) {
+  const caixa = document.getElementById('oraculo-mudanca');
+  caixa.hidden = true;
+  caixa.innerHTML = '';
+  if (!recortePedido) return;
+  const opcoes = typeof recortePedido.opcoes === 'function' ? recortePedido.opcoes() : recortePedido.opcoes;
+  const achados = achaNoTexto(texto, opcoes.lugar ? await municipios() : []);
+  const antes = recortePedido.atual();
+  const { novo, avisos } = recorteDoPedido(achados, antes, opcoes);
+  let rotulo = null;
+  if (novo) {
+    const ficou = await recortePedido.aplica(novo);
+    const mudou = JSON.stringify(ficou ?? novo) !== JSON.stringify(antes);
+    if (mudou) rotulo = await (recortePedido.rotulo ?? (r => rotuloPadrao(r, opcoes)))(ficou ?? novo);
+  }
+  if (!rotulo && !avisos.length) return;
+  caixa.innerHTML = `${rotulo ? `<p><span>A página mudou para <strong></strong>.</span>
+      <button type="button" class="oraculo-desfaz">Desfazer</button></p>` : ''}
+    ${avisos.map(() => '<p class="oraculo-mudanca-aviso"></p>').join('')}`;
+  if (rotulo) caixa.querySelector('strong').textContent = rotulo;
+  caixa.querySelectorAll('.oraculo-mudanca-aviso').forEach((p, i) => { p.textContent = avisos[i]; });
+  caixa.hidden = false;
+  caixa.querySelector('.oraculo-desfaz')?.addEventListener('click', async e => {
+    e.currentTarget.disabled = true;
+    await recortePedido.aplica(antes);
+    caixa.innerHTML = '<p>A página voltou ao recorte de antes; a resposta fala do recorte que a pergunta pediu.</p>';
   });
 }
 

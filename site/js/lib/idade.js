@@ -29,3 +29,25 @@ export function alternancia(listas, anos) {
   return { municipios, eleicoes, idade: nIdade ? somaIdade / nIdade : null,
     partido: eleicoes ? (100 * partido) / eleicoes : null, pessoa: comPessoa ? (100 * pessoa) / comPessoa : null };
 }
+
+// Quem é eleito tem a idade de quem vota? Cada município traz a idade média de quem foi votar (com o comparecimento) e a
+// dos eleitos de cada cargo (com quantos são); um estado, ou os seis, é a média dos municípios com esses pesos.
+
+/** A média de várias médias [valor, peso] (nulos ficam de fora): { media (null sem dado), peso total, lugares com dado }. */
+export function mediaPonderada(pares) {
+  let soma = 0, peso = 0, lugares = 0;
+  for (const p of pares) {
+    if (!p) continue;
+    soma += p[0] * p[1]; peso += p[1]; lugares += 1;
+  }
+  return { media: peso ? soma / peso : null, peso, lugares };
+}
+
+/** Quantos anos os eleitos têm a mais, ou a menos, que quem foi votar, em texto ("4,6 anos a mais"). */
+export function diferencaDeIdade(votantes, eleitos) {
+  if (votantes == null || eleitos == null) return null;
+  const d = Math.round((eleitos - votantes) * 10) / 10;
+  if (d === 0) return 'a mesma idade';
+  const n = Math.abs(d);
+  return `${n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${n < 2 ? 'ano' : 'anos'} a ${d > 0 ? 'mais' : 'menos'}`;
+}

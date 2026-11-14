@@ -9,13 +9,14 @@
 // indices/estados.json (os índices das 27 UFs), vies/brasil.json (o voto de cada UF, da pergunta 7), geo/ (contornos
 // do IBGE) e partidos-recorte/BR.json (a nota de cada partido em cada ano).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato } from './comum.js?v=20261160';
-import { grupoOpcoes, trocaMantendoTeclas, CAPITAIS, DA_UF } from './pecas.js?v=20261160';
-import { comparacao } from './lib/retrato.js?v=20261160';
-import { corIdeologia } from './lib/cores.js?v=20261160';
-import { spearman, forcaDaRelacao } from './lib/dinheiro.js?v=20261160';
-import { quintis, cortes, faixa, posicaoRelativa } from './lib/indices.js?v=20261160';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261160';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato } from './comum.js?v=20261162';
+import { registraRecortes } from './oraculo.js?v=20261162';
+import { grupoOpcoes, trocaMantendoTeclas, CAPITAIS, DA_UF } from './pecas.js?v=20261162';
+import { comparacao } from './lib/retrato.js?v=20261162';
+import { corIdeologia } from './lib/cores.js?v=20261162';
+import { spearman, forcaDaRelacao } from './lib/dinheiro.js?v=20261162';
+import { quintis, cortes, faixa, posicaoRelativa } from './lib/indices.js?v=20261162';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261162';
 
 montaPagina();
 
@@ -367,4 +368,19 @@ registraRetrato(async () => {
           `${rank.partidos[p]} (nota ${notaDe(rank.partidos[p], ano) == null ? '—' : virgula(notaDe(rank.partidos[p], ano), 1)}): ${formata.pct((100 * votos) / r.total)} dos votos${eleitos ? `, ${eleitos} ${eleitos === 1 ? 'eleito' : 'eleitos'}` : ''}`]) : [] },
     ],
   };
+});
+
+// ---------------------------------------------------------------- o recorte pedido ao oráculo
+
+// a pergunta do leitor pode pedir outro ano, cargo ou município; um estado sem município abre na capital dele
+registraRecortes({
+  opcoes: { anos: ind.anos, cargosDoAno: ano => ind.cargos[ano], lugar: 'mun' },
+  atual: () => ({ ano: estado.ano, ...(estado.cargo === TODOS ? {} : { cargo: estado.cargo }), uf: POR_COD.get(estado.mun)?.uf, mun: estado.mun }),
+  aplica: async novo => {
+    const mun = novo.mun ?? (novo.uf && novo.uf !== POR_COD.get(estado.mun)?.uf ? CAPITAIS[novo.uf] : estado.mun);
+    history.replaceState(null, '', `#${new URLSearchParams({ ano: novo.ano, mun, ...(novo.cargo ? { cargo: novo.cargo } : {}) })}`);
+    leEndereco();
+    await atualiza();
+    return { ano: estado.ano, ...(estado.cargo === TODOS ? {} : { cargo: estado.cargo }), uf: POR_COD.get(estado.mun)?.uf, mun: estado.mun };
+  },
 });

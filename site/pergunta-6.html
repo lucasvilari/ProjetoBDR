@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 22%27%3E%3Crect width=%2732%27 height=%2722%27 rx=%275%27 fill=%27%2322201c%27/%3E%3Cpath d=%27M4 11C10 3 22 3 28 11C22 19 10 19 4 11Z%27 fill=%27%23faf7ef%27 stroke=%27%2322201c%27 stroke-width=%271.5%27/%3E%3Ccircle cx=%2716%27 cy=%2711%27 r=%274.8%27 fill=%27%2322201c%27/%3E%3Ccircle cx=%2717.7%27 cy=%279.3%27 r=%271.5%27 fill=%27%23faf7ef%27/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/estilo.css?v=20261160">
-  <script src="js/transicao.js?v=20261160"></script>
-  <script type="module" src="js/pergunta-6.js?v=20261160"></script>
+  <link rel="stylesheet" href="css/estilo.css?v=20261162">
+  <script src="js/transicao.js?v=20261162"></script>
+  <script type="module" src="js/pergunta-6.js?v=20261162"></script>
 </head>
 <body data-pagina="pergunta-6">
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -19,12 +19,11 @@
   <main id="conteudo">
     <div class="cabeca">
       <h1>Cidade jovem troca mais de prefeito?</h1>
-      <p class="apoio">Municípios mais jovens trocam mais de prefeito? Elegem gente mais nova? E quem é jovem vota em
-        jovem? A idade de cada município é a mediana do Censo 2022; os prefeitos vão de 2000 a 2024. No mini mapa,
+      <p class="apoio">Municípios mais jovens trocam mais de prefeito? Elegem gente mais nova? E quem se elege tem a
+        idade de quem vota? A idade de cada município é a mediana do Censo 2022; os prefeitos vão de 2000 a 2024. No mini mapa,
         escolha um município para ver os prefeitos dele, ou um estado para ver só os municípios desse estado.</p>
     </div>
 
-    <form class="seletor" id="recorte" aria-label="Escolher ano e cargo"></form>
     <div class="lugar-mini" role="group" aria-labelledby="rotulo-lugar">
       <span class="grupo-rotulo" id="rotulo-lugar">Lugar</span>
       <div class="lugar-mini-corpo">
@@ -57,18 +56,20 @@
       <p id="frase-ampulhetas" class="frase-relacao"></p>
     </section>
 
-    <section class="bloco" aria-labelledby="t-jovens">
-      <h2 id="t-jovens"></h2>
-      <p class="apoio">Os municípios em cinco grupos de mesmo tamanho pela parcela de quem foi votar com até 34 anos. Em
-        cada grupo, a idade média de quem recebeu os votos para prefeito ou vereador, em 2020 ou 2024 (cada candidato pesa
-        pelos votos que teve ali). Se a idade cai
-        do 1º ao 5º grupo, onde há mais jovens votando, os votos vão para gente mais nova.</p>
-      <ol id="quintis-jovens" class="quintis quintis-jovens"></ol>
-      <p id="escala-jovens" class="quintis-escala" aria-hidden="true"></p>
-      <p id="frase-jovens" class="frase-relacao"></p>
-      <p class="apoio">A idade mediana existe só no Censo 2022, depois das eleições de 2018 e 2020; no verso do santinho,
-        o índice de envelhecimento do Censo 2010 ajuda a ver se o município já era velho antes. Consultas:
-        <code>p06a_alternancia.sql</code> e <code>p06b_jovem_vota_jovem.sql</code>.</p>
+    <section class="bloco" aria-labelledby="t-regua">
+      <h2 id="t-regua"></h2>
+      <p class="apoio">A idade média de quem foi votar no 1º turno e a de quem se elegeu vereador e prefeito, na mesma
+        eleição. A linha escura é quem votou; cada faixa vai dela até os eleitos, e o número ao lado diz quantos anos eles
+        têm a mais (ou a menos).</p>
+      <!-- o ano vale só aqui: a faixa de prefeito e as ampulhetas usam sempre os prefeitos de 2000 a 2024 -->
+      <form class="seletor seletor-secao" id="recorte" aria-label="Escolher o ano da régua de idades"></form>
+      <div id="regua-idades" class="regua-idades"></div>
+      <p id="frase-regua" class="frase-relacao"></p>
+      <p class="apoio">Quem vota pode ter 16 anos; para se eleger vereador é preciso ter 18, e prefeito, 21. O TSE dá a
+        idade de quem votou em faixas (21 a 24 anos, por exemplo), e cada faixa conta pelo meio; a dos eleitos é a da
+        posse. A idade mediana do município existe só no Censo 2022, depois das eleições de 2018 e 2020; no verso do
+        santinho, o índice de envelhecimento do Censo 2010 ajuda a ver se o município já era velho antes. Consultas:
+        <code>p06a_alternancia.sql</code> e <code>p06b_idade_eleitores_eleitos.sql</code>.</p>
     </section>
   </main>
 

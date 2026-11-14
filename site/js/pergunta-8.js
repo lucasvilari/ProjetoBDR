@@ -1,5 +1,5 @@
-// Pergunta 8: dinheiro público elege? O leitor preenche os dez cifrões com a parcela de dinheiro público na receita
-// e vê a taxa de vitória de quem tem pelo menos isso, contra quem tem menos; cada candidato como uma torneira (a
+// Pergunta 8: dinheiro público elege? Os candidatos em colunas pela parcela de dinheiro público na receita, de 10 em
+// 10%: quantos estão em cada faixa, quantos dela se elegeram e a taxa de vitória; cada candidato como uma torneira (a
 // receita dividida em pública e privada); os partidos pela dependência média e pela taxa de vitória; e os que mais
 // receberam, com o custo de cada voto pago com dinheiro público.
 //
@@ -7,14 +7,12 @@
 // fatia de 5% de dinheiro público); mapa/ (anos e nomes dos municípios);
 // candidaturas/<ue>-<ano>.json (cada candidato, com receita, receita pública e votos).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { comparacao } from './lib/retrato.js?v=20261160';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261160';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261160';
-import { COR } from './lib/cores.js?v=20261160';
-import { preenchimento, comPeloMenos, meiosDoClique } from './lib/cifroes.js?v=20261160';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261160';
-import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261160';
+import { comparacao } from './lib/retrato.js?v=20261162';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261162';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261162';
+import { porFaixa, faixaDaParcela } from './lib/cifroes.js?v=20261162';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261162';
+import { montaSeletor, leCandidaturas, nomeDe, AVISO_CONTAS_2026 } from './pecas.js?v=20261162';
 
 montaPagina();
 
@@ -63,112 +61,72 @@ function escorre(seletor, raiz) {
   raiz.querySelectorAll(seletor).forEach(el => { el.classList.add('a-encher'); observador.observe(el); });
 }
 
-// ---------------------------------------------------------------- os cifrões que o leitor preenche
+// ---------------------------------------------------------------- as colunas por faixa de dinheiro público
 
-let meios = 15;                 // a escolha: meios cifrões (cada um, 5% de dinheiro público); 15 = 75%
+let faixa = null;               // a coluna escolhida (0 a 10); null: a de mais eleitos
 let estado = null;              // { fatias, cands, nome, r } do recorte desenhado
 let pidDoLink = null;           // o candidato pedido no endereço (pid, de um link da cabine): marcado uma vez, na chegada
-const caixaCifroes = document.getElementById('cifroes-escolha');
-const L = 34, A = 46;
-const rotuloEscolha = m => (m === 0 ? 'qualquer parcela de dinheiro público' : m === 20 ? 'campanha toda com dinheiro público'
-  : `${m * 5}% ou mais de dinheiro público`);
-const aPartirDe = pct => (pct === 100 ? '100%' : `${pct}% ou mais`);
+const nomeFaixa = f => (f.faixa === 10 ? '100% público' : f.faixa === 9 ? '90% a menos de 100%' : `${f.de}% a ${f.ate}%`);
+const rotuloX = f => (f.faixa === 10 ? '100%' : f.faixa === 9 ? '90–99' : `${f.de}–${f.ate}`);
+// a taxa sobre a coluna, sem casa decimal para caber no celular (a exata está na faixa escolhida e no rótulo acessível)
+const taxaCurta = t => (t == null ? '' : t > 0 && t < 1 ? '<1%' : `${Math.round(t)}%`);
+const eleitosTxt = n => `${formata.numero(n)} ${n === 1 ? 'eleito' : 'eleitos'}`;
 
-/** Os dez cifrões, preenchidos até `m` meios cifrões (a escolha, ou a prévia sob o mouse). */
-function pintaCifroes(m) {
-  caixaCifroes.innerHTML = `<svg viewBox="0 0 ${L * 10} ${A}" aria-hidden="true">${preenchimento(m * 5).map((p, i) => `
-    <g data-i="${i}" transform="translate(${i * L} 0)"><rect class="alvo-cifrao" width="${L}" height="${A}"/>
-      <text x="${L / 2}" y="37" class="cifrao-vazio">$</text>
-      <clipPath id="esc-${i}"><rect width="${(L * p).toFixed(2)}" height="${A}"/></clipPath>
-      <text x="${L / 2}" y="37" class="cifrao-cheio cifrao-publico" clip-path="url(#esc-${i})">$</text></g>`).join('')}</svg>`;
-  document.getElementById('valor-escolha').innerHTML = `<b>${String(m / 2).replace('.', ',')}</b> ${m === 2 ? 'cifrão' : 'cifrões'}: ${rotuloEscolha(m)}`;
-}
-
-function meiosDoPonteiro(e) {
-  const g = e.target.closest('[data-i]');
-  if (!g) return null;
-  const r = g.getBoundingClientRect();
-  return meiosDoClique(Number(g.dataset.i), (e.clientX - r.left) / r.width);
-}
-
-function escolhe(m) {
-  meios = Math.max(0, Math.min(20, m));
-  caixaCifroes.setAttribute('aria-valuenow', String(meios * 5));
-  caixaCifroes.setAttribute('aria-valuetext', rotuloEscolha(meios));
-  pintaCifroes(meios);
-  if (estado) desenhaResultado();
-}
-
-caixaCifroes.addEventListener('pointermove', e => { const m = meiosDoPonteiro(e); if (m != null) pintaCifroes(m); });
-caixaCifroes.addEventListener('pointerleave', () => pintaCifroes(meios));
-caixaCifroes.addEventListener('click', e => {
-  const m = meiosDoPonteiro(e);
-  // clicar de novo no mesmo meio cifrão esvazia ele
-  if (m != null) escolhe(m === meios ? m - 1 : m);
-});
-caixaCifroes.addEventListener('keydown', e => {
-  const passo = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
-  if (passo) { e.preventDefault(); escolhe(meios + passo); }
-  if (e.key === 'Home') { e.preventDefault(); escolhe(0); }
-  if (e.key === 'End') { e.preventDefault(); escolhe(20); }
-});
-
-const cartaoTaxa = (titulo, x, destaque) => `<div class="p8-taxa${destaque ? ' p8-taxa-escolhida' : ''}">
-    <span class="p8-taxa-titulo">${titulo}</span>
-    <strong>${x.taxa == null ? '—' : formata.pct(x.taxa)}</strong>
-    <span class="apoio">${x.candidatos ? `${formata.numero(x.eleitos)} ${x.eleitos === 1 ? 'eleito' : 'eleitos'} de ${formata.numero(x.candidatos)} candidatos` : 'nenhum candidato'}</span>
-  </div>`;
-
-function desenhaResultado() {
+function desenhaColunas() {
   const { fatias, cands, r } = estado;
-  const caixa = document.getElementById('resultado-cifroes');
+  const caixa = document.getElementById('colunas-faixas'), frase = document.getElementById('frase-faixas');
   if (!fatias.length) {
     caixa.innerHTML = `<p class="aviso-vazio">Não há candidatos a ${minusculo(r.cargo)} com receita declarada ${em(estado.nome)} em ${r.ano}.</p>`;
-    document.getElementById('curva').innerHTML = document.getElementById('eleitos-cifroes').innerHTML = '';
+    frase.innerHTML = document.getElementById('eleitos-faixa').innerHTML = '';
     return;
   }
-  const { com, sem } = comPeloMenos(fatias, meios);
-  const todos = comPeloMenos(fatias, 0).com;
-  const pct = meios * 5;
-  const frase = meios === 0 || !sem.candidatos || !com.candidatos ? ''
-    : com.taxa > sem.taxa * 1.15 ? `Quem tinha ${aPartirDe(pct)} de dinheiro público se elegeu <strong>mais</strong> que os outros.`
-    : com.taxa < sem.taxa / 1.15 ? `Quem tinha ${aPartirDe(pct)} de dinheiro público se elegeu <strong>menos</strong> que os outros.`
-    : `Quem tinha ${aPartirDe(pct)} de dinheiro público se elegeu <strong>quase tanto quanto</strong> os outros.`;
-  caixa.innerHTML = `<div class="p8-taxas">
-      ${cartaoTaxa(meios === 0 ? 'Todos os candidatos' : `Com ${aPartirDe(pct)} público`, com, true)}
-      ${meios === 0 ? '' : cartaoTaxa(`Com menos de ${pct}%`, sem, false)}
-      ${meios === 0 ? '' : cartaoTaxa('Todos os candidatos', todos, false)}
-    </div>${frase ? `<p class="p8-frase">${frase}</p>` : ''}`;
+  const fs = porFaixa(fatias);
+  const candidatos = d3.sum(fs, f => f.candidatos), eleitos = d3.sum(fs, f => f.eleitos);
+  const maisEleitos = fs.reduce((a, b) => (b.eleitos > a.eleitos ? b : a));
+  if (faixa == null || !fs[faixa].candidatos) faixa = maisEleitos.candidatos ? maisEleitos.faixa : fs.find(f => f.candidatos).faixa;
+  const teto = Math.max(...fs.map(f => f.candidatos));
+  caixa.innerHTML = fs.map(f => {
+    const altura = (100 * f.candidatos) / teto;
+    // o verde é a parte eleita da coluna; com poucos eleitos, ao menos um fio, para não sumir
+    const verde = f.eleitos ? Math.max((100 * f.eleitos) / f.candidatos, 2) : 0;
+    return `<button type="button" class="p8-coluna${f.faixa === 10 ? ' p8-coluna-toda' : ''}" data-faixa="${f.faixa}" aria-pressed="${f.faixa === faixa}"
+        ${f.candidatos ? '' : 'disabled'} aria-label="${nomeFaixa(f)}: ${formata.numero(f.candidatos)} candidatos, ${eleitosTxt(f.eleitos)}${f.taxa == null ? '' : `, taxa de vitória de ${formata.pct(f.taxa)}`}">
+      <span class="p8-coluna-poco"><span class="p8-coluna-barra" style="height:${altura}%"><i style="height:${verde}%"></i>
+        <span class="p8-coluna-taxa">${taxaCurta(f.taxa)}</span></span></span>
+      <span class="p8-coluna-x">${rotuloX(f)}</span>
+    </button>`;
+  }).join('');
+  if (primeiraPintura && !reduz()) caixa.querySelectorAll('.p8-coluna-barra').forEach((el, i) =>
+    el.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 700, delay: 40 * i, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  const toda = fs[10];
+  const partes = [`Dos ${formata.numero(candidatos)} candidatos com receita, ${eleitosTxt(eleitos)} (${formata.pct((100 * eleitos) / candidatos)}).`];
+  if (maisEleitos.eleitos) partes.push(`A faixa com mais eleitos é a de <strong>${nomeFaixa(maisEleitos)}</strong>: ${formata.numero(maisEleitos.eleitos)} dos ${formata.numero(eleitos)}, de ${formata.numero(maisEleitos.candidatos)} candidatos nela.`);
+  if (toda.candidatos) partes.push(`<strong>${formata.pct((100 * toda.candidatos) / candidatos)} dos candidatos</strong> fizeram a campanha toda com dinheiro público, e ${toda.eleitos ? `${eleitosTxt(toda.eleitos)} (${formata.pct(toda.taxa)})` : '<strong>nenhum se elegeu</strong>'}.`);
+  frase.innerHTML = partes.join(' ');
+  desenhaEleitosDaFaixa(fs[faixa]);
+}
 
-  // a curva: a taxa de quem tem pelo menos cada parcela, de 0% a 100%, com a escolha marcada
-  const pontos = d3.range(0, 21).map(k => ({ k, pct: k * 5, ...comPeloMenos(fatias, k).com })).filter(p => p.candidatos);
-  const curva = document.getElementById('curva');
-  const largura = Math.min(760, curva.clientWidth || 700);
-  curva.replaceChildren(Plot.plot({
-    width: largura, height: 240, marginLeft: 48, marginBottom: 40,
-    style: { fontFamily: 'Archivo, sans-serif', fontSize: '12px', background: 'transparent' },
-    x: { domain: [0, 100], label: 'pelo menos esta parcela de dinheiro público (%) →', ticks: d3.range(0, 101, 10) },
-    y: { label: '↑ taxa de vitória (%)', grid: true, zero: true, nice: true },
-    marks: [
-      Plot.ruleY([todos.taxa], { stroke: COR.tecla, strokeDasharray: '4,3' }),
-      Plot.line(pontos, { x: 'pct', y: 'taxa', stroke: PUBLICO, strokeWidth: 2.5 }),
-      Plot.dot(pontos, { x: 'pct', y: 'taxa', r: p => (p.k === meios ? 7 : 3.5), fill: p => (p.k === meios ? COR.vitoria : PUBLICO),
-                         stroke: COR.tecla, strokeWidth: p => (p.k === meios ? 2 : 0.8),
-                         title: p => `${p.pct}% ou mais público: ${formata.pct(p.taxa)} (${formata.numero(p.eleitos)} de ${formata.numero(p.candidatos)})` }),
-      Plot.text([todos.taxa], { x: 100, y: d => d, text: d => `todos: ${formata.pct(d)}`, textAnchor: 'end', dy: -8, fill: COR.tecla, fontWeight: 700 }),
-    ],
-  }));
-  curva.insertAdjacentHTML('afterbegin', '<p class="p8-curva-titulo">A taxa de vitória para cada ponto dos cifrões</p>');
+document.getElementById('colunas-faixas').addEventListener('click', e => {
+  const b = e.target.closest('[data-faixa]');
+  if (!b || b.disabled) return;
+  faixa = Number(b.dataset.faixa);
+  document.querySelectorAll('#colunas-faixas [data-faixa]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  desenhaEleitosDaFaixa(porFaixa(estado.fatias)[faixa]);
+});
 
-  // os eleitos com pelo menos a parcela escolhida, quando há a lista de candidatos
-  const eleitos = cands.filter(c => c.eleito && parcela(c) != null && parcela(c) >= pct).sort((a, b) => (b.votos ?? 0) - (a.votos ?? 0));
-  document.getElementById('eleitos-cifroes').innerHTML = !cands.length ? '' : eleitos.length
-    ? `<h3>Quem se elegeu com ${aPartirDe(pct)} de dinheiro público <span class="apoio">(${formata.numero(eleitos.length)})</span></h3>
-      <ul class="eleitos-cifroes">${eleitos.slice(0, 12).map(c => `<li>${c.nomeado ? fotoCandidato(c.foto, 'torneira-foto') : ''}
+/** Quem se elegeu na faixa escolhida, quando há a lista de candidatos do recorte. */
+function desenhaEleitosDaFaixa(f) {
+  const { cands } = estado;
+  const caixa = document.getElementById('eleitos-faixa');
+  const cabeca = `<h3>${nomeFaixa(f)} de dinheiro público <span class="apoio">${formata.numero(f.candidatos)} candidatos · ${eleitosTxt(f.eleitos)}${f.taxa == null ? '' : ` · ${formata.pct(f.taxa)} se elegeram`}</span></h3>`;
+  if (!cands.length) { caixa.innerHTML = cabeca; return; }
+  const eleitos = cands.filter(c => c.eleito && faixaDaParcela(parcela(c)) === f.faixa).sort((a, b) => (b.votos ?? 0) - (a.votos ?? 0));
+  caixa.innerHTML = cabeca + (eleitos.length
+    ? `<ul class="eleitos-cifroes">${eleitos.slice(0, 12).map(c => `<li>${c.nomeado ? fotoCandidato(c.foto, 'torneira-foto') : ''}
         <span>${c.pid ? `<a href="pergunta-10.html#${c.pid}">${c.nome}</a>` : nomeDe(c)} <span class="apoio">${c.sigla}</span>
         <small>${formata.pct(parcela(c))} público · ${c.votos > 0 ? `${formata.numero(c.votos)} votos` : 'sem votos'}</small></span></li>`).join('')}</ul>
       ${eleitos.length > 12 ? `<p class="apoio">E mais ${formata.numero(eleitos.length - 12)}, com menos votos.</p>` : ''}`
-    : `<p class="apoio">Ninguém se elegeu com ${aPartirDe(pct)} de dinheiro público neste recorte.</p>`;
+    : '<p class="apoio">Ninguém se elegeu nesta faixa.</p>');
 }
 
 function desenhaTorneiras(lista, cands, destaque = null) {
@@ -235,8 +193,6 @@ function porPolitico(lista, cands) {
   }).join('');
 }
 
-escolhe(meios);
-
 const SEM_LISTA = 'A lista de candidatos existe por estado (cargos estaduais e federais), por município (prefeito e vereador) e para presidente. Escolha um desses recortes para ver cada candidato.';
 
 let pedido = 0;
@@ -246,9 +202,10 @@ async function atualiza(r) {
   if (meu !== pedido) return;
   const cands = todos.filter(c => c.cargo === r.cargo);
   document.getElementById('t-faixas').innerHTML = `<span class="sobre">${minusculo(r.cargo)} · ${nome} · ${r.ano}</span>
-    Preencha os cifrões: quanto da campanha veio de dinheiro público?`;
+    Onde estão os candidatos, e onde estão os eleitos?`;
+  if (estado && (estado.r.ano !== r.ano || estado.r.cargo !== r.cargo)) faixa = null;
   estado = { fatias, cands, nome, r };
-  desenhaResultado();
+  desenhaColunas();
   const vazio = `<p class="aviso-vazio">${SEM_LISTA}</p>`;
   if (!cands.length) {
     for (const id of ['torneiras', 'politicos', 'partidos']) document.getElementById(id).innerHTML = `<li>${vazio}</li>`;
@@ -265,13 +222,13 @@ async function atualiza(r) {
 
 // ---------------------------------------------------------------- o retrato para o oráculo
 
-/** O que a página mostra agora: a parcela de dinheiro público escolhida nos cifrões, a taxa de vitória de quem tem
- *  pelo menos isso e de quem tem menos, a curva de 10 em 10%, os partidos e quem mais recebeu dinheiro público. */
+/** O que a página mostra agora: as colunas por faixa de dinheiro público (candidatos, eleitos e taxa de cada faixa), a
+ *  faixa escolhida, os partidos e quem mais recebeu dinheiro público. */
 registraRetrato(() => {
   if (!estado) return null;
   const { fatias, cands, nome, r } = estado;
-  const taxaTxt = g => (g.candidatos ? `${formata.pct(g.taxa)} se elegeram (${formata.numero(g.eleitos)} de ${formata.numero(g.candidatos)})` : 'ninguém');
-  const { com, sem } = comPeloMenos(fatias, meios);
+  const fs = porFaixa(fatias);
+  const candidatos = d3.sum(fs, f => f.candidatos), eleitos = d3.sum(fs, f => f.eleitos);
   const comReceita = cands.filter(c => c.receita > 0);
   const partidos = d3.groups(comReceita, c => c.sigla).map(([sigla, cs]) => {
     const todos = cands.filter(c => c.sigla === sigla);
@@ -281,21 +238,23 @@ registraRetrato(() => {
   // dinheiro público ÷ votos, como nas torneiras dos políticos: de todos os candidatos juntos e só dos eleitos
   const porVotoDe = cs => custoPorVoto(d3.sum(cs, c => c.receita_publica ?? 0), d3.sum(cs, c => c.votos ?? 0));
   const porVotoTxt = v => (v == null ? null : `${formata.porVoto(v)} de dinheiro público por voto`);
+  const pctDe = (n, total) => (total ? formata.pct((100 * n) / total) : '—');
+  const escolhida = faixa == null ? null : fs[faixa];
+  const eleitosEscolhida = escolhida && cands.length ? cands.filter(c => c.eleito && faixaDaParcela(parcela(c)) === escolhida.faixa) : [];
   return {
     numero: 8, pergunta: 'Dinheiro público elege?',
     recorte: `${minusculo(r.cargo)} · ${nome} · ${r.ano}`,
     secoes: [
-      { titulo: `A escolha do leitor nos cifrões: pelo menos ${meios * 5}% da receita vinda de dinheiro público (fundo eleitoral e partidário)`,
+      { titulo: 'Colunas por faixa de dinheiro público na receita (fundo eleitoral e partidário); cada faixa conta só quem está nela',
         linhas: fatias.length ? [
-          [meios === 0 ? 'Todos os candidatos' : `Com pelo menos ${meios * 5}%`, taxaTxt(com)],
-          ...(meios === 0 ? [] : [[`Com menos de ${meios * 5}%`, taxaTxt(sem)], ['Todos os candidatos', taxaTxt(comPeloMenos(fatias, 0).com)]]),
+          ['Total', `${formata.numero(candidatos)} candidatos com receita, ${eleitosTxt(eleitos)} (${pctDe(eleitos, candidatos)})`],
+          ...fs.filter(f => f.candidatos).map(f => [nomeFaixa(f),
+            `${formata.numero(f.candidatos)} candidatos (${pctDe(f.candidatos, candidatos)} dos candidatos), ${eleitosTxt(f.eleitos)} (${pctDe(f.eleitos, eleitos)} dos eleitos), taxa de vitória ${formata.pct(f.taxa)}`]),
         ] : [[null, 'Não há candidatos com receita declarada neste recorte.']] },
-      { titulo: 'Comparações prontas (calculadas pela página)', linhas: meios === 0 ? [] : [
-        [`Taxa de quem tem pelo menos ${meios * 5}% (${com.candidatos ? formata.pct(com.taxa) : '—'}) em relação à de quem tem menos (${sem.candidatos ? formata.pct(sem.taxa) : '—'})`,
-          com.candidatos && sem.candidatos ? comparacao(com.taxa, sem.taxa) : null],
-      ] },
-      { titulo: 'Taxa de vitória de quem tem pelo menos cada parcela de dinheiro público',
-        linhas: d3.range(0, 21, 2).map(k => [`${k * 5}% ou mais`, taxaTxt(comPeloMenos(fatias, k).com)]) },
+      ...(escolhida ? [{ titulo: `Faixa escolhida pelo leitor: ${nomeFaixa(escolhida)}`, linhas: [
+        ['Taxa da faixa em relação à de todos', comparacao(escolhida.taxa, candidatos ? (100 * eleitos) / candidatos : null)],
+        ...eleitosEscolhida.sort((a, b) => (b.votos ?? 0) - (a.votos ?? 0)).slice(0, 12).map(c => [null, `${nomeDe(c)} (${c.sigla}): ${formata.pct(parcela(c))} público, ${c.votos > 0 ? `${formata.numero(c.votos)} votos` : 'sem votos'}`]),
+      ] }] : []),
       { titulo: 'Partidos: parcela média de dinheiro público na receita dos candidatos e taxa de vitória',
         linhas: partidos.slice(0, 15).map(p => [null, `${p.sigla}: ${formata.pct(p.parcela)} público em média, ${formata.numero(p.eleitos)} eleitos de ${formata.numero(p.candidatos)}`]) },
       { titulo: 'Quanto custou cada voto pago com dinheiro público (dinheiro público recebido ÷ votos no 1º turno)', linhas: [
