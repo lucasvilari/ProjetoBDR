@@ -1,13 +1,15 @@
 // Pergunta 10: como foi a carreira de um político? Busca por nome e, para o político escolhido, a linha do tempo
 // com um santinho por eleição (foto de 2004 em diante; votos, gasto e custo por voto de 2018 em diante), o resumo da carreira,
-// a trajetória ideológica dos partidos e a tabela de todas as candidaturas.
+// a trajetória ideológica dos partidos, quanto cresceu o patrimônio declarado e a tabela de todas as candidaturas.
 //
 // Dados: politicos/ (índice, fichas e carreiras; ver js/busca.js).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, formata, santinho, fotoCandidato, registraRetrato } from './comum.js?v=20261162';
-import { COR, corIdeologia } from './lib/cores.js?v=20261162';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261162';
-import { montaBusca, carreiraDe } from './busca.js?v=20261162';
+import { montaPagina, formata, santinho, fotoCandidato, registraRetrato } from './comum.js?v=20261163';
+import { COR, corIdeologia } from './lib/cores.js?v=20261163';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261163';
+import { montaBusca, carreiraDe } from './busca.js?v=20261163';
+import { evolucaoDoPatrimonio } from './lib/patrimonio.js?v=20261163';
+import { numeroBr } from './lib/retrospecto.js?v=20261163';
 
 montaPagina();
 
@@ -86,7 +88,8 @@ function cartao(c) {
       ${recente ? `<dl class="cartao-linhas">
         ${linhaCartao('Gasto', c.despesa ? formata.real(c.despesa) : falta('nenhum declarado'))}
         ${linhaCartao('Custo por voto', porVoto == null ? falta(c.votos > 0 ? 'sem gasto' : 'sem votos') : formata.porVoto(porVoto))}
-        ${linhaCartao('Patrimônio', c.patrimonio ? formata.real(c.patrimonio) : falta('nenhum bem'))}
+        ${linhaCartao('Patrimônio', (c.patrimonio ? formata.real(c.patrimonio) : falta('nenhum bem'))
+          + (c.varPatrimonio != null ? ` <span class="cartao-var ${c.varPatrimonio >= 0 ? 'positivo' : 'negativo'}">${pct(c.varPatrimonio)} desde ${c.anoPatrimonioAnterior}</span>` : ''))}
         ${linhaCartao('Dinheiro público', c.receita ? formata.pct((100 * (c.receita_publica ?? 0)) / c.receita) : falta('sem receita'))}
       </dl>` : ''}
       ${c.resultado === 'Resultado não informado' ? `<p class="apoio cartao-nota">${motivoSemResultado(c)}.</p>` : ''}
@@ -128,6 +131,45 @@ function graficoIdeologia(cands, largura) {
   });
 }
 
+// ---------------------------------------------------------------- patrimônio
+
+const pct = v => `${numeroBr(v, 1, true)}%`;
+
+/** Quanto cresceu o patrimônio: a frase com a mudança da primeira à última candidatura com bens e uma faixa por
+ *  candidatura de 2018 em diante (o ano no lugar da posição), com o patrimônio e a variação sobre a anterior. */
+function blocoPatrimonio(evo) {
+  if (!evo.passos.length) return '';
+  const { de, ate } = evo;
+  const frase = evo.variacao != null
+    ? `De ${formata.real(de.patrimonio)} em ${de.ano} para ${formata.real(ate.patrimonio)} em ${ate.ano}:
+       <strong class="${evo.variacao >= 0 ? 'positivo' : 'negativo'}">${pct(evo.variacao)}</strong>.`
+    : evo.passos.length === 1
+      ? `Só uma candidatura de 2018 em diante: ${ate.patrimonio ? formata.real(ate.patrimonio) : 'nenhum bem'} declarado em ${ate.ano}.`
+      : 'Não há duas candidaturas com bens declarados para comparar.';
+  const faixa = p => {
+    const cls = p.variacao == null ? '' : p.variacao >= 0 ? 'positivo' : 'negativo';
+    return `<div class="corrida-faixa corrida-anos">
+      <span class="corrida-pos">${p.ano}</span>
+      <span class="corrida-foto" aria-hidden="true">👤${p.foto_sq ? fotoCandidato(`${p.ano}/${p.foto_sq}/${p.ue}`, 'corrida-foto-img') : ''}</span>
+      <div class="corrida-corpo">
+        <span class="corrida-nome">${p.cargo.toLowerCase()}${ganhou(p) ? ' · eleito' : ''}</span>
+        <span class="corrida-meta"><span class="corrida-partido">${p.sigla}</span><span class="corrida-lugar">${p.local}</span></span>
+      </div>
+      <div class="corrida-numeros">
+        <span class="corrida-valor">${p.patrimonio ? formata.real(p.patrimonio) : 'nenhum bem'}</span>
+        <span class="corrida-sub ${cls}">${p.variacao != null ? `${pct(p.variacao)} desde ${p.anoAnterior}` : 'sem eleição anterior com bens'}</span>
+      </div>
+    </div>`;
+  };
+  return `<section class="bloco-ficha" aria-labelledby="t-patrimonio">
+    <h3 id="t-patrimonio">Quanto cresceu o patrimônio</h3>
+    <p class="patrimonio-frase">${frase}</p>
+    <p class="apoio">Soma dos bens declarados ao TSE em cada candidatura (publicados de 2018 em diante), comparada com a
+      candidatura anterior que declarou algum bem. Valores nominais, sem descontar a inflação.</p>
+    <div class="corrida">${evo.passos.map(faixa).join('')}</div>
+  </section>`;
+}
+
 // ---------------------------------------------------------------- tabela
 
 const dinheiro = v => (v == null ? '' : formata.real(v));
@@ -160,7 +202,14 @@ async function abre(id) {
   if (!dados) { naoEncontrado(); return; }
   const { nome, cands } = dados;
   cands.forEach(c => { c.resultado = resultado(c); });
-  aberto = { nome, cands };
+  const evo = evolucaoDoPatrimonio(cands);
+  const comPatrimonio = cands.filter(x => x.patrimonio != null).sort((a, b) => a.ano - b.ano);
+  evo.passos.forEach((p, i) => {
+    const c = comPatrimonio[i];
+    c.varPatrimonio = p.variacao;
+    c.anoPatrimonioAnterior = p.anoAnterior;
+  });
+  aberto = { nome, cands, evo };
   document.title = `${nome} · Olho do Povo`;
   ficha.innerHTML = `
     <h2 class="ficha-nome">${nome}</h2>
@@ -174,6 +223,7 @@ async function abre(id) {
         <div id="g-ideo" class="grafico rola"></div>
       </section>
     </div>
+    ${blocoPatrimonio(evo)}
     <section class="bloco-ficha" aria-labelledby="t-linha">
       <h3 id="t-linha">Linha do tempo</h3>
       ${linhaDoTempo(cands)}
@@ -216,7 +266,7 @@ let aberto = null;     // { nome, cands }: o político cuja carreira está na te
  *  página mostra (votos, gasto, custo por voto, patrimônio e dinheiro público, de 2018 em diante). */
 registraRetrato(() => {
   if (!aberto) return null;
-  const { nome, cands } = aberto;
+  const { nome, cands, evo } = aberto;
   const s = resumo(cands);
   const linha = c => {
     const partes = [`${c.ano}, ${c.cargo.toLowerCase()} ${c.local === 'Brasil' ? 'no Brasil' : `em ${c.local}`}, ${c.sigla}: ${c.resultado.toLowerCase()}${c.resultado === 'Resultado não informado' ? ` — ${motivoSemResultado(c)}` : ''}`];
@@ -227,6 +277,7 @@ registraRetrato(() => {
       const pv = custoPorVoto(c.despesa, c.votos);
       if (pv != null) partes.push(`${formata.porVoto(pv)} por voto`);
       if (c.patrimonio) partes.push(`patrimônio ${formata.real(c.patrimonio)}`);
+      if (c.varPatrimonio != null) partes.push(`${pct(c.varPatrimonio)} de patrimônio sobre ${c.anoPatrimonioAnterior}`);
       if (c.receita) partes.push(`${formata.pct((100 * (c.receita_publica ?? 0)) / c.receita)} da receita de dinheiro público`);
     }
     return [null, partes.join(', ')];
@@ -242,6 +293,8 @@ registraRetrato(() => {
       ] },
       { titulo: 'Cada candidatura (nota do partido: especialistas, 0 esquerda a 10 direita; números de campanha só de 2018 em diante)',
         linhas: [...cands].sort((a, b) => a.ano - b.ano).map(linha) },
+      ...(evo.variacao != null ? [{ titulo: 'Patrimônio declarado (nominal, sem descontar a inflação)', linhas: [
+        [`De ${evo.de.ano} a ${evo.ate.ano}`, `${formata.real(evo.de.patrimonio)} → ${formata.real(evo.ate.patrimonio)} (${pct(evo.variacao)})`]] }] : []),
     ],
   };
 });
@@ -259,3 +312,4 @@ function rotaAtual() {
 }
 addEventListener('hashchange', rotaAtual);
 rotaAtual();
+

@@ -49,6 +49,7 @@ def _coletar_homicidios(cli, raiz: Path) -> list[Path]:
 
     É a mesma API que alimenta o botão CSV do site; devolve todos os municípios de uma vez.
     As séries estimadas (368) só existem por UF, por isso a de registrados.
+    O Atlas não publica município sem homicídio no ano (nenhum valor zero): a carga trata o ausente como zero.
     """
     linhas = obter_json(cli, ATLAS_VIOLENCIA.format(serie=SERIE_HOMICIDIOS_REGISTRADOS,
                                                     tipo_regiao=REGIAO_MUNICIPIO))

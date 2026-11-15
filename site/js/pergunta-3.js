@@ -9,14 +9,14 @@
 // indices/estados.json (os índices das 27 UFs), vies/brasil.json (o voto de cada UF, da pergunta 7), geo/ (contornos
 // do IBGE) e partidos-recorte/BR.json (a nota de cada partido em cada ano).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato } from './comum.js?v=20261162';
-import { registraRecortes } from './oraculo.js?v=20261162';
-import { grupoOpcoes, trocaMantendoTeclas, CAPITAIS, DA_UF } from './pecas.js?v=20261162';
-import { comparacao } from './lib/retrato.js?v=20261162';
-import { corIdeologia } from './lib/cores.js?v=20261162';
-import { spearman, forcaDaRelacao } from './lib/dinheiro.js?v=20261162';
-import { quintis, cortes, faixa, posicaoRelativa } from './lib/indices.js?v=20261162';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261162';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato } from './comum.js?v=20261163';
+import { registraRecortes } from './oraculo.js?v=20261163';
+import { grupoOpcoes, trocaMantendoTeclas, CAPITAIS, DA_UF } from './pecas.js?v=20261163';
+import { comparacao } from './lib/retrato.js?v=20261163';
+import { corIdeologia } from './lib/cores.js?v=20261163';
+import { spearman, forcaDaRelacao } from './lib/dinheiro.js?v=20261163';
+import { quintis, cortes, faixa, posicaoRelativa } from './lib/indices.js?v=20261163';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261163';
 
 montaPagina();
 

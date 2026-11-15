@@ -832,7 +832,10 @@ def etapa_perfil(c):
 
 def etapa_indices(c):
     log('== índices, visões e estatísticas')
-    c.sql('DROP VIEW IF EXISTS vw_ideologia_partido, vw_qt_mandatos, vw_patrimonio, vw_candidatura')
+    c.sql("""DROP VIEW IF EXISTS vw_retrospecto_governador, vw_retrospecto_prefeito,
+             vw_indicador_uf, vw_indicador_municipio, vw_homicidio_anual,
+             vw_estrutura_setorial, vw_deflator_ipca,
+             vw_ideologia_partido, vw_qt_mandatos, vw_patrimonio, vw_candidatura""")
     c.sql('DROP FUNCTION IF EXISTS nivel_escolaridade(VARCHAR)')
     for idx in ('idx_candidatura_eleicao', 'idx_candidatura_politico', 'idx_receita_candidato',
                 'idx_despesa_candidato', 'idx_votos_cand_mun', 'idx_votos_part_mun'):

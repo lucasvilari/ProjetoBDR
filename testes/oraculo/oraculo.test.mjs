@@ -37,6 +37,19 @@ test('montaMensagens diz ao oráculo como recusar, no tom de oráculo, a pergunt
   assert.match(sistema.content, /resum/i);       // pedir um resumo da página vale como pergunta
 });
 
+test('o método da questão 10 explica a evolução do patrimônio: bens declarados e valor nominal', () => {
+  const [sistema] = montaMensagens({ numero: 10, retrato: 'R', pergunta: 'quanto o patrimônio cresceu?' });
+  assert.match(sistema.content, /bens declarados/);
+  assert.match(sistema.content, /inflação/);
+});
+
+test('o método da questão 2 explica o ranking de crescimento do patrimônio dos eleitos', () => {
+  const [sistema] = montaMensagens({ numero: 2, retrato: 'R', pergunta: 'quem mais enriqueceu?' });
+  assert.match(sistema.content, /ranking/i);
+  assert.match(sistema.content, /candidatura anterior/);
+  assert.match(sistema.content, /inflação/);
+});
+
 test('a questão 11 é aceita e tem o método dela: preços correntes, setores até 2021 e mudança no mandato sem causa', () => {
   assert.equal(validaPedido({ numero: 11, retrato: 'x', pergunta: 'o PIB subiu?' }).ok, true);
   const [sistema] = montaMensagens({ numero: 11, retrato: 'R', pergunta: 'o PIB subiu?' });

@@ -243,3 +243,24 @@ def test_indices_do_estado_somam_os_municipios_com_peso_da_populacao():
 
 def test_indices_do_estado_sem_dados():
     assert gera_dados.agrega_estado([{'pib_pc': None, 'pop': None, 'idhm': None, 'aptos': None, 'isentos': None}]) == [None] * 4
+
+
+def test_ranking_de_patrimonio_dos_eleitos():
+    cargos = ['GOVERNADOR', 'PREFEITO', 'VEREADOR']
+    partidos = {1: 'AAA', 2: 'BBB'}
+    municipios = {'20516': 'João Pessoa (PB)'}
+    # (uf, eleito, [ano, cargo, local, partido, situacao, reeleicao, foto_sq, patrimonio])
+    carreiras = [
+        (7, 'FULANO', [('PB', False, [2016, 2, '20516', 1, 0, 0, 9]),
+                       ('PB', True, [2018, 0, 'PB', 1, 0, 0, 111, 100]),
+                       ('PB', True, [2022, 0, 'PB', 2, 0, 1, 222, 250])]),
+        (8, 'BELTRANO', [('PB', False, [2020, 1, '20516', 1, 0, 0, 0, 0]),
+                         ('PB', True, [2024, 1, '20516', 1, 0, 0, 333, 80]),
+                         ('PB', True, [2024, 2, '20516', 1, 0, 0, 334, 80])]),     # vereador fica fora
+    ]
+    r = gera_dados.ranking_patrimonio(carreiras, cargos, partidos, municipios)
+    assert set(r) == {'gov', 'PB'}
+    assert r['gov']['2018'] == [[7, 'FULANO', 'AAA', 'PB', 100, None, None, None, '2018/111/PB']]
+    assert r['gov']['2022'] == [[7, 'FULANO', 'BBB', 'PB', 250, 100, 2018, 150.0, '2022/222/PB']]
+    # o anterior precisa ter bens: 2020 com zero não serve de base
+    assert r['PB']['2024'] == [[8, 'BELTRANO', 'AAA', 'João Pessoa', 80, None, None, None, '2024/333/20516']]

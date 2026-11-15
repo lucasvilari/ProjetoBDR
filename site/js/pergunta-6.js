@@ -7,13 +7,13 @@
 // Dados: idade/idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos e, em 2020 e 2024,
 // a idade média de quem foi votar e a dos eleitos para prefeito e vereador, por município).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261162';
-import { registraRecortes } from './oraculo.js?v=20261162';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261162';
-import { comparacao } from './lib/retrato.js?v=20261162';
-import { corIdeologia } from './lib/cores.js?v=20261162';
-import { trocas, alternancia, mediaPonderada, diferencaDeIdade } from './lib/idade.js?v=20261162';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261162';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261163';
+import { registraRecortes } from './oraculo.js?v=20261163';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261163';
+import { comparacao } from './lib/retrato.js?v=20261163';
+import { corIdeologia } from './lib/cores.js?v=20261163';
+import { trocas, alternancia, mediaPonderada, diferencaDeIdade } from './lib/idade.js?v=20261163';
+import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261163';
 
 montaPagina();
 

@@ -295,6 +295,39 @@ def le_arquivos_tse():
     return fotos, liga_candidaturas_antigas(antigas, titulos)
 
 
+RECORTE_DO_CARGO = {'GOVERNADOR': 'gov', 'DEPUTADO FEDERAL': 'depfed', 'DEPUTADO ESTADUAL': 'depest'}
+
+
+def ranking_patrimonio(carreiras, cargos, partidos, municipios):
+    """O ranking de patrimônio dos eleitos da pergunta 10: governadores, deputados federais e estaduais dos seis
+    estados juntos e, por estado, os prefeitos. `carreiras`: [(pid, nome, [(uf, eleito, linha)])], com as linhas no
+    formato de CAMPOS_CANDIDATURA. Cada eleição de 2018 em diante (quando o TSE publica os bens) vira
+    [pid, nome, partido, lugar, patrimônio, patrimônio anterior, ano anterior, variação %, foto]: o anterior é a
+    candidatura mais recente antes desta, de qualquer cargo, que declarou algum bem. Cada lista vem da maior variação
+    para a menor, e quem não tem anterior fica no fim."""
+    recortes = defaultdict(lambda: defaultdict(list))
+    for pid, nome, cands in carreiras:
+        linhas = sorted((l for _, _, l in cands), key=lambda l: l[0])
+        for uf, eleito, l in cands:
+            ano, cargo, local = l[0], cargos[l[1]], l[2]
+            pat = l[7] if len(l) > 7 else None
+            if not eleito or ano < 2018 or pat is None or uf not in UFS_PROJETO:
+                continue
+            chave = RECORTE_DO_CARGO.get(cargo) or (uf if cargo == 'PREFEITO' else None)
+            if not chave:
+                continue
+            ant = [a for a in linhas if a[0] < ano and len(a) > 7 and a[7] and a[7] > 0]
+            pb, ab = (ant[-1][7], ant[-1][0]) if ant else (None, None)
+            var = round(100 * (pat - pb) / pb, 1) if pb else None
+            lugar = local if cargo != 'PREFEITO' else re.sub(r' \([A-Z]{2}\)$', '', municipios.get(local, local))
+            foto = f'{ano}/{l[6]}/{local}' if len(l) > 6 and l[6] else None
+            recortes[chave][str(ano)].append([pid, nome, partidos.get(l[3], ''), lugar, pat, pb, ab, var, foto])
+    for por_ano in recortes.values():
+        for lista in por_ano.values():
+            lista.sort(key=lambda e: (e[7] is not None, e[7] or 0), reverse=True)
+    return {k: dict(v) for k, v in recortes.items()}
+
+
 def parte_politicos(nacional, conn):
     log('políticos: lendo nomes e candidaturas')
     cargos, situacoes = Tabela(), Tabela()
@@ -371,6 +404,11 @@ def parte_politicos(nacional, conn):
 
     for n, lote in carreiras.items():
         grava(f'politicos/carreira/{n}.json', lote)
+    ranking = ranking_patrimonio(((pid, nome, por_titulo[titulo]) for pid, (titulo, nome) in enumerate(politicos, start=1)
+                                  if por_titulo.get(titulo)), cargos.lista, partidos, municipios)
+    grava('politicos/patrimonio.json', {
+        'campos': ['pid', 'nome', 'partido', 'lugar', 'patrimonio', 'anterior', 'ano_anterior', 'variacao', 'foto'],
+        'recortes': ranking})
     for n, lote in fichas.items():
         grava(f'politicos/fichas/{n}.json', lote)
     for prefixo, por_palavra in palavras.items():
@@ -1359,16 +1397,30 @@ SETORES = ['AGROPECUÁRIA', 'INDÚSTRIA', 'SERVIÇOS', 'ADMINISTRAÇÃO PÚBLICA
 ELEICOES_PREFEITO = (2012, 2016, 2020, 2024)
 ELEICOES_GOVERNADOR = (2014, 2018, 2022)
 CAMPOS_ANO_UF = ['ano', 'pib', 'populacao', 'pib_per_capita', 'homicidios',
-                 'pct_agro', 'pct_industria', 'pct_servicos', 'pct_adm_publica']
+                 'pct_agro', 'pct_industria', 'pct_servicos', 'pct_adm_publica',
+                 'empregos_por_mil_hab', 'taxa_desocupacao', 'taxa_informalidade',
+                 'pct_agua_rede', 'pct_esgoto_adequado']
 CAMPOS_ANO_MUN = ['ano', 'pib_per_capita', 'homicidios_3a',
-                  'pct_agro', 'pct_industria', 'pct_servicos', 'pct_adm_publica', 'setor']
-CAMPOS_MANDATO = ['ano_eleicao', 'nome', 'partido', 'pib_pc_inicio', 'ano_fim_pib', 'pib_pc_fim',
-                  'var_pib_pc_nominal_pct', 'homicidios_inicio', 'ano_fim_homicidios', 'homicidios_fim',
-                  'var_homicidios']
+                  'pct_agro', 'pct_industria', 'pct_servicos', 'pct_adm_publica', 'setor',
+                  'empregos_por_mil_hab', 'pct_agua_rede', 'pct_esgoto_adequado']
+CAMPOS_MANDATO_GOV = ['ano_eleicao', 'nome', 'partido', 'pib_pc_inicio_real', 'ano_fim_pib', 'pib_pc_fim_real',
+                      'var_pib_pc_real_pct', 'homicidios_inicio', 'ano_fim_homicidios', 'homicidios_fim',
+                      'var_homicidios', 'empregos_inicio', 'ano_fim_empregos', 'empregos_fim', 'var_empregos',
+                      'desocupacao_inicio', 'ano_fim_desocupacao', 'desocupacao_fim', 'var_desocupacao',
+                      'informalidade_inicio', 'ano_fim_informalidade', 'informalidade_fim', 'var_informalidade',
+                      'patrimonio_eleicao', 'patrimonio_anterior', 'ano_patrimonio_anterior', 'var_patrimonio_pct',
+                      'foto']
+CAMPOS_MANDATO_MUN = ['ano_eleicao', 'nome', 'partido', 'pib_pc_inicio_real', 'ano_fim_pib', 'pib_pc_fim_real',
+                      'var_pib_pc_real_pct', 'homicidios_inicio', 'ano_fim_homicidios', 'homicidios_fim',
+                      'var_homicidios', 'empregos_inicio', 'ano_fim_empregos', 'empregos_fim', 'var_empregos',
+                      'patrimonio_eleicao', 'patrimonio_anterior', 'ano_patrimonio_anterior', 'var_patrimonio_pct',
+                      'foto']
 
 SQL_RETRO_UF = """
-SELECT u.uf, u.ano, u.pib, u.populacao, u.pib_per_capita, u.taxa_homicidios,
-       s.agro, s.industria, s.servicos, s.adm
+SELECT u.uf, u.ano, u.pib, u.populacao, u.pib_per_capita_real, u.taxa_homicidios,
+       s.agro, s.industria, s.servicos, s.adm,
+       u.empregos_por_mil_hab, u.taxa_desocupacao, u.taxa_informalidade,
+       u.pct_agua_rede, u.pct_esgoto_adequado
 FROM vw_indicador_uf u
 LEFT JOIN (
     SELECT m.uf, i.ano,
@@ -1385,8 +1437,9 @@ WHERE u.ano BETWEEN %(de)s AND %(ate)s
 ORDER BY u.uf, u.ano
 """
 SQL_RETRO_MUNICIPIO = """
-SELECT m.uf, v.cod_tse, m.nome, v.ano, v.pib_per_capita, v.taxa_homicidios_3a,
-       v.pct_agro, v.pct_industria, v.pct_servicos, v.pct_adm_publica, v.setor_dominante
+SELECT m.uf, v.cod_tse, m.nome, v.ano, v.pib_per_capita_real, v.taxa_homicidios_3a,
+       v.pct_agro, v.pct_industria, v.pct_servicos, v.pct_adm_publica, v.setor_dominante,
+       v.empregos_por_mil_hab, v.pct_agua_rede, v.pct_esgoto_adequado
 FROM vw_indicador_municipio v
 JOIN municipio m USING (cod_tse)
 WHERE v.ano BETWEEN %(de)s AND %(ate)s
@@ -1395,7 +1448,10 @@ ORDER BY m.uf, v.cod_tse, v.ano
 SQL_RETRO_PREFEITO = """
 SELECT r.uf, r.cod_tse, r.ano_eleicao, p.nome, pa.sigla,
        r.pib_pc_inicio, r.ano_fim_pib, r.pib_pc_fim, r.var_pib_pc_pct,
-       r.homicidios_inicio, r.ano_fim_homicidios, r.homicidios_fim, r.var_homicidios
+       r.homicidios_inicio, r.ano_fim_homicidios, r.homicidios_fim, r.var_homicidios,
+       r.empregos_inicio, r.ano_fim_empregos, r.empregos_fim, r.var_empregos,
+       r.patrimonio_eleicao, r.patrimonio_anterior, r.ano_patrimonio_anterior, r.var_patrimonio_pct,
+       r.sq_candidato
 FROM vw_retrospecto_prefeito r
 JOIN politico p ON p.titulo_eleitoral = r.titulo_eleitoral
 JOIN partido pa ON pa.id_partido = r.id_partido
@@ -1405,7 +1461,12 @@ ORDER BY r.uf, r.cod_tse, r.ano_eleicao
 SQL_RETRO_GOVERNADOR = """
 SELECT r.uf, r.ano_eleicao, p.nome, pa.sigla,
        r.pib_pc_inicio, r.ano_fim_pib, r.pib_pc_fim, r.var_pib_pc_pct,
-       r.homicidios_inicio, r.ano_fim_homicidios, r.homicidios_fim, r.var_homicidios
+       r.homicidios_inicio, r.ano_fim_homicidios, r.homicidios_fim, r.var_homicidios,
+       r.empregos_inicio, r.ano_fim_empregos, r.empregos_fim, r.var_empregos,
+       r.desocupacao_inicio, r.ano_fim_desocupacao, r.desocupacao_fim, r.var_desocupacao,
+       r.informalidade_inicio, r.ano_fim_informalidade, r.informalidade_fim, r.var_informalidade,
+       r.patrimonio_eleicao, r.patrimonio_anterior, r.ano_patrimonio_anterior, r.var_patrimonio_pct,
+       r.sq_candidato
 FROM vw_retrospecto_governador r
 JOIN politico p ON p.titulo_eleitoral = r.titulo_eleitoral
 JOIN partido pa ON pa.id_partido = r.id_partido
@@ -1421,48 +1482,72 @@ def arred(v, casas):
     return int(round(float(v))) if casas == 0 else round(float(v), casas)
 
 
-def linha_mandato(r):
-    """[ano_eleicao, nome, partido, pib_pc_inicio, ano_fim_pib, pib_pc_fim, var_pib, hom_inicio, ano_fim_hom, hom_fim, var_hom]"""
-    ano, nome, sigla, pib_i, ano_pib, pib_f, var_pib, hom_i, ano_hom, hom_f, var_hom = r
+def linha_mandato_mun(r, ue):
+    (ano, nome, sigla, pib_i, ano_pib, pib_f, var_pib,
+     hom_i, ano_hom, hom_f, var_hom,
+     emp_i, ano_emp, emp_f, var_emp,
+     pat_el, pat_ant, ano_pat_ant, var_pat, sq) = r
+    foto = f'{ano}/{sq}/{ue}' if sq and sq > 0 else None
     return [ano, nome, sigla, arred(pib_i, 0), ano_pib, arred(pib_f, 0), arred(var_pib, 1),
-            arred(hom_i, 2), ano_hom, arred(hom_f, 2), arred(var_hom, 2)]
+            arred(hom_i, 2), ano_hom, arred(hom_f, 2), arred(var_hom, 2),
+            arred(emp_i, 1), ano_emp, arred(emp_f, 1), arred(var_emp, 1),
+            arred(pat_el, 0), arred(pat_ant, 0), ano_pat_ant, arred(var_pat, 1), foto]
+
+
+def linha_mandato_gov(r, ue):
+    (ano, nome, sigla, pib_i, ano_pib, pib_f, var_pib,
+     hom_i, ano_hom, hom_f, var_hom,
+     emp_i, ano_emp, emp_f, var_emp,
+     desoc_i, ano_desoc, desoc_f, var_desoc,
+     inf_i, ano_inf, inf_f, var_inf,
+     pat_el, pat_ant, ano_pat_ant, var_pat, sq) = r
+    foto = f'{ano}/{sq}/{ue}' if sq and sq > 0 else None
+    return [ano, nome, sigla, arred(pib_i, 0), ano_pib, arred(pib_f, 0), arred(var_pib, 1),
+            arred(hom_i, 2), ano_hom, arred(hom_f, 2), arred(var_hom, 2),
+            arred(emp_i, 1), ano_emp, arred(emp_f, 1), arred(var_emp, 1),
+            arred(desoc_i, 1), ano_desoc, arred(desoc_f, 1), arred(var_desoc, 1),
+            arred(inf_i, 1), ano_inf, arred(inf_f, 1), arred(var_inf, 1),
+            arred(pat_el, 0), arred(pat_ant, 0), ano_pat_ant, arred(var_pat, 1), foto]
 
 
 def parte_retrospecto(conn):
-    log('retrospecto: PIB, setores e homicídios por UF e município, e variação nos mandatos (banco dos seis estados)')
+    log('retrospecto: PIB, setores, homicídios e emprego por UF e município, e variação nos mandatos (banco dos seis estados)')
     periodo = {'de': ANO_INICIAL_RETRO, 'ate': ANO_FINAL_RETRO}
     shutil.rmtree(DADOS / 'retrospecto', ignore_errors=True)
     with conn.cursor() as cur:
         cur.execute(SQL_RETRO_UF, periodo)
         series_uf = defaultdict(list)
-        for uf, ano, pib, pop, pib_pc, hom, agro, ind, serv, adm in cur.fetchall():
+        for uf, ano, pib, pop, pib_pc, hom, agro, ind, serv, adm, emp_mil, desoc, inf, agua, esgoto in cur.fetchall():
             linha = [ano, arred(pib, 0), pop, arred(pib_pc, 0), arred(hom, 2),
-                     arred(agro, 1), arred(ind, 1), arred(serv, 1), arred(adm, 1)]
+                     arred(agro, 1), arred(ind, 1), arred(serv, 1), arred(adm, 1),
+                     arred(emp_mil, 1), arred(desoc, 1), arred(inf, 1),
+                     arred(agua, 1), arred(esgoto, 1)]
             if any(x is not None for x in linha[1:]):
                 series_uf[uf].append(linha)
 
         cur.execute(SQL_RETRO_GOVERNADOR, {'anos': list(ELEICOES_GOVERNADOR), 'ufs': list(UFS_PROJETO)})
         governadores = defaultdict(list)
         for r in cur.fetchall():
-            governadores[r[0]].append(linha_mandato(r[1:]))
-        grava('retrospecto/uf.json', {'campos_ano': CAMPOS_ANO_UF, 'campos_mandato': CAMPOS_MANDATO,
+            governadores[r[0]].append(linha_mandato_gov(r[1:], ue=r[0]))
+        grava('retrospecto/uf.json', {'campos_ano': CAMPOS_ANO_UF, 'campos_mandato': CAMPOS_MANDATO_GOV,
                                       'ufs': {u: {'anos': series_uf[u], 'governadores': governadores[u]}
                                               for u in UFS_PROJETO}})
 
         cur.execute(SQL_RETRO_MUNICIPIO, periodo)
         municipios = defaultdict(dict)
-        for uf, cod, nome, ano, pib_pc, hom3, agro, ind, serv, adm, setor in cur.fetchall():
+        for uf, cod, nome, ano, pib_pc, hom3, agro, ind, serv, adm, setor, emp_mil, agua, esgoto in cur.fetchall():
             linha = [ano, arred(pib_pc, 0), arred(hom3, 2), arred(agro, 1), arred(ind, 1), arred(serv, 1),
-                     arred(adm, 1), SETORES.index(setor) if setor else None]
+                     arred(adm, 1), SETORES.index(setor) if setor else None,
+                     arred(emp_mil, 1), arred(agua, 1), arred(esgoto, 1)]
             if any(x is not None for x in linha[1:]):
                 municipios[uf].setdefault(cod, {'nome': nome, 'anos': [], 'prefeitos': []})['anos'].append(linha)
 
         cur.execute(SQL_RETRO_PREFEITO, {'anos': list(ELEICOES_PREFEITO)})
         for r in cur.fetchall():
             uf, cod = r[0], r[1]
-            municipios[uf].setdefault(cod, {'nome': None, 'anos': [], 'prefeitos': []})['prefeitos'].append(linha_mandato(r[2:]))
+            municipios[uf].setdefault(cod, {'nome': None, 'anos': [], 'prefeitos': []})['prefeitos'].append(linha_mandato_mun(r[2:], ue=str(cod)))
     for uf in UFS_PROJETO:
-        grava(f'retrospecto/municipios/{uf}.json', {'campos_ano': CAMPOS_ANO_MUN, 'campos_mandato': CAMPOS_MANDATO,
+        grava(f'retrospecto/municipios/{uf}.json', {'campos_ano': CAMPOS_ANO_MUN, 'campos_mandato': CAMPOS_MANDATO_MUN,
                                                     'setores': SETORES, 'municipios': municipios[uf]})
     log(f'retrospecto: {sum(map(len, municipios.values())):,} municípios; '
         f'{tamanho_pasta(DADOS / "retrospecto") / 1e6:.1f} MB')

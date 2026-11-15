@@ -88,10 +88,15 @@ WHERE vab_agropecuaria IS NOT NULL AND vab_industria IS NOT NULL AND vab_servico
   AND vab_adm_publica IS NOT NULL AND impostos_liquidos IS NOT NULL AND pib > 0
 GROUP BY 1 ORDER BY 1;
 
-\echo '== 10. Homicídios: municípios com taxa em cada ano (o Atlas não publica todos todos os anos)'
-SELECT h.ano, count(*) AS com_taxa, (SELECT count(*) FROM municipio) AS municipios,
-       round(100.0 * count(*) / (SELECT count(*) FROM municipio), 1) AS pct
-FROM homicidio_municipio h GROUP BY 1 ORDER BY 1;
+\echo '== 10. Homicídios: municípios com taxa publicada em cada ano (os outros entram como taxa 0, sem_registro)'
+SELECT ano, count(*) FILTER (WHERE NOT sem_registro) AS com_taxa, count(*) FILTER (WHERE sem_registro) AS sem_registro,
+       count(*) AS municipios
+FROM vw_homicidio_anual GROUP BY 1 ORDER BY 1;
+
+echo '== 10b. Taxa de homicídios da UF (vw_indicador_uf) x série estadual oficial do Atlas, ano a ano (conferir a olho)'
+SELECT uf, ano, round(taxa_homicidios, 2) AS taxa_calculada
+FROM vw_indicador_uf WHERE ano IN (2018, 2022) AND uf IN ('MS', 'MG', 'PB') ORDER BY uf, ano;
+-- Atlas (estados, taxa de homicídios registrados): MS 2018 20,83 e 2022 19,27; MG 2018 16,21 e 2022 12,74; PB 2018 31,03 e 2022 26,91.
 
 \echo '== 11. Retrospecto: eleitos com início e fim medidos (prefeitos e governadores)'
 SELECT 'prefeito' AS cargo, ano_eleicao, count(*) AS eleitos,
