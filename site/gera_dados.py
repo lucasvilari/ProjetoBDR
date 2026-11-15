@@ -295,6 +295,39 @@ def le_arquivos_tse():
     return fotos, liga_candidaturas_antigas(antigas, titulos)
 
 
+RECORTE_DO_CARGO = {'GOVERNADOR': 'gov', 'DEPUTADO FEDERAL': 'depfed', 'DEPUTADO ESTADUAL': 'depest'}
+
+
+def ranking_patrimonio(carreiras, cargos, partidos, municipios):
+    """O ranking de patrimônio dos eleitos da pergunta 10: governadores, deputados federais e estaduais dos seis
+    estados juntos e, por estado, os prefeitos. `carreiras`: [(pid, nome, [(uf, eleito, linha)])], com as linhas no
+    formato de CAMPOS_CANDIDATURA. Cada eleição de 2018 em diante (quando o TSE publica os bens) vira
+    [pid, nome, partido, lugar, patrimônio, patrimônio anterior, ano anterior, variação %, foto]: o anterior é a
+    candidatura mais recente antes desta, de qualquer cargo, que declarou algum bem. Cada lista vem da maior variação
+    para a menor, e quem não tem anterior fica no fim."""
+    recortes = defaultdict(lambda: defaultdict(list))
+    for pid, nome, cands in carreiras:
+        linhas = sorted((l for _, _, l in cands), key=lambda l: l[0])
+        for uf, eleito, l in cands:
+            ano, cargo, local = l[0], cargos[l[1]], l[2]
+            pat = l[7] if len(l) > 7 else None
+            if not eleito or ano < 2018 or pat is None or uf not in UFS_PROJETO:
+                continue
+            chave = RECORTE_DO_CARGO.get(cargo) or (uf if cargo == 'PREFEITO' else None)
+            if not chave:
+                continue
+            ant = [a for a in linhas if a[0] < ano and len(a) > 7 and a[7] and a[7] > 0]
+            pb, ab = (ant[-1][7], ant[-1][0]) if ant else (None, None)
+            var = round(100 * (pat - pb) / pb, 1) if pb else None
+            lugar = local if cargo != 'PREFEITO' else re.sub(r' \([A-Z]{2}\)$', '', municipios.get(local, local))
+            foto = f'{ano}/{l[6]}/{local}' if len(l) > 6 and l[6] else None
+            recortes[chave][str(ano)].append([pid, nome, partidos.get(l[3], ''), lugar, pat, pb, ab, var, foto])
+    for por_ano in recortes.values():
+        for lista in por_ano.values():
+            lista.sort(key=lambda e: (e[7] is not None, e[7] or 0), reverse=True)
+    return {k: dict(v) for k, v in recortes.items()}
+
+
 def parte_politicos(nacional, conn):
     log('políticos: lendo nomes e candidaturas')
     cargos, situacoes = Tabela(), Tabela()
@@ -371,6 +404,11 @@ def parte_politicos(nacional, conn):
 
     for n, lote in carreiras.items():
         grava(f'politicos/carreira/{n}.json', lote)
+    ranking = ranking_patrimonio(((pid, nome, por_titulo[titulo]) for pid, (titulo, nome) in enumerate(politicos, start=1)
+                                  if por_titulo.get(titulo)), cargos.lista, partidos, municipios)
+    grava('politicos/patrimonio.json', {
+        'campos': ['pid', 'nome', 'partido', 'lugar', 'patrimonio', 'anterior', 'ano_anterior', 'variacao', 'foto'],
+        'recortes': ranking})
     for n, lote in fichas.items():
         grava(f'politicos/fichas/{n}.json', lote)
     for prefixo, por_palavra in palavras.items():

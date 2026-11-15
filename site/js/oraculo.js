@@ -1,9 +1,9 @@
 // O oráculo: um olho flutuante, no canto da tela, que acompanha o ponteiro. Clicado, abre um painel que lê o que a
 // página mostra agora (o retrato: o recorte escolhido, os números calculados e o que o leitor abriu) e pede uma
 // interpretação desses dados à função do oráculo na Cloudflare (pasta oraculo/ do repositório), que responde aos poucos.
-import { retratoEmTexto } from './lib/retrato.js?v=20261162';
-import { achaNoTexto, recorteDoPedido } from './lib/leitor.js?v=20261162';
-import { toca } from './som.js?v=20261162';
+import { retratoEmTexto } from './lib/retrato.js?v=20261163';
+import { achaNoTexto, recorteDoPedido } from './lib/leitor.js?v=20261163';
+import { toca } from './som.js?v=20261163';
 
 let montaRetrato = null;
 let recortePedido = null;
@@ -117,7 +117,7 @@ export function montaOraculo() {
 let lugares = null;      // os municípios dos seis estados ([cod, nome, uf]), lidos na primeira pergunta que precisa
 async function municipios() {
   if (!lugares) {
-    const { carregaDados } = await import('./comum.js?v=20261162');
+    const { carregaDados } = await import('./comum.js?v=20261163');
     try { lugares = (await carregaDados('lugares.json')).municipios; } catch { lugares = []; }
   }
   return lugares;
@@ -125,7 +125,7 @@ async function municipios() {
 
 /** O recorte em palavras: "presidente · Brasil · 2026", "vereador · João Pessoa (PB) · 2024". */
 async function rotuloPadrao(r, opcoes) {
-  const { NOME_UF } = await import('./comum.js?v=20261162');
+  const { NOME_UF } = await import('./comum.js?v=20261163');
   const mun = r.mun ? (await municipios()).find(([cod]) => cod === r.mun) : null;
   const lugar = mun ? `${mun[1]} (${mun[2]})` : r.uf ? NOME_UF[r.uf] : opcoes.lugar ? (opcoes.brasil === 'seis' ? 'os seis estados' : 'Brasil') : null;
   return [r.cargo?.toLowerCase(), lugar, r.ano].filter(Boolean).join(' · ');

@@ -87,7 +87,13 @@ lista também cada candidato que perdeu, com o gasto: a média dos perdedores po
 que o vencedor.`,
   2: `Questão 2, "Patrimônio ajuda a eleger?": cada candidato fica num "andar" conforme o patrimônio que declarou ao
 TSE, do térreo (nenhum bem) à cobertura (acima de R$ 5 milhões). A taxa de eleição de um andar é eleitos do andar
-dividido por candidatos do andar. Patrimônio declarado não é renda nem dinheiro de campanha.`,
+dividido por candidatos do andar. Patrimônio declarado não é renda nem dinheiro de campanha. No fim da página, um
+ranking de quanto cresceu o patrimônio dos eleitos (governadores, deputados federais e estaduais dos seis estados
+juntos, ou prefeitos de um estado), com seus próprios seletores: a soma dos bens declarados ao TSE na eleição
+comparada com a candidatura anterior da mesma pessoa que declarou algum bem (em qualquer cargo), da maior variação para
+a menor. Os valores são nominais, sem descontar a inflação; o candidato costuma declarar o valor de compra dos bens
+(como no Imposto de Renda), não o de mercado; quem declarou pouco antes tem porcentagens enormes com pouco dinheiro, então
+olhe também os reais. O ranking mostra quanto o patrimônio declarado mudou, não que houve enriquecimento ilícito.`,
   3: `Questão 3, "Município rico vota diferente?": PIB per capita é o PIB do município dividido pela população, do ano mais
 recente publicado até a eleição (IBGE). O IDHM é o do Atlas do Desenvolvimento Humano de 2010, o último anterior às
 eleições, o mesmo em todos os anos. Eleitores por habitante: eleitores aptos divididos pela população; passa de 100% em
@@ -169,7 +175,11 @@ votos dados aos candidatos daquele cargo no lugar.`,
   10: `Questão 10, "Como foi a carreira de um político?": as candidaturas de 1994 a 2026 encontradas para a pessoa (1994
 e 1996 ligadas pelo nome e pela data de nascimento, porque o TSE não publica o título eleitoral antes de 1998).
 Votos, gasto, patrimônio e dinheiro público só existem de 2018 em diante. A nota do partido é a dos especialistas
-(0 esquerda, 10 direita) no ano da candidatura.`,
+(0 esquerda, 10 direita) no ano da candidatura. O patrimônio é a soma dos bens declarados ao TSE em cada candidatura; a
+variação compara com a candidatura anterior da mesma pessoa que declarou algum bem (em qualquer cargo). Os valores são
+nominais, sem descontar a inflação, e o patrimônio declarado não é o patrimônio real: o candidato costuma declarar o valor de
+compra (como no Imposto de Renda), não o de mercado. Quem declarou pouco antes tem porcentagens enormes com pouco dinheiro:
+olhe também os reais.`,
   11: `Questão 11, "O que mudou no mandato?": para cada estado (e, ao escolher um estado, cada município), a página mostra
 um indicador num ano: o setor que mais pesa no valor adicionado (agropecuária, indústria, serviços ou administração
 pública; IBGE, até 2021), o PIB per capita (IBGE, até 2022) ou a taxa de homicídios por 100 mil habitantes (Ministério

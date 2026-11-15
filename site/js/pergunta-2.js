@@ -5,13 +5,14 @@
 // Dados: mapa/brasil.json e mapa/municipios/UF.json (candidatos e eleitos por faixa, para todo recorte);
 // candidaturas/<ue>-<ano>.json (cada candidato, com patrimônio e votos, quando o recorte tem a lista).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { comparacao } from './lib/retrato.js?v=20261162';
-import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261162';
-import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261162';
-import { faixaDePatrimonio } from './lib/cifroes.js?v=20261162';
-import { agrupa } from './lib/plenario.js?v=20261162';
-import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261162';
-import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261162';
+import { comparacao } from './lib/retrato.js?v=20261163';
+import { montaPagina, carregaDados, formata, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261163';
+import { ueDoRecorte, MUNICIPAIS } from './lib/recorte.js?v=20261163';
+import { faixaDePatrimonio } from './lib/cifroes.js?v=20261163';
+import { agrupa } from './lib/plenario.js?v=20261163';
+import { janelasDoAndar, ordemDosAndares, trechoDoPasseio } from './lib/predio.js?v=20261163';
+import { montaSeletor, leCandidaturas, nomeDe } from './pecas.js?v=20261163';
+import { montaRankingPatrimonio } from './patrimonio-eleitos.js?v=20261163';
 
 montaPagina();
 
@@ -327,6 +328,8 @@ registraRetrato(() => {
         ['Patrimônio', c.patrimonio > 0 ? formata.real(c.patrimonio) : 'nenhum bem'],
         ['Votos', c.votos > 0 ? formata.numero(c.votos) : 'sem votos'], ['Resultado', resultado(c)],
       ] : [] },
+      // o ranking no fim da página tem seus próprios seletores: o recorte dele vai no título da seção
+      ...(ranking?.retrato().secoes ?? []),
     ],
   };
 });
@@ -336,3 +339,10 @@ montaSeletor(document.getElementById('recorte'), {
   anos: brasil.anos, comLugar: true, padrao: { ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG' }, aoMudar: atualiza,
   municipioObrigatorio: true,
 });
+
+// no fim da página, o ranking de quanto cresceu o patrimônio dos eleitos; cada faixa abre a carreira na pergunta 10
+let ranking = null;
+const caixaRanking = document.getElementById('ranking-patrimonio');
+montaRankingPatrimonio(caixaRanking, pid => `pergunta-10.html#${pid}`)
+  .then(r => { ranking = r; })
+  .catch(() => { caixaRanking.innerHTML = '<p class="aviso-vazio">Não foi possível carregar o ranking de patrimônio.</p>'; });
