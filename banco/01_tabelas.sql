@@ -160,6 +160,34 @@ CREATE TABLE homicidio_municipio (
     PRIMARY KEY (cod_tse, ano)
 );
 
+-- Empregos formais: pessoal ocupado total no Cadastro Central de Empresas (CEMPRE/IBGE), por município e ano.
+CREATE TABLE emprego_formal (
+    cod_tse          VARCHAR(5)  NOT NULL REFERENCES municipio (cod_tse) ON DELETE CASCADE,
+    ano              SMALLINT    NOT NULL,
+    pessoal_ocupado  INTEGER     NOT NULL CHECK (pessoal_ocupado >= 0),
+    PRIMARY KEY (cod_tse, ano)
+);
+
+-- Desocupação e informalidade da PNAD Contínua (IBGE), por UF, no 4º trimestre de cada ano: a pesquisa não tem
+-- dado por município.
+CREATE TABLE pnad_emprego_uf (
+    uf                  CHAR(2)       NOT NULL,
+    ano                 SMALLINT      NOT NULL,
+    taxa_desocupacao    NUMERIC(4,1)  CHECK (taxa_desocupacao BETWEEN 0 AND 100),
+    taxa_informalidade  NUMERIC(4,1)  CHECK (taxa_informalidade BETWEEN 0 AND 100),
+    PRIMARY KEY (uf, ano)
+);
+
+-- Saneamento nos Censos de 2010 e 2022, em % dos domicílios: água pela rede geral e esgoto pela rede geral ou pluvial
+-- ou em fossa séptica.
+CREATE TABLE saneamento_censo (
+    cod_tse              VARCHAR(5)    NOT NULL REFERENCES municipio (cod_tse) ON DELETE CASCADE,
+    ano                  SMALLINT      NOT NULL CHECK (ano IN (2010, 2022)),
+    pct_agua_rede        NUMERIC(5,2)  CHECK (pct_agua_rede BETWEEN 0 AND 100),
+    pct_esgoto_adequado  NUMERIC(5,2)  CHECK (pct_esgoto_adequado BETWEEN 0 AND 100),
+    PRIMARY KEY (cod_tse, ano)
+);
+
 CREATE TABLE apuracao (
     cod_eleicao   INTEGER      NOT NULL REFERENCES eleicao (cod_eleicao),
     cod_tse       VARCHAR(5)   NOT NULL REFERENCES municipio (cod_tse),

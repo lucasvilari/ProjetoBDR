@@ -1,4 +1,4 @@
-"""IBGE: tabelas do SIDRA (PIB, população, Censo 2022) e API de Localidades."""
+"""IBGE: tabelas do SIDRA (PIB, população, Censos, CEMPRE, PNAD Contínua) e API de Localidades."""
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +21,7 @@ class Tabela:
     arquivo: str
     ano_min: int | None = None
     classificacoes: tuple[tuple[int, str], ...] = ()  # (classificação, categorias)
+    nivel: str = "n6"                                  # n6: município; n3: UF
 
 
 TABELAS = {
@@ -39,6 +40,23 @@ TABELAS = {
         10061, (2667, 1002667), "censo2022/nivel_instrucao_18mais_tabela10061.csv",
         classificacoes=((1568, "all"), (58, "95253"), (2, "6794"), (86, "95251")),
     ),
+    # Empregos formais: pessoal ocupado total no Cadastro Central de Empresas (CEMPRE). A série muda de tabela em 2022.
+    "ibge_cempre": Tabela(1685, (707,), "cempre/pessoal_ocupado_tabela1685.csv", ano_min=2010),
+    "ibge_cempre_2022": Tabela(9509, (707,), "cempre/pessoal_ocupado_tabela9509.csv"),
+    # PNAD Contínua, por UF e trimestre: taxa de desocupação (14 anos ou mais) e taxa de informalidade dos ocupados.
+    "ibge_pnad_desocupacao": Tabela(4099, (4099,), "pnad/taxa_desocupacao_uf_tabela4099.csv", nivel="n3"),
+    "ibge_pnad_informalidade": Tabela(8529, (12466,), "pnad/taxa_informalidade_uf_tabela8529.csv", nivel="n3"),
+    # Saneamento nos Censos, em % dos domicílios: abastecimento principal pela rede geral de água, e esgoto pela rede
+    # geral ou pluvial ou em fossa séptica (2010: banheiro ou sanitário com esse escoadouro; 2022: rede, fossa ligada
+    # à rede ou fossa não ligada). As categorias somadas vêm em linhas separadas.
+    "ibge_censo2010_agua": Tabela(3218, (1000096,), "censo2010/agua_rede_tabela3218.csv",
+                                  classificacoes=((61, "92853"), (299, "0"), (67, "0"), (309, "0"))),
+    "ibge_censo2010_esgoto": Tabela(3218, (1000096,), "censo2010/esgoto_adequado_tabela3218.csv",
+                                    classificacoes=((61, "0"), (299, "9678,9679"), (67, "0"), (309, "0"))),
+    "ibge_censo2022_agua": Tabela(6804, (1000381,), "censo2022/agua_rede_tabela6804.csv",
+                                  classificacoes=((301, "31471"), (1817, "72125"))),
+    "ibge_censo2022_esgoto": Tabela(6805, (1000381,), "censo2022/esgoto_adequado_tabela6805.csv",
+                                    classificacoes=((11558, "46290,72112"),)),
 }
 
 
@@ -48,7 +66,7 @@ def _periodos(cli, tabela: Tabela) -> list[str]:
 
 
 def _consultar(cli, tabela: Tabela, periodo: str, recorte: str = "all") -> list[dict]:
-    partes = [SIDRA, "t", str(tabela.numero), "n6", recorte,
+    partes = [SIDRA, "t", str(tabela.numero), tabela.nivel, recorte,
               "v", ",".join(map(str, tabela.variaveis)), "p", periodo]
     for classificacao, categorias in tabela.classificacoes:
         partes += [f"c{classificacao}", categorias]

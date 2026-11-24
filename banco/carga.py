@@ -8,15 +8,14 @@ arquivos grandes são preparados um ano por vez e descartados logo depois.
 
 Cada etapa registra em carga.log quantas linhas leu, gravou e descartou.
 
-Escopo geográfico: os arquivos do TSE são nacionais, e a carga grava só as UFs do
-projeto (por padrão AP, MG, MS, PB, RO e RR) e as candidaturas a presidente (UF "BR"),
-que recebem votos nesses municípios. Cada arquivo é recortado pela coluna SG_UF logo
-depois de copiado. As UFs usadas ficam na tabela carga.escopo.
+Escopo geográfico: por padrão, as 27 UFs e as candidaturas a presidente (UF "BR"). Com
+--ufs, a carga grava só as UFs pedidas (e presidente): cada arquivo é recortado pela
+coluna SG_UF logo depois de copiado. As UFs usadas ficam na tabela carga.escopo.
 
 Uso:
     python carga.py                      # carga completa, recriando as tabelas
     python carga.py --etapas despesa     # refaz só uma etapa (no escopo já gravado)
-    python carga.py --ufs PI,CE          # outro conjunto de UFs
+    python carga.py --ufs PI,CE          # só algumas UFs
     DATABASE_URL="dbname=eleicoes" python carga.py
 """
 import argparse
@@ -42,9 +41,9 @@ ANOS_EP = (2018, 2020, 2022, 2024, 2026)
 ANOS_CAND = tuple(range(1994, 2027, 2))
 ELEITO = "('ELEITO', 'ELEITO POR QP', 'ELEITO POR MÉDIA')"
 # UFs do projeto.
-UFS_PADRAO = ('AP', 'MG', 'MS', 'PB', 'RO', 'RR')
 TODAS_UFS = ('AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA',
              'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO')
+UFS_PADRAO = TODAS_UFS
 NO_ESCOPO = "upper(btrim({})) IN (SELECT uf FROM carga.escopo)"
 
 
@@ -272,7 +271,8 @@ def etapa_esquema(c):
     """Recria o modelo do zero (mantém o escopo geográfico definido em main)."""
     log('== esquema')
     c.sql("""DROP TABLE IF EXISTS votos_part, votos_cand, perfil_comparecimento, apuracao,
-             indicador_anual, homicidio_municipio, idhm_municipio, municipio, despesa, receita, bem, candidatura,
+             indicador_anual, homicidio_municipio, emprego_formal, pnad_emprego_uf, saneamento_censo,
+             idhm_municipio, municipio, despesa, receita, bem, candidatura,
              ideologia_coligacao, ideologia_partido, partido, politico, vaga, eleicao CASCADE""")
     c.sql('DROP FUNCTION IF EXISTS nivel_escolaridade(VARCHAR)')
     ufs = [u for (u,) in c.sql("SELECT uf FROM carga.escopo WHERE uf <> 'BR'")]
@@ -325,9 +325,10 @@ def etapa_territorio(c):
 
 
 def etapa_indicadores(c):
-    """PIB, setores, população e homicídios. Refaz só estas duas tabelas, sem tocar nas demais."""
+    """PIB, setores, população, homicídios, empregos formais, desocupação, informalidade e saneamento. Refaz só
+    estas tabelas, sem tocar nas demais."""
     log('== indicadores')
-    c.sql('TRUNCATE indicador_anual, homicidio_municipio')
+    c.sql('TRUNCATE indicador_anual, homicidio_municipio, emprego_formal, pnad_emprego_uf, saneamento_censo')
     c.prepara('pib', DADOS / 'ibge' / 'pib' / 'pib_municipios_tabela5938.csv', 'UTF8')
     c.prepara('pop_est', DADOS / 'ibge' / 'populacao' / 'estimativas_populacao_tabela6579.csv', 'UTF8')
     c.prepara('pop_censo', DADOS / 'ibge' / 'populacao' / 'censo2022_populacao_tabela4709.csv', 'UTF8')
@@ -364,6 +365,55 @@ def etapa_indicadores(c):
         WHERE stg.num(h.taxa_homicidios) IS NOT NULL
     """, etapa='homicidio_municipio', detalhe='Atlas da Violência, taxa de homicídios registrados, UFs do escopo')
     for t in ('pib', 'pop_est', 'pop_censo', 'homicidios'):
+        c.sql(f'DROP TABLE stg.{t}')
+
+    # CEMPRE: a série muda de tabela em 2022 (1685 até 2021, 9509 depois)
+    c.prepara('cempre', DADOS / 'ibge' / 'cempre' / 'pessoal_ocupado_tabela1685.csv', 'UTF8')
+    c.prepara('cempre22', DADOS / 'ibge' / 'cempre' / 'pessoal_ocupado_tabela9509.csv', 'UTF8')
+    c.sql("""
+        INSERT INTO emprego_formal (cod_tse, ano, pessoal_ocupado)
+        SELECT m.cod_tse, stg.int(e.ano), stg.int(e.valor)
+        FROM (SELECT municipio_codigo, ano, valor FROM stg.cempre
+              UNION ALL SELECT municipio_codigo, ano, valor FROM stg.cempre22) e
+        JOIN municipio m ON m.cod_ibge = btrim(e.municipio_codigo)
+        WHERE stg.int(e.valor) IS NOT NULL
+    """, etapa='emprego_formal', detalhe='SIDRA 1685 (até 2021) e 9509 (2022 em diante), pessoal ocupado total')
+
+    # PNAD Contínua: o 4º trimestre de cada ano, por UF (o código IBGE da UF são os dois primeiros dígitos do município)
+    c.prepara('pnad_desoc', DADOS / 'ibge' / 'pnad' / 'taxa_desocupacao_uf_tabela4099.csv', 'UTF8')
+    c.prepara('pnad_inf', DADOS / 'ibge' / 'pnad' / 'taxa_informalidade_uf_tabela8529.csv', 'UTF8')
+    c.sql("""
+        WITH ufs AS (SELECT DISTINCT left(cod_ibge, 2) AS cod, uf FROM municipio),
+             q4 AS (SELECT unidade_da_federacao_codigo AS cod, left(trimestre_codigo, 4)::SMALLINT AS ano,
+                           stg.num(valor) AS desoc, NULL::NUMERIC AS inf
+                    FROM stg.pnad_desoc WHERE right(trimestre_codigo, 2) = '04'
+                    UNION ALL
+                    SELECT unidade_da_federacao_codigo, left(trimestre_codigo, 4)::SMALLINT, NULL, stg.num(valor)
+                    FROM stg.pnad_inf WHERE right(trimestre_codigo, 2) = '04')
+        INSERT INTO pnad_emprego_uf (uf, ano, taxa_desocupacao, taxa_informalidade)
+        SELECT u.uf, q.ano, max(q.desoc), max(q.inf)
+        FROM q4 q JOIN ufs u ON u.cod = btrim(q.cod)
+        GROUP BY u.uf, q.ano
+    """, etapa='pnad_emprego_uf', detalhe='SIDRA 4099 (desocupação) e 8529 (informalidade), 4º trimestre')
+
+    # Censos: cada categoria somada (por exemplo, rede de esgoto e fossa séptica) vem numa linha
+    for t, arq in (('agua10', 'censo2010/agua_rede_tabela3218.csv'), ('esgoto10', 'censo2010/esgoto_adequado_tabela3218.csv'),
+                   ('agua22', 'censo2022/agua_rede_tabela6804.csv'), ('esgoto22', 'censo2022/esgoto_adequado_tabela6805.csv')):
+        c.prepara(t, DADOS / 'ibge' / arq, 'UTF8')
+    c.sql("""
+        WITH soma AS (SELECT 'agua' AS tipo, municipio_codigo AS cod, stg.int(ano) AS ano, stg.num(valor) AS pct FROM stg.agua10
+                      UNION ALL SELECT 'esgoto', municipio_codigo, stg.int(ano), stg.num(valor) FROM stg.esgoto10
+                      UNION ALL SELECT 'agua', municipio_codigo, stg.int(ano), stg.num(valor) FROM stg.agua22
+                      UNION ALL SELECT 'esgoto', municipio_codigo, stg.int(ano), stg.num(valor) FROM stg.esgoto22),
+             por AS (SELECT cod, ano, sum(pct) FILTER (WHERE tipo = 'agua') AS agua,
+                            sum(pct) FILTER (WHERE tipo = 'esgoto') AS esgoto
+                     FROM soma GROUP BY cod, ano)
+        INSERT INTO saneamento_censo (cod_tse, ano, pct_agua_rede, pct_esgoto_adequado)
+        SELECT m.cod_tse, p.ano, round(least(p.agua, 100), 2), round(least(p.esgoto, 100), 2)
+        FROM por p JOIN municipio m ON m.cod_ibge = btrim(p.cod)
+        WHERE p.agua IS NOT NULL OR p.esgoto IS NOT NULL
+    """, etapa='saneamento_censo', detalhe='Censo 2010 (SIDRA 3218) e 2022 (6804, 6805): água da rede e esgoto adequado')
+    for t in ('cempre', 'cempre22', 'pnad_desoc', 'pnad_inf', 'agua10', 'esgoto10', 'agua22', 'esgoto22'):
         c.sql(f'DROP TABLE stg.{t}')
 
 
@@ -970,8 +1020,8 @@ ETAPAS = {
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--etapas', help='lista separada por vírgula; padrão: todas, na ordem: ' + ', '.join(ETAPAS))
-    ap.add_argument('--ufs', help='UFs a carregar, separadas por vírgula, ou "todas"; padrão: '
-                    + ','.join(UFS_PADRAO) + ' (ou o escopo já gravado, ao refazer uma etapa)')
+    ap.add_argument('--ufs', help='UFs a carregar, separadas por vírgula, ou "todas"; padrão: todas '
+                    '(ou o escopo já gravado, ao refazer uma etapa)')
     args = ap.parse_args()
     ufs = None
     if args.ufs:

@@ -1,4 +1,4 @@
-// Pergunta 4: escolaridade. No mini mapa, o leitor escolhe o lugar dos números: os seis estados juntos, um deles ou um
+// Pergunta 4: escolaridade. No mini mapa, o leitor escolhe o lugar dos números: o Brasil, um estado ou um
 // dos seus municípios. A escada dos diplomas põe os candidatos do lugar em oito degraus, de analfabeto a superior completo, com os eleitos em verde e a
 // taxa de eleição de cada degrau; o santinho resume a escada. O boletim escolar divide os municípios do lugar em cinco
 // grupos pela escolaridade de quem foi votar e dá a nota (de 0 a 7) de quem votou, de quem recebeu os votos e dos eleitos.
@@ -7,15 +7,15 @@
 // de quem recebeu os votos em cada município) e escolaridade/estados.json (os mesmos níveis nas 27 UFs, no texto que
 // aparece ao passar o ponteiro pelo mini mapa).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261163';
-import { registraRecortes } from './oraculo.js?v=20261163';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261163';
-import { comparacao } from './lib/retrato.js?v=20261163';
-import { forcaDaRelacao } from './lib/dinheiro.js?v=20261163';
-import { quintis } from './lib/indices.js?v=20261163';
-import { janelasDoAndar } from './lib/predio.js?v=20261163';
-import { NOMES_NIVEIS, nivelEmPalavras, taxa, pearson } from './lib/escolaridade.js?v=20261163';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261163';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261170';
+import { registraRecortes } from './oraculo.js?v=20261170';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261170';
+import { comparacao } from './lib/retrato.js?v=20261170';
+import { forcaDaRelacao } from './lib/dinheiro.js?v=20261170';
+import { quintis } from './lib/indices.js?v=20261170';
+import { janelasDoAndar } from './lib/predio.js?v=20261170';
+import { NOMES_NIVEIS, nivelEmPalavras, taxa, pearson } from './lib/escolaridade.js?v=20261170';
+import { criaMapaDeLugares } from './mapa-lugares.js?v=20261170';
 
 montaPagina();
 
@@ -23,7 +23,7 @@ const [esc, estEsc] = await Promise.all([carregaDados('escolaridade/escolaridade
 const MUNICIPIOS = esc.municipios.map(([cod, nome, uf], i) => ({ cod, nome, uf, i }));
 const POR_COD = new Map(MUNICIPIOS.map(m => [m.cod, m]));
 const TODOS = 'TODOS';
-const SEIS = 'SEIS';      // o lugar padrão: os seis estados do projeto juntos
+const BRASIL = 'BR';      // o lugar padrão: o Brasil inteiro
 const PADRAO = { ano: 2024, cargo: TODOS };
 const virgula = (v, casas = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
 const nomeCargo = c => c.charAt(0) + c.slice(1).toLowerCase();
@@ -38,12 +38,12 @@ const somaDegraus = (degraus, ks) => ks.reduce(([c, e], k) => [c + degraus[k][0]
 const PASSOS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000];
 const MAX_BONECOS = 48;   // no degrau mais cheio
 
-// lugar: SEIS, a sigla de um dos seis estados ou o código de um município
+// lugar: BRASIL, a sigla de um estado ou o código de um município
 // degrau e candidato: o que o leitor abriu na escada (não vão para o endereço)
-let estado = { ...PADRAO, lugar: SEIS, degrau: null, candidato: null };
+let estado = { ...PADRAO, lugar: BRASIL, degrau: null, candidato: null };
 const form = document.getElementById('recorte');
-const ufDoLugar = lugar => (lugar === SEIS ? null : POR_COD.get(lugar)?.uf ?? lugar);
-const nomeDoLugar = lugar => (lugar === SEIS ? 'Os seis estados' : POR_COD.has(lugar)
+const ufDoLugar = lugar => (lugar === BRASIL ? null : POR_COD.get(lugar)?.uf ?? lugar);
+const nomeDoLugar = lugar => (lugar === BRASIL ? 'Brasil' : POR_COD.has(lugar)
   ? `${POR_COD.get(lugar).nome} (${POR_COD.get(lugar).uf})` : NOME_UF[lugar]);
 
 function leEndereco() {
@@ -52,10 +52,10 @@ function leEndereco() {
   estado.ano = esc.anos.includes(ano) ? ano : PADRAO.ano;
   estado.cargo = esc.cargos[estado.ano].includes(p.get('cargo')) ? p.get('cargo') : TODOS;
   const lugar = p.get('lugar');
-  estado.lugar = PROJETO.has(lugar) || POR_COD.has(lugar) ? lugar : SEIS;
+  estado.lugar = NOME_UF[lugar] || POR_COD.has(lugar) ? lugar : BRASIL;
 }
 const escreveEndereco = () => history.replaceState(null, '', `#${new URLSearchParams({ ano: estado.ano,
-  ...(estado.cargo === TODOS ? {} : { cargo: estado.cargo }), ...(estado.lugar === SEIS ? {} : { lugar: estado.lugar }) })}`);
+  ...(estado.cargo === TODOS ? {} : { cargo: estado.cargo }), ...(estado.lugar === BRASIL ? {} : { lugar: estado.lugar }) })}`);
 
 function montaSeletor() {
   trocaMantendoTeclas(form, `
@@ -109,22 +109,22 @@ function desenhaMiniMapa() {
   const ano = estado.ano, cargoB = cargoDoBoletim(ano, estado.cargo);
   const uf = ufDoLugar(estado.lugar);
   const nota = v => (v == null ? 'sem dado' : virgula(v));
-  // sem cores de dado: o mini mapa só escolhe o lugar; os seis estados ficam mais escuros, os outros, para referência
+  // sem cores de dado: o mini mapa só escolhe o lugar
   const porChave = new Map(lugaresDoMapa(ano, cargoB, uf).map(l => [l.chave, {
-    cor: uf ? '#cdb98c' : PROJETO.has(l.chave) ? '#b49a63' : '#d6c9ad',
-    titulo: `${l.nome}: quem votou ${nota(l.eleitor)} · quem recebeu os votos ${nota(l.votado)}${!uf && !PROJETO.has(l.chave) ? ' · fora dos seis estados do projeto' : ''}` }]));
+    cor: uf ? '#cdb98c' : '#c4ac78',
+    titulo: `${l.nome}: quem votou ${nota(l.eleitor)} · quem recebeu os votos ${nota(l.votado)}` }]));
   miniMapa.desenha({ vista: uf ? 'UF' : 'BR', uf, escolhido: POR_COD.has(estado.lugar) ? estado.lugar : null, porChave });
   document.getElementById('lugar-atual').textContent = nomeDoLugar(estado.lugar);
-  document.getElementById('dica-mini').textContent = !uf ? 'Clique num dos seis estados do projeto (contorno escuro).'
+  document.getElementById('dica-mini').textContent = !uf ? 'Clique num estado para ver os números dele.'
     : POR_COD.has(estado.lugar) ? 'Clique em outro município, ou de novo neste para ver o estado inteiro.'
       : 'Clique num município para ver os números dele.';
   const voltar = document.getElementById('voltar-lugar');
   voltar.hidden = !uf;
-  voltar.textContent = POR_COD.has(estado.lugar) ? 'Ver o estado inteiro' : 'Voltar aos seis estados';
+  voltar.textContent = POR_COD.has(estado.lugar) ? 'Ver o estado inteiro' : 'Voltar ao Brasil';
 }
 
 document.getElementById('voltar-lugar').addEventListener('click', () => {
-  estado.lugar = POR_COD.has(estado.lugar) ? ufDoLugar(estado.lugar) : SEIS;
+  estado.lugar = POR_COD.has(estado.lugar) ? ufDoLugar(estado.lugar) : BRASIL;
   atualiza();
 });
 
@@ -150,7 +150,7 @@ function desenhaEscada() {
   }).join('');
   const notas = [];
   if (lugar !== estado.lugar) notas.push(`Em ${estado.ano} ninguém se candidatou por um município (a eleição foi geral): a escada é a ${DA_UF[lugar]}.`);
-  if (estado.lugar === SEIS && estado.ano % 4 === 2) notas.push('Os seis estados juntos incluem os candidatos a presidente.');
+  if (estado.lugar === BRASIL && estado.ano % 4 === 2) notas.push('O Brasil inclui os candidatos a presidente.');
   if (!maior) notas.push('Nenhum candidato neste cargo e lugar.');
   else notas.push(passo === 1 ? 'Cada bonequinho é um candidato.'
     : `Cada bonequinho vale cerca de ${formata.numero(passo)} candidatos; um degrau com algum eleito tem ao menos um verde.`);
@@ -183,7 +183,7 @@ function desenhaSantinho() {
 // ---------------------------------------------------------------- os candidatos de um degrau
 
 /** O arquivo de candidatos do lugar: o do município nos anos municipais, o do estado nos gerais; null quando o lugar
- *  tem candidatos demais para listar (os seis estados juntos, ou um estado inteiro num ano municipal). */
+ *  tem candidatos demais para listar (o Brasil, ou um estado inteiro num ano municipal). */
 function arquivoDeCandidatos() {
   const uf = ufDoLugar(estado.lugar);
   if (!uf) return null;
@@ -217,7 +217,7 @@ async function desenhaCandidatos() {
   if (pedido !== `${estado.ano}-${estado.cargo}-${estado.lugar}-${estado.degrau}`) return;   // o leitor trocou no meio
   const k = estado.degrau;
   if (lista == null) {
-    caixa.innerHTML = `<p class="aviso-vazio">${estado.lugar === SEIS ? 'Escolha um estado' : 'Escolha um município'} no mini mapa
+    caixa.innerHTML = `<p class="aviso-vazio">${estado.lugar === BRASIL ? 'Escolha um estado' : 'Escolha um município'} no mini mapa
       para ver, um a um, os candidatos com ${NOMES_NIVEIS[k]}: aqui são muitos para listar.</p>`;
     return;
   }
@@ -280,7 +280,7 @@ document.getElementById('candidatos-escada').addEventListener('click', e => {
 
 // ---------------------------------------------------------------- o boletim escolar
 
-/** Os municípios do lugar (todos os 1.238 nos seis estados juntos; os do estado num estado ou município), no ano e
+/** Os municípios do lugar (todos os do Brasil no Brasil; os do estado num estado ou município), no ano e
  *  cargo do boletim: [município, quem votou, quem recebeu os votos, eleitos]. */
 function linhasDoBoletim() {
   const cargo = cargoDoBoletim(estado.ano, estado.cargo);
@@ -309,9 +309,9 @@ function desenhaBoletim() {
   const doMeu = g => m && g.pares.some(p => p[1][0] === m);
   const nota = (v, classe) => (v == null ? '<td class="num">—</td>'
     : `<td class="nota-escolar ${classe}"><b>${virgula(v)}</b><span class="nota-trilho"><span class="nota-barra" style="--v:${v / 7}"></span></span></td>`);
-  document.getElementById('t-boletim-escolar').innerHTML = `<span class="sobre">${uf ? `os municípios ${DA_UF[uf]}` : 'os 1.238 municípios dos seis estados'}</span>Lugares com menos estudo elegem gente parecida?`;
+  document.getElementById('t-boletim-escolar').innerHTML = `<span class="sobre">${uf ? `os municípios ${DA_UF[uf]}` : 'os municípios do Brasil'}</span>Lugares com menos estudo elegem gente parecida?`;
   document.getElementById('boletim-escolar').innerHTML = gs.length ? `<div class="boletim-escolar" role="group" aria-label="Boletim escolar dos municípios">
-    <p class="boletim-cabeca"><b>Boletim escolar</b><span>${uf ? NOME_UF[uf] : 'seis estados'} · eleições de ${estado.ano} · ${nomeCargo(cargo).toLowerCase()}${estado.cargo === TODOS ? ' (o cargo de mais candidatos)' : ''} · nota de 0 a 7</span></p>
+    <p class="boletim-cabeca"><b>Boletim escolar</b><span>${uf ? NOME_UF[uf] : 'Brasil'} · eleições de ${estado.ano} · ${nomeCargo(cargo).toLowerCase()}${estado.cargo === TODOS ? ' (o cargo de mais candidatos)' : ''} · nota de 0 a 7</span></p>
     <div class="rolagem"><table class="tabela">
       <thead><tr><th>Grupo de municípios</th><th>Quem foi votar</th><th>Quem recebeu os votos</th><th>Os eleitos</th></tr></thead>
       <tbody>${gs.map((g, i) => `<tr${doMeu(g) ? ' class="atual"' : ''}><td class="grupo-escolar"><b>${NOMES_GRUPOS[i]}</b>
@@ -366,7 +366,7 @@ registraRetrato(() => {
         ...[0, 1].map(i => [`Taxa do bloco "${blocos[2][0]}" (${blocos[2][1] == null ? '—' : formata.pct(blocos[2][1])}) em relação à do bloco "${blocos[i][0]}" (${blocos[i][1] == null ? '—' : formata.pct(blocos[i][1])})`,
           comparacao(blocos[2][1], blocos[i][1])]),
       ] },
-      { titulo: `Boletim escolar: os ${formata.numero(linhas.length)} municípios ${uf ? DA_UF[uf] : 'dos seis estados'} em cinco grupos pela escolaridade de quem foi votar (nota de 0 a 7), com a de quem recebeu os votos para ${nomeCargo(cargoB).toLowerCase()} e a dos eleitos`,
+      { titulo: `Boletim escolar: os ${formata.numero(linhas.length)} municípios ${uf ? DA_UF[uf] : 'do Brasil'} em cinco grupos pela escolaridade de quem foi votar (nota de 0 a 7), com a de quem recebeu os votos para ${nomeCargo(cargoB).toLowerCase()} e a dos eleitos`,
         linhas: gs.map((g, i) => [null, `${NOMES_GRUPOS[i]} (${g.n} municípios): quem votou ${virgula(g.eleitor)}, quem recebeu os votos ${virgula(g.votado)}, eleitos ${g.eleitos == null ? '—' : virgula(g.eleitos)}`]) },
       { titulo: 'Relação entre os municípios', linhas: [
         ['Correlação (Pearson) entre o estudo de quem votou e o de quem recebeu os votos', r == null ? null : `${virgula(r, 3)}: ${fraseDaRelacao(r)}`],
@@ -379,14 +379,14 @@ registraRetrato(() => {
 
 // ---------------------------------------------------------------- o recorte pedido ao oráculo
 
-// a pergunta do leitor pode pedir outro ano, cargo ou lugar; "Brasil" aqui são os seis estados
+// a pergunta do leitor pode pedir outro ano, cargo ou lugar (inclusive o Brasil inteiro)
 const recorteAtual = () => {
   const m = POR_COD.get(estado.lugar);
   return { ano: estado.ano, ...(estado.cargo === TODOS ? {} : { cargo: estado.cargo }),
-    ...(m ? { uf: m.uf, mun: m.cod } : estado.lugar === SEIS ? {} : { uf: estado.lugar }) };
+    ...(m ? { uf: m.uf, mun: m.cod } : estado.lugar === BRASIL ? {} : { uf: estado.lugar }) };
 };
 registraRecortes({
-  opcoes: { anos: esc.anos, cargosDoAno: ano => esc.cargos[ano], lugar: 'mun', brasil: 'seis' },
+  opcoes: { anos: esc.anos, cargosDoAno: ano => esc.cargos[ano], lugar: 'mun', brasil: true },
   atual: recorteAtual,
   aplica: async novo => {
     const lugar = novo.mun ?? novo.uf;

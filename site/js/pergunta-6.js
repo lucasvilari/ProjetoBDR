@@ -1,4 +1,4 @@
-// Pergunta 6: idade e alternância. No mini mapa, o leitor escolhe um município (ou um estado, ou os seis juntos). A faixa
+// Pergunta 6: idade e alternância. No mini mapa, o leitor escolhe um município (ou um estado, ou o Brasil inteiro). A faixa
 // de prefeito passa de mão em mão: cada prefeito eleito de 2000 a 2024 é uma faixa na cor da posição do partido, e entre
 // uma e outra aparece o que mudou. As ampulhetas comparam os municípios mais jovens e os mais velhos (pela mediana da
 // idade, Censo 2022): a idade dos prefeitos eleitos em 2020 e 2024 e quantas vezes o partido ou a pessoa mudou. A régua
@@ -7,23 +7,23 @@
 // Dados: idade/idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos e, em 2020 e 2024,
 // a idade média de quem foi votar e a dos eleitos para prefeito e vereador, por município).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato } from './comum.js?v=20261163';
-import { registraRecortes } from './oraculo.js?v=20261163';
-import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261163';
-import { comparacao } from './lib/retrato.js?v=20261163';
-import { corIdeologia } from './lib/cores.js?v=20261163';
-import { trocas, alternancia, mediaPonderada, diferencaDeIdade } from './lib/idade.js?v=20261163';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261163';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato, fotoCandidato, em } from './comum.js?v=20261170';
+import { registraRecortes } from './oraculo.js?v=20261170';
+import { grupoOpcoes, trocaMantendoTeclas, DA_UF } from './pecas.js?v=20261170';
+import { comparacao } from './lib/retrato.js?v=20261170';
+import { corIdeologia } from './lib/cores.js?v=20261170';
+import { trocas, alternancia, mediaPonderada, diferencaDeIdade } from './lib/idade.js?v=20261170';
+import { criaMapaDeLugares } from './mapa-lugares.js?v=20261170';
 
 montaPagina();
 
 const ida = await carregaDados('idade/idade.json');
 const MUNICIPIOS = ida.municipios.map(([cod, nome, uf, idade, envelhecimento], i) => ({ cod, nome, uf, idade, envelhecimento, i }));
 const POR_COD = new Map(MUNICIPIOS.map(m => [m.cod, m]));
-// a régua de mais jovem e mais velho: a mediana das idades medianas dos 1.238 municípios (como a p06a)
+// a régua de mais jovem e mais velho: a mediana das idades medianas dos municípios do Brasil (como a p06a)
 const MEDIANA = d3.median(MUNICIPIOS, m => m.idade);
 const ehVelho = m => m.idade >= MEDIANA;
-const SEIS = 'SEIS';
+const BRASIL = 'BR';
 const PADRAO = { ano: 2024, lugar: '20516' };      // João Pessoa
 const ANOS_ALTERNANCIA = [2020, 2024];
 const virgula = (v, casas = 1) => v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -40,8 +40,8 @@ function prefeitosDe(cod) {
 
 let estado = { ...PADRAO, prefeito: null };
 const form = document.getElementById('recorte');
-const ufDoLugar = lugar => (lugar === SEIS ? null : POR_COD.get(lugar)?.uf ?? lugar);
-const nomeDoLugar = lugar => (lugar === SEIS ? 'Os seis estados' : POR_COD.has(lugar)
+const ufDoLugar = lugar => (lugar === BRASIL ? null : POR_COD.get(lugar)?.uf ?? lugar);
+const nomeDoLugar = lugar => (lugar === BRASIL ? 'Brasil' : POR_COD.has(lugar)
   ? `${POR_COD.get(lugar).nome} (${POR_COD.get(lugar).uf})` : NOME_UF[lugar]);
 const doLugar = () => MUNICIPIOS.filter(m => !ufDoLugar(estado.lugar) || m.uf === ufDoLugar(estado.lugar));
 
@@ -50,7 +50,7 @@ function leEndereco() {
   const ano = Number(p.get('ano'));
   estado.ano = ida.anos.includes(ano) ? ano : PADRAO.ano;
   const lugar = p.get('lugar');
-  estado.lugar = lugar === SEIS || PROJETO.has(lugar) || POR_COD.has(lugar) ? lugar : PADRAO.lugar;
+  estado.lugar = lugar === BRASIL || NOME_UF[lugar] || POR_COD.has(lugar) ? lugar : PADRAO.lugar;
 }
 const escreveEndereco = () => history.replaceState(null, '', `#${new URLSearchParams({ ano: estado.ano, lugar: estado.lugar })}`);
 
@@ -81,20 +81,20 @@ function desenhaMiniMapa() {
   const lugares = uf ? MUNICIPIOS.filter(m => m.uf === uf).map(m => ({ chave: m.cod, nome: m.nome, idade: m.idade }))
     : Object.keys(NOME_UF).map(u => ({ chave: u, nome: NOME_UF[u], idade: null }));
   const porChave = new Map(lugares.map(l => [l.chave, {
-    cor: uf ? '#cdb98c' : PROJETO.has(l.chave) ? '#b49a63' : '#d6c9ad',
-    titulo: `${l.nome}${l.idade == null ? (!uf && !PROJETO.has(l.chave) ? ' · fora dos seis estados do projeto' : '') : `: idade mediana de ${virgula(l.idade)} anos`}` }]));
+    cor: uf ? '#cdb98c' : '#c4ac78',
+    titulo: `${l.nome}${l.idade == null ? '' : `: idade mediana de ${virgula(l.idade)} anos`}` }]));
   miniMapa.desenha({ vista: uf ? 'UF' : 'BR', uf, escolhido: POR_COD.has(estado.lugar) ? estado.lugar : null, porChave });
   document.getElementById('lugar-atual').textContent = nomeDoLugar(estado.lugar);
-  document.getElementById('dica-mini').textContent = !uf ? 'Clique num dos seis estados do projeto (contorno escuro).'
+  document.getElementById('dica-mini').textContent = !uf ? 'Clique num estado para ver os números dele.'
     : POR_COD.has(estado.lugar) ? 'Clique em outro município, ou de novo neste para ver o estado inteiro.'
       : 'Clique num município para ver os prefeitos dele.';
   const voltar = document.getElementById('voltar-lugar');
   voltar.hidden = !uf;
-  voltar.textContent = POR_COD.has(estado.lugar) ? 'Ver o estado inteiro' : 'Voltar aos seis estados';
+  voltar.textContent = POR_COD.has(estado.lugar) ? 'Ver o estado inteiro' : 'Voltar ao Brasil';
 }
 
 document.getElementById('voltar-lugar').addEventListener('click', () => {
-  estado.lugar = POR_COD.has(estado.lugar) ? ufDoLugar(estado.lugar) : SEIS;
+  estado.lugar = POR_COD.has(estado.lugar) ? ufDoLugar(estado.lugar) : BRASIL;
   estado.prefeito = null;
   atualiza();
 });
@@ -161,7 +161,7 @@ function desenhaSantinho(m, lista, ts) {
   document.getElementById('santinho-idade').innerHTML = santinho({
     faixa: 'idade · Censo 2022', nome: `${m.nome} (${m.uf})`,
     numero: `${virgula(m.idade)} anos`,
-    rotulo: `de idade mediana: ${ehVelho(m) ? 'mais velho' : 'mais jovem'} que a mediana dos 1.238 municípios (${virgula(MEDIANA)} anos).`,
+    rotulo: `de idade mediana: ${ehVelho(m) ? 'mais velho' : 'mais jovem'} que a mediana dos municípios do Brasil (${virgula(MEDIANA)} anos).`,
     linhas: [
       ['Prefeitos eleitos de 2000 a 2024', formata.numero(lista.length)],
       ['Vezes em que o partido mudou', `${partido} de ${ts.length}`],
@@ -169,7 +169,7 @@ function desenhaSantinho(m, lista, ts) {
       ['Idade média dos prefeitos na posse', idades.length ? `${virgula(d3.mean(idades))} anos` : '—'],
     ],
     verso: `<p>A idade mediana é a do Censo 2022: metade dos moradores tem menos que ela. O município é "mais velho" se ela
-      está na mediana dos 1.238 municípios dos seis estados ou acima dela.</p>
+      está na mediana dos municípios do Brasil ou acima dela.</p>
       <p>O Censo de 2022 é posterior às eleições de 2018 e 2020. O índice de envelhecimento do Censo 2010 (idosos por 100
       crianças) dá a medida anterior: ${m.envelhecimento == null ? 'sem dado neste município' : `${virgula(m.envelhecimento)} em ${m.nome}`}.</p>
       <p>Trocas: cada eleição comparada com a anterior do mesmo município; a troca de pessoa só conta quando se sabe
@@ -205,7 +205,7 @@ function desenhaAmpulhetas() {
   const { jovens, velhos } = grupos();
   const m = POR_COD.get(estado.lugar);
   const uf = ufDoLugar(estado.lugar);
-  document.getElementById('t-ampulhetas').innerHTML = `<span class="sobre">${uf ? `os municípios ${DA_UF[uf]}` : 'os 1.238 municípios dos seis estados'} · eleições de 2020 e 2024</span>Municípios jovens trocam mais de prefeito?`;
+  document.getElementById('t-ampulhetas').innerHTML = `<span class="sobre">${uf ? `os municípios ${DA_UF[uf]}` : 'os municípios do Brasil'} · eleições de 2020 e 2024</span>Municípios jovens trocam mais de prefeito?`;
   const cartao = (g, nome, velho) => `<figure class="ampulheta${m && ehVelho(m) === velho ? ' atual' : ''}">
     ${ampulheta(g.partido)}
     <figcaption><b>${nome}</b><small>idade mediana ${velho ? `de ${virgula(MEDIANA)} anos ou mais` : `abaixo de ${virgula(MEDIANA)} anos`} ·
@@ -227,7 +227,8 @@ const CARGOS = [
   { cargo: 'VEREADOR', nome: 'Vereadores eleitos', um: 'Vereador eleito', cor: 'var(--ouro-escuro)', corTexto: '#7a5718' },
   { cargo: 'PREFEITO', nome: 'Prefeitos eleitos', um: 'Prefeito eleito', cor: 'var(--veludo)', corTexto: 'var(--veludo)' },
 ];
-const EM_UF = { AP: 'No Amapá', MG: 'Em Minas Gerais', MS: 'Em Mato Grosso do Sul', PB: 'Na Paraíba', RO: 'Em Rondônia', RR: 'Em Roraima' };
+// "No Amapá", "Na Paraíba", "Em Minas Gerais"
+const emUF = uf => { const t = em(NOME_UF[uf]); return t[0].toUpperCase() + t.slice(1); };
 const anos = (v, casas = 1) => `${virgula(v, casas)} ${Math.abs(v) < 2 ? 'ano' : 'anos'}`;
 
 /** O prefeito eleito no município no ano (o último, se houve eleição suplementar), para dar nome à idade dele. */
@@ -254,7 +255,7 @@ function desenhaRegua() {
   const g = regua();
   const m = POR_COD.get(estado.lugar);
   const uf = ufDoLugar(estado.lugar);
-  document.getElementById('t-regua').innerHTML = `<span class="sobre">${m ? `${m.nome} (${m.uf})` : uf ? NOME_UF[uf] : 'os seis estados'} · eleição de ${estado.ano}</span>Quem é eleito tem a idade de quem vota?`;
+  document.getElementById('t-regua').innerHTML = `<span class="sobre">${m ? `${m.nome} (${m.uf})` : uf ? NOME_UF[uf] : 'o Brasil'} · eleição de ${estado.ano}</span>Quem é eleito tem a idade de quem vota?`;
   const caixa = document.getElementById('regua-idades'), frase = document.getElementById('frase-regua');
   if (g.votantes == null) {
     caixa.innerHTML = '<p class="aviso-vazio">Sem a idade de quem votou neste lugar em ' + estado.ano + '.</p>';
@@ -294,7 +295,7 @@ function desenhaRegua() {
     <div class="regua-fila regua-eixo"><span class="regua-trilho" aria-hidden="true">${marcas.join('')}</span></div>`;
 
   const [ver, pre] = g.cargos;
-  const quem = m ? `Em ${m.nome}` : uf ? EM_UF[uf] : 'Nos seis estados';
+  const quem = m ? `Em ${m.nome}` : uf ? emUF(uf) : 'No Brasil';
   const textoCargo = (c, plural) => c.media == null ? `não há a idade ${plural ? 'dos' : 'do'} ${c.nome.toLowerCase()}`
     : `${virgula(c.media)} (${diferencaDeIdade(g.votantes, c.media)})`;
   let texto = `${quem}, em ${estado.ano}, quem foi votar tinha em média <strong>${virgula(g.votantes)} anos</strong>. Os vereadores eleitos tinham ${textoCargo(ver, true)}`;
@@ -329,7 +330,7 @@ registraRetrato(() => {
   const { jovens, velhos } = grupos();
   const g = regua();
   const uf = ufDoLugar(estado.lugar);
-  const lugarRegua = m ? `${m.nome} (${m.uf})` : uf ? `os municípios ${DA_UF[uf]}` : 'os 1.238 municípios dos seis estados';
+  const lugarRegua = m ? `${m.nome} (${m.uf})` : uf ? `os municípios ${DA_UF[uf]}` : 'os municípios do Brasil';
   const linhaCargo = c => {
     if (c.media == null) return [c.nome, 'sem dado'];
     const p = m && c.cargo === 'PREFEITO' && c.eleitos === 1 ? prefeitoDoAno(m.cod, estado.ano) : null;
@@ -341,9 +342,9 @@ registraRetrato(() => {
     numero: 6, pergunta: 'Cidade jovem troca mais de prefeito?',
     recorte: `${nomeDoLugar(estado.lugar)} · régua de idades: eleição de ${estado.ano}`,
     secoes: [
-      ...(m ? [{ titulo: `Prefeitos de ${m.nome} (${m.uf}), de 2000 a 2024; idade mediana do município ${virgula(m.idade)} anos (${ehVelho(m) ? 'mais velho' : 'mais jovem'} que a mediana dos 1.238, ${virgula(MEDIANA)} anos)`,
+      ...(m ? [{ titulo: `Prefeitos de ${m.nome} (${m.uf}), de 2000 a 2024; idade mediana do município ${virgula(m.idade)} anos (${ehVelho(m) ? 'mais velho' : 'mais jovem'} que a mediana dos municípios do Brasil, ${virgula(MEDIANA)} anos)`,
         linhas: lista.map((x, i) => [String(x.ano), `${x.nome ?? 'sem nome'} (${x.sigla}${x.nota == null ? '' : `, nota ${virgula(x.nota, 2)}`}), ${x.idade == null ? 'idade sem dado' : `${x.idade} anos na posse`}${i ? `; ${SINAL_TROCA(ts[i - 1])}` : ''}`]) }] : []),
-      { titulo: `Ampulhetas: ${uf ? `municípios ${DA_UF[uf]}` : 'os 1.238 municípios'} mais jovens e mais velhos (mediana de ${virgula(MEDIANA)} anos), eleições de prefeito de 2020 e 2024`,
+      { titulo: `Ampulhetas: ${uf ? `municípios ${DA_UF[uf]}` : 'os municípios do Brasil'} mais jovens e mais velhos (mediana de ${virgula(MEDIANA)} anos), eleições de prefeito de 2020 e 2024`,
         linhas: [['Mais jovens', `${jovens.municipios} municípios; trocou de partido ${formata.pct(jovens.partido ?? 0)}, trocou de pessoa ${formata.pct(jovens.pessoa ?? 0)}, idade média dos prefeitos ${jovens.idade == null ? '—' : virgula(jovens.idade)} anos`],
           ['Mais velhos', `${velhos.municipios} municípios; trocou de partido ${formata.pct(velhos.partido ?? 0)}, trocou de pessoa ${formata.pct(velhos.pessoa ?? 0)}, idade média dos prefeitos ${velhos.idade == null ? '—' : virgula(velhos.idade)} anos`]] },
       { titulo: 'Comparações prontas (calculadas pela página)', linhas: [
@@ -361,16 +362,16 @@ registraRetrato(() => {
 
 // ---------------------------------------------------------------- o recorte pedido ao oráculo
 
-// a pergunta do leitor pode pedir outro ano ou lugar; "Brasil" aqui são os seis estados
+// a pergunta do leitor pode pedir outro ano ou lugar (inclusive o Brasil inteiro)
 const recorteAtual = () => {
   const m = POR_COD.get(estado.lugar);
-  return { ano: estado.ano, ...(m ? { uf: m.uf, mun: m.cod } : estado.lugar === SEIS ? {} : { uf: estado.lugar }) };
+  return { ano: estado.ano, ...(m ? { uf: m.uf, mun: m.cod } : estado.lugar === BRASIL ? {} : { uf: estado.lugar }) };
 };
 registraRecortes({
-  opcoes: { anos: ida.anos, lugar: 'mun', brasil: 'seis' },
+  opcoes: { anos: ida.anos, lugar: 'mun', brasil: true },
   atual: recorteAtual,
   aplica: async novo => {
-    history.replaceState(null, '', `#${new URLSearchParams({ ano: novo.ano, lugar: novo.mun ?? novo.uf ?? SEIS })}`);
+    history.replaceState(null, '', `#${new URLSearchParams({ ano: novo.ano, lugar: novo.mun ?? novo.uf ?? BRASIL })}`);
     leEndereco();
     estado.prefeito = null;
     atualiza();

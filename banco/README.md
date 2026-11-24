@@ -1,12 +1,12 @@
 # Banco de dados do projeto
 
 Redução do D.E.R. a tabelas e carga dos arquivos baixados pelo crawler
-(`../crawler/dados`) num PostgreSQL 16, com os dados de Amapá, Mato Grosso do Sul,
-Minas Gerais, Paraíba, Rondônia e Roraima (ver "Escopo geográfico").
+(`../crawler/dados`) num PostgreSQL 16, com os dados das 27 UFs e da Presidência (ver "Escopo
+geográfico").
 
 | Arquivo | O que faz |
 |---|---|
-| `01_tabelas.sql` | Cria as 17 tabelas, com chaves, restrições e colunas geradas |
+| `01_tabelas.sql` | Cria as 21 tabelas, com chaves, restrições e colunas geradas |
 | `02_indices_visoes.sql` | Índices, visões (`vw_candidatura`, `vw_patrimonio`, `vw_qt_mandatos`, `vw_ideologia_partido`) e `nivel_escolaridade()` |
 | `carga.py` | Executa `01`, carrega os dados e executa `02` |
 | `03_validacao.sql` | Confere a carga contra os totais dos arquivos do TSE |
@@ -23,7 +23,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python carga.py
 ```
 
-A carga completa leva cerca de 15 minutos e recria tudo do zero. Uma etapa isolada
+A carga completa leva cerca de uma hora e recria tudo do zero. Uma etapa isolada
 pode ser refeita com `--etapas` (por exemplo `--etapas despesa`), no escopo já
 gravado no banco. Outro conjunto de estados é escolhido com `--ufs` (por exemplo
 `--ufs PI,CE`). O banco padrão é
@@ -48,8 +48,9 @@ por par (número, sigla).
 
 ## Escopo geográfico
 
-O projeto responde às perguntas para AP, MG, MS, PB, RO e RR, que somam 1.238
-municípios. Os arquivos do TSE e do IBGE são nacionais; o recorte é feito na carga:
+O projeto responde às perguntas para as 27 UFs, com os 5.571 municípios da tabela do
+TSE. Os arquivos do TSE e do IBGE são nacionais; a carga aceita um recorte por UF
+(`--ufs`), que é feito assim:
 
 - cada CSV do TSE é recortado pela coluna `SG_UF` logo depois de copiado para o
   esquema `stg`, e as linhas descartadas ficam em `carga.log` com o motivo "fora do
@@ -61,32 +62,37 @@ municípios. Os arquivos do TSE e do IBGE são nacionais; o recorte é feito na 
 - as UFs carregadas ficam na tabela `carga.escopo`, e os totais dos CSVs de receitas
   e despesas dentro do escopo, em `carga.total_csv`, usada por `03_validacao.sql`.
 
-Como o banco só tem os seis estados, todas as respostas se referem a eles. Na
-pergunta 6, a mediana de idade que separa municípios mais velhos e mais jovens é a
-dos municípios carregados.
+Com um recorte, todas as respostas se referem às UFs carregadas; na pergunta 6, a
+mediana de idade que separa municípios mais velhos e mais jovens é a dos municípios
+carregados. No Distrito Federal não há eleição municipal, e o deputado distrital
+ocupa o lugar do estadual.
 
-## Resultado (carga de 02/10/2026)
+## Resultado (carga de 24/11/2026)
 
 | Tabela | Linhas | Tabela | Linhas |
 |---|---:|---|---:|
-| eleicao | 24 | municipio | 1.238 |
-| vaga | 7.516 | idhm_municipio | 3.711 |
-| politico | 437.509 | indicador_anual | 12.380 |
-| partido | 59 | apuracao | 22.395 |
-| ideologia_partido | 77 | perfil_comparecimento | 1.684.622 |
-| ideologia_coligacao | 174 | | |
-| candidatura | 707.384 | votos_cand | 4.806.536 |
-| bem | 445.599 | votos_part | 276.694 |
-| receita | 1.338.349 | despesa | 1.883.090 |
+| eleicao | 29 | municipio | 5.571 |
+| vaga | 33.984 | idhm_municipio | 16.692 |
+| politico | 2.061.000 | indicador_anual | 94.704 |
+| partido | 79 | homicidio_municipio | 91.140 |
+| ideologia_partido | 79 | emprego_formal | 83.533 |
+| ideologia_coligacao | 189 | pnad_emprego_uf | 378 |
+| candidatura | 3.357.427 | saneamento_censo | 11.135 |
+| bem | 2.185.006 | apuracao | 141.701 |
+| receita | 5.134.990 | perfil_comparecimento | 9.617.371 |
+| despesa | 9.955.656 | votos_cand | 26.494.493 |
+| | | votos_part | 1.771.995 |
 
-O banco ocupa 1.688 MB. Conferências de `03_validacao.sql`:
+O banco ocupa 8.724 MB. Conferências de `03_validacao.sql`:
 
-- eleitos coincidem com as vagas (97 deputados federais, 209 estaduais, 6
-  governadores e todas as cadeiras de vereador); faltam 14 prefeitos em 2020 e 7 em
-  2024, de eleições anuladas e refeitas em suplementar;
-- receitas e despesas somam de 99,5% a 100% do total dos CSVs no escopo; o restante
-  é de candidaturas não carregadas (suplementares);
-- os aptos do perfil de comparecimento coincidem com os da apuração.
+- eleitos coincidem com as vagas (513 deputados federais, 1.035 estaduais e 24
+  distritais, 27 governadores e o presidente); faltam 74 prefeitos em 2020 e 38 em
+  2024, um senador em 2018 e parte das cadeiras de vereador (9 em 2020 e 284 em
+  2024), de eleições anuladas e refeitas em suplementar;
+- receitas e despesas somam de 99,3% a 100% do total dos CSVs; o restante é de
+  candidaturas não carregadas (suplementares);
+- os aptos do perfil de comparecimento coincidem com os da apuração (diferença
+  abaixo de 0,01%).
 
 ## Decisões impostas pelos dados
 
@@ -258,7 +264,7 @@ lado esquerdo.
   de 0 a 10. Para comparar medidas, use a ordem dos partidos (Spearman).
 - Só a nota dos especialistas mede ideologia em todos os anos. A das coligações
   vale de 2020 em diante, e a da Câmara mistura ideologia e alinhamento com o
-  governo; por isso o `indice_camara` é negativo nos seis estados, que os
+  governo; por isso o `indice_camara` pode ser negativo em estados que os
   especialistas classificam como de direita.
 - Um partido é o par (número, sigla). O PL de 2002 e o atual têm o mesmo par e,
   portanto, a mesma nota (8,80), embora fossem partidos diferentes.

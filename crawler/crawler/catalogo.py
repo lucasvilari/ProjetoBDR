@@ -84,6 +84,14 @@ ITENS = {i.chave: i for i in (
     Item("ibge_censo2022_populacao", "ibge", "População residente do Censo 2022 (SIDRA 4709)"),
     Item("ibge_censo2022_idade", "ibge", "Idade mediana e índice de envelhecimento, Censo 2022 (SIDRA 9515)"),
     Item("ibge_censo2022_instrucao", "ibge", "Pessoas de 18+ anos por nível de instrução, Censo 2022 (SIDRA 10061)"),
+    Item("ibge_cempre", "ibge", "Pessoal ocupado total por município no CEMPRE, 2010 a 2021 (SIDRA 1685)"),
+    Item("ibge_cempre_2022", "ibge", "Pessoal ocupado total por município no CEMPRE, de 2022 em diante (SIDRA 9509)"),
+    Item("ibge_pnad_desocupacao", "ibge", "Taxa de desocupação por UF e trimestre, PNAD Contínua (SIDRA 4099)"),
+    Item("ibge_pnad_informalidade", "ibge", "Taxa de informalidade por UF e trimestre, PNAD Contínua (SIDRA 8529)"),
+    Item("ibge_censo2010_agua", "ibge", "% de domicílios abastecidos pela rede geral de água, Censo 2010 (SIDRA 3218)"),
+    Item("ibge_censo2010_esgoto", "ibge", "% de domicílios com esgoto pela rede geral ou fossa séptica, Censo 2010 (SIDRA 3218)"),
+    Item("ibge_censo2022_agua", "ibge", "% de domicílios abastecidos pela rede geral de água, Censo 2022 (SIDRA 6804)"),
+    Item("ibge_censo2022_esgoto", "ibge", "% de domicílios com esgoto pela rede geral ou fossa séptica, Censo 2022 (SIDRA 6805)"),
     # ---- Atlas Brasil / PNUD (via Ipeadata) ------------------------------------
     Item("idhm", "ipea", "IDHM e subíndices (educação, longevidade, renda) por município"),
     Item("atlas_escolaridade", "ipea",
@@ -167,6 +175,14 @@ NECESSIDADES = {
         "ibge_populacao_estimada": None,          # pondera a taxa de homicídios por UF
         "ibge_censo2022_populacao": None,
         "atlas_violencia": None,                  # taxa de homicídios por município e ano
+        "ibge_cempre": None,                      # empregos formais por município
+        "ibge_cempre_2022": None,
+        "ibge_pnad_desocupacao": None,            # desocupação e informalidade por UF
+        "ibge_pnad_informalidade": None,
+        "ibge_censo2010_agua": None,              # saneamento nos dois Censos
+        "ibge_censo2010_esgoto": None,
+        "ibge_censo2022_agua": None,
+        "ibge_censo2022_esgoto": None,
     },
 }
 

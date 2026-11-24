@@ -1,7 +1,7 @@
 // Pergunta 3: os índices de um município (PIB per capita, IDHM, eleitores por habitante e isentos) ao lado dos partidos
 // que mais recebem votos e elegem nele e de para que lado ele vota. O santinho traz os índices e o voto ideológico; o
-// boletim de urna, o ranking dos partidos com a posição de cada um; o mapa pinta as 27 UFs (e, nos seis estados, os
-// municípios) pelo índice, pelo voto ou pelos dois juntos; e os grupos de municípios mostram se o voto muda com cada
+// boletim de urna, o ranking dos partidos com a posição de cada um; o mapa pinta as 27 UFs (e, ao abrir uma, os
+// municípios dela) pelo índice, pelo voto ou pelos dois juntos; e os grupos de municípios mostram se o voto muda com cada
 // índice. O leitor escolhe o cargo: todos (o boletim soma os cargos; o voto é o combinado da pergunta 7) ou um só.
 //
 // Dados: indices/municipios.json (índices, partido do prefeito e voto ideológico de cada município, combinado e por
@@ -9,14 +9,14 @@
 // indices/estados.json (os índices das 27 UFs), vies/brasil.json (o voto de cada UF, da pergunta 7), geo/ (contornos
 // do IBGE) e partidos-recorte/BR.json (a nota de cada partido em cada ano).
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato } from './comum.js?v=20261163';
-import { registraRecortes } from './oraculo.js?v=20261163';
-import { grupoOpcoes, trocaMantendoTeclas, CAPITAIS, DA_UF } from './pecas.js?v=20261163';
-import { comparacao } from './lib/retrato.js?v=20261163';
-import { corIdeologia } from './lib/cores.js?v=20261163';
-import { spearman, forcaDaRelacao } from './lib/dinheiro.js?v=20261163';
-import { quintis, cortes, faixa, posicaoRelativa } from './lib/indices.js?v=20261163';
-import { criaMapaDeLugares, PROJETO } from './mapa-lugares.js?v=20261163';
+import { montaPagina, carregaDados, formata, santinho, NOME_UF, registraRetrato } from './comum.js?v=20261170';
+import { registraRecortes } from './oraculo.js?v=20261170';
+import { grupoOpcoes, trocaMantendoTeclas, CAPITAIS, DA_UF } from './pecas.js?v=20261170';
+import { comparacao } from './lib/retrato.js?v=20261170';
+import { corIdeologia } from './lib/cores.js?v=20261170';
+import { spearman, forcaDaRelacao } from './lib/dinheiro.js?v=20261170';
+import { quintis, cortes, faixa, posicaoRelativa } from './lib/indices.js?v=20261170';
+import { criaMapaDeLugares } from './mapa-lugares.js?v=20261170';
 
 montaPagina();
 
@@ -248,14 +248,14 @@ async function desenhaMapa() {
   const ix = INDICES[estado.rel];
   const naUF = estado.vista === 'UF';
   const lugares = lugaresDoMapa(ano, ix.k, m);
-  // os grupos e as alturas: no Brasil, entre as 27 UFs; nos municípios, entre os 1.238 dos seis estados (como a lista)
+  // os grupos e as alturas: no Brasil, entre as 27 UFs; nos municípios, entre todos os do Brasil (como a lista)
   const base = naUF ? MUNICIPIOS.map(x => ({ chave: x.cod, indice: valor(ano, x, ix.k) })) : lugares;
   const c5 = cortes(base.map(l => l.indice), 5);
   const posicoes = posicaoRelativa(base.map(l => l.indice));
   const alturaDe = new Map(base.map((l, i) => [l.chave, posicoes[i]]));
   const cor = l => (estado.pinta === 'indice' ? (l.indice == null ? null : TONS_INDICE[faixa(l.indice, c5)])
     : (l.voto == null ? null : corIdeologia(l.voto)));
-  const titulo = l => `${l.nome}: ${ix.curto} ${l.indice == null ? 'sem dado' : ix.fmt(l.indice)} · voto ${l.voto == null ? 'sem dado' : virgula(l.voto, 2)}${!naUF && !PROJETO.has(l.chave) ? ' · fora dos seis estados do projeto' : ''}`;
+  const titulo = l => `${l.nome}: ${ix.curto} ${l.indice == null ? 'sem dado' : ix.fmt(l.indice)} · voto ${l.voto == null ? 'sem dado' : virgula(l.voto, 2)}`;
   const porChave = new Map(lugares.map(l => [l.chave, { cor: cor(l), titulo: titulo(l),
     altura: estado.pinta === 'voto' ? 0 : alturaDe.get(l.chave) ?? null }]));
   const { em3D } = await mapaLugares.desenha({ vista: estado.vista, uf: m.uf, escolhido: naUF ? m.cod : m.uf, porChave });
@@ -269,12 +269,12 @@ async function desenhaMapa() {
     ? `${comoMexer}Clique num município para ver, abaixo, os índices e os partidos dele (agora: <strong>${m.nome}</strong>, em
        laranja).`
     : `Entre os 27 estados, com o voto para ${cargoDoVoto(ano)}: <strong>${fraseRelacao(ix, r)}</strong>. ${comoMexer}Clique
-       num dos seis estados do projeto (contorno escuro) para ver os municípios dele; os outros aparecem para comparação.
+       num estado para ver os municípios dele.
        Abaixo, os números de <strong>${m.nome} (${m.uf})</strong>.`;
 }
 
 function desenhaLegendaMapa(ix, c5, naUF, valores, em3D) {
-  const entre = naUF ? 'entre os 1.238 municípios' : 'entre os 27 estados';
+  const entre = naUF ? 'entre os municípios do Brasil' : 'entre os 27 estados';
   const semDado = `<span><i class="sem-dado"></i>sem dado${em3D ? ' (cinza, rente ao chão)' : ''}</span>`;
   const limites = [null, ...c5, null];
   const faixaTexto = i => (limites[i] == null ? `até ${ix.fmt(limites[i + 1])}`
@@ -315,7 +315,7 @@ addEventListener('resize', () => { clearTimeout(redimensiona); redimensiona = se
 
 // ---------------------------------------------------------------- o retrato para o oráculo
 
-/** O que a página mostra agora: os índices do município e a posição dele entre os 1.238, o voto do cargo escolhido,
+/** O que a página mostra agora: os índices do município e a posição dele entre os municípios do Brasil, o voto do cargo escolhido,
  *  os grupos de municípios por índice e o ranking dos partidos, com as comparações prontas. */
 registraRetrato(async () => {
   const m = POR_COD.get(estado.mun);
@@ -330,22 +330,22 @@ registraRetrato(async () => {
     recorte: `${m.nome} (${m.uf}) · ${ano} · cargo: ${doCargo}`,
     secoes: [
       { titulo: 'Índices do município', linhas: INDICES.map(ix => [ix.nome, meu(ix.k) == null ? 'sem dado'
-        : `${ix.fmt(meu(ix.k))} (mediana dos 1.238 municípios: ${ix.fmt(mediana(ano, ix.k))})`]) },
+        : `${ix.fmt(meu(ix.k))} (mediana dos municípios do Brasil: ${ix.fmt(mediana(ano, ix.k))})`]) },
       { titulo: 'Comparações prontas (calculadas pela página)', linhas: INDICES.map(ix => [
         `${ix.curto} em relação à mediana dos municípios`, comparacao(meu(ix.k), mediana(ano, ix.k))]).concat(
         INDICES.map(ix => [`Posição de ${ix.curto}`, posicao(ano, m, ix.k) == null ? null
-          : `maior que o de ${formata.pct(posicao(ano, m, ix.k))} dos municípios dos seis estados`])) },
+          : `maior que o de ${formata.pct(posicao(ano, m, ix.k))} dos municípios do Brasil`])) },
       { titulo: `Para que lado o município votou para ${cargoDoVoto(ano)} (índice da pergunta 7: média das notas dos partidos, 0 esquerda a 10 direita, com peso pelos votos de cada partido)`,
         linhas: ideo(ano, m) == null ? [] : [
           ['Índice do município', `${virgula(ideo(ano, m), 2)} (${classeDe(ano, m).toLowerCase()})`],
-          ['Mediana dos 1.238 municípios', virgula(medianaVoto(ano), 2)],
+          ['Mediana dos municípios do Brasil', virgula(medianaVoto(ano), 2)],
           // dito pelos dois lados: só "mais à direita que X%" o modelo do oráculo às vezes invertia
-          ['Posição', `${formata.pct(posicaoVoto(ano, m))} dos municípios dos seis estados votaram mais à esquerda que ele, e os outros ${formata.pct(100 - posicaoVoto(ano, m))} votaram igual ou mais à direita`],
+          ['Posição', `${formata.pct(posicaoVoto(ano, m))} dos municípios do Brasil votaram mais à esquerda que ele, e os outros ${formata.pct(100 - posicaoVoto(ano, m))} votaram igual ou mais à direita`],
           ...(valor(ano, m, K.segundo_turno) ? [['Presidente, 2º turno no município', (([a, pa, b, pb]) => `${a} ${formata.pct(pa)}, ${b} ${formata.pct(pb)}`)(valor(ano, m, K.segundo_turno))]] : []),
         ] },
       ...INDICES.map(ix => {
         const { grupos, r } = relacao(ano, ix.k);
-        return { titulo: `Voto médio para ${cargoDoVoto(ano)} dos municípios em cinco grupos por ${ix.curto}, do grupo mais baixo ao mais alto (entre os 1.238)`,
+        return { titulo: `Voto médio para ${cargoDoVoto(ano)} dos municípios em cinco grupos por ${ix.curto}, do grupo mais baixo ao mais alto (entre os municípios do Brasil)`,
           linhas: [...grupos.map((g, i) => [null, `${NOMES_GRUPOS[i]} (${ix.fmt(g.de)} a ${ix.fmt(g.ate)}): voto médio ${virgula(g.media, 2)}`]),
             ['Do grupo mais baixo ao mais alto', grupos.length ? `${virgula(grupos[0].media, 2)} → ${virgula(grupos[4].media, 2)}, diferença de ${virgula(Math.abs(grupos[4].media - grupos[0].media), 2)} ponto, ${grupos[4].media > grupos[0].media ? 'mais à direita' : 'mais à esquerda'} no grupo mais alto` : null],
             ['Correlação entre os municípios', fraseRelacao(ix, r)]] };
@@ -358,7 +358,7 @@ registraRetrato(async () => {
           linhas: [['Correlação entre os 27 estados', fraseRelacao(ix, r)],
             ['Brasil', `${ix.curto} ${estInd.valores[ano]?.BR?.[ix.k] == null ? '—' : ix.fmt(estInd.valores[ano].BR[ix.k])}`],
             ...ufs.sort((a, b) => (b.indice ?? -1) - (a.indice ?? -1)).map(l => [null,
-              `${NOME_UF[l.uf]}${PROJETO.has(l.uf) ? ' (do projeto)' : ''}: ${l.indice == null ? 'sem dado' : ix.fmt(l.indice)}, voto ${l.voto == null ? 'sem dado' : virgula(l.voto, 2)}`])] };
+              `${NOME_UF[l.uf]}: ${l.indice == null ? 'sem dado' : ix.fmt(l.indice)}, voto ${l.voto == null ? 'sem dado' : virgula(l.voto, 2)}`])] };
       })(),
       { titulo: `Partido do prefeito (eleito em ${anoDoPrefeito(ano)})`, linhas: pref == null ? [] : [
         ['Partido', ind.partidos[pref]],

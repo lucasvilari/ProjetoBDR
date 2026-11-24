@@ -400,7 +400,7 @@ p, li { max-width: var(--medida); }
 }
 .mapa-svg { display: block; width: 100%; height: auto; }
 .mapa-svg path { stroke: var(--visor); stroke-width: 0.7; }
-.mapa-svg .estado.projeto { stroke: var(--tecla); stroke-width: 2.2; cursor: pointer; }
+.mapa-svg .estado.projeto { cursor: pointer; }
 .mapa-svg .municipio { stroke-width: 0.35; cursor: pointer; }
 .mapa-svg path[role="button"]:hover { filter: brightness(0.88); }
 /* sem o retângulo de foco do navegador ao clicar: o contorno laranja já marca o lugar */
@@ -1143,7 +1143,6 @@ body[data-pagina="pergunta-6"] .lugar-mini { border-top: 2px solid var(--tecla);
 .lugar-mini-corpo { display: flex; flex-wrap: wrap; gap: var(--m2) var(--m3); align-items: flex-start; }
 .mini-mapa { width: 260px; max-width: 100%; padding: 0.4rem; background: var(--visor); border: 2px solid var(--tecla); border-radius: var(--raio); }
 .mini-mapa .mapa-svg path { stroke: #7d7262; stroke-width: 0.6; }
-.mini-mapa .mapa-svg .estado.projeto { stroke: var(--tecla); stroke-width: 1.8; }
 .mini-mapa .mapa-svg .municipio { stroke: #6f6556; stroke-width: 0.35; }
 /* o município escolhido, pequeno demais para só um contorno, fica todo em laranja */
 .mini-mapa .mapa-svg .contornos .municipio.selecionado { fill: var(--corrige); stroke: var(--tecla); stroke-width: 1; }

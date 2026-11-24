@@ -66,14 +66,13 @@ export function citados(texto, nomes) {
   });
 }
 
-const SEIS = ['AP', 'MG', 'MS', 'PB', 'RO', 'RR'];
 const NO_MUNICIPIO = ['PREFEITO', 'VEREADOR'];
 
-/** Os links de um candidato numa eleição: a carreira e, onde o site tem cada candidato (de 2018 em diante, nos seis
- *  estados ou para presidente), as perguntas 1, 2, 8 e 9 já no recorte dele, abertas nele (pid). */
+/** Os links de um candidato numa eleição: a carreira e, onde o site tem cada candidato (de 2018 em diante), as
+ *  perguntas 1, 2, 8 e 9 já no recorte dele, abertas nele (pid). */
 export function linksDoCandidato({ pid, ano, cargo, uf, mun }) {
   const links = pid ? [{ rotulo: 'Carreira política', href: `pergunta-10.html#${pid}` }] : [];
-  if (ano < 2018 || (cargo !== 'PRESIDENTE' && !SEIS.includes(uf))) return links;
+  if (ano < 2018 || (cargo !== 'PRESIDENTE' && !uf)) return links;
   const r = new URLSearchParams({ ano, cargo });
   if (cargo !== 'PRESIDENTE') r.set('uf', uf);
   if (NO_MUNICIPIO.includes(cargo) && mun) r.set('mun', mun);
@@ -85,7 +84,7 @@ export function linksDoCandidato({ pid, ano, cargo, uf, mun }) {
     { rotulo: `Onde gastou em propaganda em ${ano}`, href: `pergunta-9.html#${r}` }];
 }
 
-/** Os links de um município dos seis estados: índices e voto (no ano mais recente), escolaridade, prefeitos, para que
+/** Os links de um município: índices e voto (no ano mais recente), escolaridade, prefeitos, para que
  *  lado vota e o custo da prefeitura em 2024. */
 export function linksDoMunicipio({ cod, uf }, ultimoAno) {
   return [

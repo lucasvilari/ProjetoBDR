@@ -9,22 +9,22 @@ perguntas respondidas têm uma página cada, com uma visualização própria:
 | `index.html` | apresentação, fontes e a roda das perguntas | o olho que se abre e as perguntas em volta dele |
 | `pergunta-1.html` | Quanto custa uma cadeira? | o plenário em 3D (ou 2D) com a multidão de quem tentou, as moedas do gasto, por partido e por político |
 | `pergunta-2.html` | Patrimônio ajuda a eleger? | um prédio: cada andar uma faixa de patrimônio, cada janela um candidato, acesa quando se elegeu; os moradores de cada andar e patrimônio × votos |
-| `pergunta-3.html` | Município rico vota diferente? | o mapa das 27 UFs (e dos municípios dos seis estados) em relevo 3D: a altura de cada lugar é o índice e a cor, o voto (ou plano, sem WebGL); abaixo, do município escolhido no mapa, o boletim de urna com os partidos mais votados, a posição de cada um e os eleitos, e o santinho com PIB per capita, IDHM, eleitores por habitante, isentos e para que lado votou; o voto médio dos municípios em cinco grupos por índice; tudo para o ano e o cargo escolhidos |
-| `pergunta-4.html` | Estudo ajuda a eleger? | um mini mapa para escolher o lugar (os seis estados juntos, um deles ou um município); do lugar, a escada dos diplomas (clicar num degrau lista os candidatos dele, cada um com um mini cartão e o link para a carreira): oito degraus, de analfabeto a superior completo, com os candidatos em cima, os eleitos em verde e a taxa de eleição de cada degrau; o boletim escolar dos municípios em cinco grupos pela escolaridade de quem foi votar, com a de quem recebeu os votos e dos eleitos |
+| `pergunta-3.html` | Município rico vota diferente? | o mapa das 27 UFs (e dos municípios de cada uma) em relevo 3D: a altura de cada lugar é o índice e a cor, o voto (ou plano, sem WebGL); abaixo, do município escolhido no mapa, o boletim de urna com os partidos mais votados, a posição de cada um e os eleitos, e o santinho com PIB per capita, IDHM, eleitores por habitante, isentos e para que lado votou; o voto médio dos municípios em cinco grupos por índice; tudo para o ano e o cargo escolhidos |
+| `pergunta-4.html` | Estudo ajuda a eleger? | um mini mapa para escolher o lugar (o Brasil, um estado ou um município); do lugar, a escada dos diplomas (clicar num degrau lista os candidatos dele, cada um com um mini cartão e o link para a carreira): oito degraus, de analfabeto a superior completo, com os candidatos em cima, os eleitos em verde e a taxa de eleição de cada degrau; o boletim escolar dos municípios em cinco grupos pela escolaridade de quem foi votar, com a de quem recebeu os votos e dos eleitos |
 | `pergunta-5.html` | Quem entrou pela legenda? | cada eleito é um copo com os próprios votos, com a marca do quociente: os puxadores transbordam; ao esvaziar a jarra da chapa (colegas sem cadeira e legenda), ela e a sobra dos puxadores enchem os copos dos outros |
 | `pergunta-6.html` | Cidade jovem troca mais de prefeito? | um mini mapa para escolher o lugar; a faixa de prefeito passando de mão em mão, de 2000 a 2024, uma faixa por prefeito na cor da posição do partido (clicável, com mini cartão e link para a carreira); as ampulhetas dos municípios mais jovens e mais velhos (troca de partido e de pessoa, idade dos prefeitos); a régua de idades: a idade média de quem foi votar contra a de quem se elegeu vereador e prefeito, em 2020 ou 2024 |
 | `pergunta-7.html` | Para que lado se vota? | o mapa do vermelho (esquerda) ao azul (direita), por cargo e ano, nas duas réguas, com linha do tempo; e os partidos |
 | `pergunta-8.html` | Dinheiro público elege? | os candidatos em colunas pela parcela de dinheiro público na receita, de 10 em 10% (quantos candidatos, quantos eleitos e a taxa de vitória de cada faixa, com os eleitos da faixa clicada); cada candidato e cada partido como uma torneira |
 | `pergunta-9.html` | Onde gastam em propaganda? | a rua da campanha, com um objeto por tipo de despesa; a seta para o céu afasta a vista e mostra as nuvens, uma por palavra das despesas |
 | `pergunta-10.html` | Como foi a carreira de um político? | a linha do tempo com um santinho por eleição, de 1994 a 2026 (1994 e 1996 ligadas pelo nome e nascimento), com foto de 2004 em diante |
-| `pergunta-11.html` | O que mudou no mandato? (extra, fora das dez da disciplina) | o mapa dos seis estados e dos municípios por indicador e ano (setor que mais pesa, PIB per capita, homicídios e a variação durante o mandato de quem foi eleito), com gráficos e a tabela dos mandatos |
+| `pergunta-11.html` | O que mudou no mandato? (extra, fora das dez da disciplina) | o mapa dos 27 estados e dos municípios por indicador e ano (setor que mais pesa, PIB per capita, homicídios, empregos formais, desocupação e informalidade por estado, água e esgoto, e a variação durante o mandato de quem foi eleito), com gráficos e a tabela dos mandatos |
 | `cabine.html` | A cabine do oráculo (a tecla "?") | a pergunta livre ao oráculo: comparar carreiras ou municípios, o resultado de uma eleição |
 
-Os dados cobrem os seis estados do projeto (Amapá, Mato Grosso do Sul, Minas Gerais, Paraíba,
-Rondônia e Roraima) e a eleição para presidente. Nas páginas com seletor (perguntas 1, 2, 3, 4, 5, 6, 8 e 9), o lugar é
-sempre um desses estados ou um município deles, onde há os dados completos de cada candidato; presidente é a
-única eleição nacional. Os anos vão de 2018 a 2026; as contas de campanha de 2026 (gastos e receitas, nas perguntas 1, 8 e 9)
-são as declaradas ao TSE até 29/10/2026 e ainda podem crescer, e a pergunta 6 fica nas eleições municipais (até 2024). A pergunta 7, o mapa ideológico, cobre o Brasil inteiro, e o mapa da pergunta 3 mostra os índices de todos os estados para comparação. Sempre que há um número de um
+Os dados cobrem os 27 estados, os seus municípios e a eleição para presidente. Nas páginas com seletor (perguntas 1, 2,
+3, 4, 5, 6, 8 e 9), o lugar é um estado ou um município dele; presidente é a única eleição nacional. As carreiras
+completas (pergunta 10, a busca de políticos da 9 e as comparações da cabine) são de quem se elegeu ao menos uma vez e
+de todos os candidatos a presidente; os demais candidatos aparecem com nome nas eleições de que participaram. Os anos vão de 2018 a 2026; as contas de campanha de 2026 (gastos e receitas, nas perguntas 1, 8 e 9)
+são as declaradas ao TSE até 29/10/2026 e ainda podem crescer, e a pergunta 6 fica nas eleições municipais (até 2024). Sempre que há um número de um
 político (gasto, patrimônio, dinheiro público), ele vem com os votos e o custo por voto.
 
 As páginas antigas (`cadeiras.html`, `mapa.html`, `partido.html`, `politico.html`) só levam à página
@@ -87,7 +87,7 @@ npx wrangler@4 deploy
 ```
 
 A cabine do oráculo (`cabine.html`, a tecla "?" depois da 10) aceita perguntas gerais, fora de uma página: comparar a
-carreira de até três políticos, comparar municípios dos seis estados ou ver o resultado de uma eleição. São dois
+carreira de até três políticos, comparar municípios ou ver o resultado de uma eleição. São dois
 pedidos à função: no primeiro, a IA só transforma a pergunta num pedido de dados (tipo, nomes, ano, cargo, lugar),
 conferido pela função; a página busca esses dados nos mesmos arquivos de `dados/`, monta o retrato e, no segundo
 pedido, a IA responde com ele. Por isso cada pergunta da cabine conta duas vezes no limite por minuto. Entre a pergunta
@@ -128,26 +128,15 @@ site/
     ├── indices/         pergunta 3: municipios.json (índices, partido do prefeito e voto ideológico de cada município, combinado e por cargo, por ano) ranking/<UF>[-<cargo>].json e estados.json (os índices das 27 UFs)
     ├── escolaridade/    pergunta 4: escolaridade.json (candidatos e eleitos por grau e lugar; o nível de quem votou e de quem recebeu os votos em cada município) e estados.json (os mesmos níveis nas 27 UFs, no texto do mini mapa); candidatos/<lugar>-<ano>.json (cada candidato com o grau dele e a nota de quem votou nele)
     ├── idade/           pergunta 6: idade.json (perfil etário dos municípios, prefeitos de 2000 a 2024, notas dos partidos, idade média de quem votou e dos eleitos)
-    ├── lugares.json     o nome dos municípios dos seis estados, para o oráculo achar o município citado numa pergunta
+    ├── lugares.json     o nome dos municípios do Brasil, para o oráculo achar o município citado numa pergunta
     ├── propaganda/      pergunta 9: <unidade>.json, pessoas/<n>.json e exemplos/ (despesas de cada palavra do céu, baixadas só ao clicar)
-    ├── geo/             contornos do IBGE (estados e municípios dos seis estados)
+    ├── geo/             contornos do IBGE (estados e municípios)
     └── politicos/       índice de busca, fichas e carreiras, em fatias
 ```
 
 ## Gerar os dados
 
-O gerador usa dois bancos: o dos seis estados (`eleicoes`, o do dump), para os nomes, as carreiras, a
-legenda, os índices dos municípios, a escolaridade e a idade, e um com o país inteiro, para o mapa, os partidos, o viés, as listas de
-candidatos e a propaganda. O banco nacional é carregado com `banco/carga.py --ufs todas` num banco
-separado:
-
-```bash
-createdb eleicoes_nacional
-```
-
-```bash
-DATABASE_URL="dbname=eleicoes_nacional" banco/.venv/bin/python banco/carga.py --ufs todas
-```
+O gerador lê o banco `eleicoes` (o do dump, com as 27 UFs; outro banco com `--banco`):
 
 ```bash
 cd site && ../banco/.venv/bin/python gera_dados.py

@@ -1,9 +1,9 @@
 # Tutorial: baixar o banco e executar as consultas
 
 O banco não fica no repositório: ele é publicado como arquivo `eleicoes.dump` na
-página de **Releases** do GitHub. Com ele você monta o banco em menos de um minuto,
-sem precisar do crawler nem dos 33 GB de CSV. O banco cobre seis estados: AP, MG, MS,
-PB, RO e RR.
+página de **Releases** do GitHub. Com ele (cerca de 900 MB) você monta o banco em cerca de um minuto,
+sem precisar do crawler nem dos 33 GB de CSV. O banco cobre as 27 UFs, os
+seus municípios e a eleição de presidente.
 
 Os comandos são para Linux. No Windows, use o WSL (Ubuntu) e siga os mesmos passos.
 
@@ -127,8 +127,8 @@ scripts/gera_dump.sh
 ```
 
 ```bash
-gh release upload dados-2026-10-02 eleicoes.dump --clobber
+gh release upload dados-2026-11-24 eleicoes.dump --clobber
 ```
 
 Na primeira publicação, crie a Release:
-`gh release create dados-2026-10-02 eleicoes.dump --title "Banco: AP, MG, MS, PB, RO e RR"`.
+`gh release create dados-2026-11-24 eleicoes.dump --title "Banco: as 27 UFs"`.

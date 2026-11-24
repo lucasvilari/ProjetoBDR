@@ -8,10 +8,10 @@
 // O recorte (cargo, ano, régua, UF, município e partido em destaque) fica no endereço da página.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261163';
-import { registraRecortes } from './oraculo.js?v=20261163';
-import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261163';
-import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261163';
+import { montaPagina, carregaDados, formata, comSeta, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261170';
+import { registraRecortes } from './oraculo.js?v=20261170';
+import { COR, corIdeologia, contraste } from './lib/cores.js?v=20261170';
+import { leCandidaturas, UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261170';
 
 montaPagina();
 
@@ -207,7 +207,7 @@ async function constroiMapa(largura, id) {
     .on('keydown', (e, f) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); seleciona(f); } });
   // contornos grossos numa camada por cima, para os vizinhos desenhados depois não os cobrirem
   svg.append('g').attr('class', 'contornos').attr('aria-hidden', 'true')
-    .selectAll('path').data(geo.features.filter(f => (naUF ? f.properties.mun === estado.mun : ufsProjeto.has(f.properties.uf))))
+    .selectAll('path').data(geo.features.filter(f => naUF && f.properties.mun === estado.mun))
     .join('path').attr('d', caminho).attr('class', naUF ? 'municipio selecionado' : 'estado projeto');
   const foco = svg.append('path').attr('class', 'contorno-foco').attr('aria-hidden', 'true');
   clicavel.on('focus', (e, f) => { if (e.target.matches(':focus-visible')) foco.attr('d', caminho(f)); })
@@ -235,12 +235,12 @@ async function pintaMapa(animar) {
   forma.select('title').text(f => {
     const v = valores[chave(f)];
     const nome = naUF ? nomes?.[f.properties.mun]?.nome ?? 'Município' : NOME_UF[f.properties.uf];
-    return `${nome}: ${v == null ? 'sem dado' : `${formataValor(v)} (${ladoDe(v)})`}${!naUF && !ufsProjeto.has(f.properties.uf) ? ' · fora dos seis estados do projeto' : ''}`;
+    return `${nome}: ${v == null ? 'sem dado' : `${formataValor(v)} (${ladoDe(v)})`}`;
   });
   desenhaLegenda();
   document.getElementById('dica').textContent = naUF
     ? 'Clique num município para ver os números dele; clique de novo para voltar ao estado.'
-    : `Os seis estados do projeto têm contorno escuro e podem ser clicados.${estado.cargo === 'COMBINADO'
+    : `Clique num estado para ver os municípios dele.${estado.cargo === 'COMBINADO'
       ? ` Em ${estado.ano}, o combinado usa os votos para ${cargoDosVotos('COMBINADO', estado.ano)}.` : ''}`;
 }
 

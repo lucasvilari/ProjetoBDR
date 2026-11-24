@@ -1,10 +1,9 @@
-// O mapa de lugares das perguntas 3 e 4: as 27 UFs (os seis estados do projeto com contorno escuro e clicáveis) ou os
-// municípios de um dos seis estados. É em relevo (3D, relevo-3d.js) quando há WebGL, o leitor não pediu menos movimento
+// O mapa de lugares das perguntas 3, 4 e 6: as 27 UFs, todas clicáveis, ou os municípios de um estado. É em relevo (3D, relevo-3d.js) quando há WebGL, o leitor não pediu menos movimento
 // nem escolheu o plano; o plano tem as mesmas cores, sem a altura. A página diz a cor, a altura e o texto de cada lugar;
 // o mapa monta a cena, troca de vista, avisa o clique e cuida do botão entre relevo e plano.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-import { carregaDados, NOME_UF } from './comum.js?v=20261163';
-import { UFS_PROJETO, DA_UF } from './pecas.js?v=20261163';
+import { carregaDados, NOME_UF } from './comum.js?v=20261170';
+import { UFS_PROJETO, DA_UF } from './pecas.js?v=20261170';
 
 export const PROJETO = new Set(UFS_PROJETO);
 
@@ -31,7 +30,7 @@ export function criaMapaDeLugares({ caixa, botaoVista, chaveSessao, aoEscolher, 
     mapa?.cena?.destroi();
     if (podeUsar3D()) {
       try {
-        const { montaRelevo } = await import('./relevo-3d.js?v=20261163');
+        const { montaRelevo } = await import('./relevo-3d.js?v=20261170');
         const clicaveis = new Set(geo.features.map(chave).filter(k => naUF || PROJETO.has(k)));
         return { id, em3D: true, geo, cena: montaRelevo(caixa, { geo, chave, clicaveis, rotulo, aoEscolher: escolhe,
           alturaMax: naUF ? 0.14 : 0.34 }) };
@@ -53,7 +52,7 @@ export function criaMapaDeLugares({ caixa, botaoVista, chaveSessao, aoEscolher, 
     const clicavel = naUF ? forma : forma.filter(f => PROJETO.has(f.properties.uf));
     clicavel.attr('tabindex', 0).attr('role', 'button').on('click', (_, f) => escolhe(chave(f)))
       .on('keydown', (e, f) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); escolhe(chave(f)); } });
-    // contornos por cima: os seis estados (Brasil) ou o município escolhido, para os vizinhos não os cobrirem
+    // contorno por cima: o estado (Brasil) ou o município escolhido, para os vizinhos não o cobrirem
     const contornos = svg.append('g').attr('class', 'contornos').attr('aria-hidden', 'true');
     // a etiqueta com o nome do lugar sob o ponteiro (ou com o foco do teclado), para saber o que o clique vai abrir
     const dica = document.createElement('div');
@@ -88,11 +87,11 @@ export function criaMapaDeLugares({ caixa, botaoVista, chaveSessao, aoEscolher, 
       botaoVista.textContent = mapa.em3D ? 'Ver plano' : 'Ver em relevo';
     }
     if (mapa.em3D) {
-      mapa.cena.pinta(porChave, { escolhido, realcadas: naUF ? new Set() : PROJETO });
+      mapa.cena.pinta(porChave, { escolhido, realcadas: new Set() });
     } else {
       mapa.forma.attr('fill', f => porChave.get(mapa.chave(f))?.cor ?? 'url(#sem-dado)');
       mapa.forma.attr('aria-label', f => porChave.get(mapa.chave(f))?.titulo ?? '');
-      const destaque = mapa.geo.features.filter(f => (naUF ? f.properties.mun === escolhido : PROJETO.has(f.properties.uf)));
+      const destaque = mapa.geo.features.filter(f => (naUF ? f.properties.mun : f.properties.uf) === escolhido);
       mapa.contornos.selectAll('path').data(destaque).join('path').attr('d', mapa.caminho)
         .attr('class', f => (naUF ? 'municipio selecionado' : `estado projeto${f.properties.uf === escolhido ? ' atual' : ''}`));
     }

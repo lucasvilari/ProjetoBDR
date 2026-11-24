@@ -1,17 +1,28 @@
 // Peças que as páginas das perguntas dividem: o seletor de recorte (ano, cargo, lugar), a leitura
 // dos candidatos de um recorte, o gráfico de dinheiro × votos e o cartão de um político.
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { carregaDados, formata, santinho, fotoCandidato, NOME_UF } from './comum.js?v=20261163';
-import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261163';
-import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261163';
-import { COR } from './lib/cores.js?v=20261163';
-import { registraRecortes } from './oraculo.js?v=20261163';
+import { carregaDados, formata, santinho, fotoCandidato, NOME_UF, em } from './comum.js?v=20261170';
+import { custoPorVoto, spearman, descreveCorrelacao, abreviaReais } from './lib/dinheiro.js?v=20261170';
+import { leRecorte, escreveRecorte, cargosDoAno, ajustaLugar, MUNICIPAIS } from './lib/recorte.js?v=20261170';
+import { COR } from './lib/cores.js?v=20261170';
+import { registraRecortes } from './oraculo.js?v=20261170';
 
-export const UFS_PROJETO = ['AP', 'MG', 'MS', 'PB', 'RO', 'RR'];
-// a capital de cada estado, o município aberto quando a página precisa de um
-export const CAPITAIS = { AP: '06050', MG: '41238', MS: '90514', PB: '20516', RO: '00035', RR: '03018' };
-// o nome dos seis estados com a preposição: "os municípios da Paraíba", "do Amapá", "de Minas Gerais"
-export const DA_UF = { AP: 'do Amapá', MG: 'de Minas Gerais', MS: 'de Mato Grosso do Sul', PB: 'da Paraíba', RO: 'de Rondônia', RR: 'de Roraima' };
+// as 27 UFs, em ordem de sigla
+export const UFS_PROJETO = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI',
+  'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
+// as UFs com eleição municipal: o Distrito Federal não tem prefeito nem vereador
+export const UFS_MUNICIPAIS = UFS_PROJETO.filter(u => u !== 'DF');
+// a capital de cada estado, o município aberto quando a página precisa de um (o DF não tem municípios com eleição)
+export const CAPITAIS = { AC: '01392', AL: '27855', AM: '02550', AP: '06050', BA: '38490', CE: '13897', ES: '57053',
+  GO: '93734', MA: '09210', MG: '41238', MS: '90514', MT: '90670', PA: '04278', PB: '20516', PE: '25313', PI: '12190',
+  PR: '75353', RJ: '60011', RN: '17612', RO: '00035', RR: '03018', RS: '88013', SC: '81051', SE: '31054', SP: '71072',
+  TO: '73440' };
+// o nome de cada estado com a preposição: "os municípios da Paraíba", "do Amapá", "de Minas Gerais"
+export const DA_UF = Object.fromEntries(UFS_PROJETO.map(u => {
+  const nome = NOME_UF[u];
+  const artigo = em(nome).split(' ')[0];
+  return [u, `${artigo === 'na' ? 'da' : artigo === 'no' ? 'do' : 'de'} ${nome}`];
+}));
 const minusculo = c => c.toLowerCase();
 
 // ---------------------------------------------------------------- seletor de recorte
@@ -47,10 +58,19 @@ export function grupoOpcoes(nome, rotulo, opcoes, atual, { extra = '', classe = 
   </div>`;
 }
 
+/** Uma lista suspensa para escolher uma opção (onde há opções demais para teclas, como os 27 estados), com o mesmo
+ *  rótulo à esquerda das fileiras de teclas. `opcoes`: [[valor, texto]]; `atual`: o valor escolhido. */
+export function grupoLista(nome, rotulo, opcoes, atual) {
+  const id = `escolhe-${nome}`;
+  const assinatura = `${nome}:${opcoes.map(([v, t]) => `${v}=${t}`).join('|')}`.replace(/"/g, '&quot;');
+  return `<div class="grupo-opcoes" data-opcoes="${assinatura}"><label class="grupo-rotulo" for="${id}">${rotulo}</label>
+    <span class="campo"><select name="${nome}" id="${id}">${opcoes.map(([v, t]) => `<option value="${v}"${String(v) === String(atual) ? ' selected' : ''}>${t}</option>`).join('')}</select></span></div>`;
+}
+
 /** Monta os seletores de ano, cargo e (se pedido) lugar dentro de `form`, lê o recorte do endereço,
  *  grava o recorte no endereço a cada mudança e chama aoMudar(recorte). Devolve { recorte(), muda(novo) }.
- *  O lugar é sempre um dos seis estados do projeto, onde há os dados completos de cada candidato; presidente é a
- *  única eleição nacional e não tem lugar. opcoes: { anos, cargos?: string[] (filtra os do ano), comLugar,
+ *  O lugar é sempre um dos 27 estados (em ano municipal, um dos 26 com municípios); presidente é a única eleição
+ *  nacional e não tem lugar. opcoes: { anos, cargos?: string[] (filtra os do ano), comLugar,
  *  padrao: {ano, cargo, uf?, mun?}, municipioObrigatorio: sem a opção "todo o estado" para prefeito e
  *  vereador, que abrem na capital }. */
 // as contas de campanha de 2026 ainda não estavam completas quando os dados foram gerados: o prazo das contas finais
@@ -60,13 +80,19 @@ export const AVISO_CONTAS_2026 = ano => (ano === 2026 ? 'Contas de campanha de 2
 
 /** aviso(ano): um texto que aparece no seletor para aquele ano (vazio, nada). */
 export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMudar, municipioObrigatorio = false, aviso = () => '' }) {
-  const ufPadrao = UFS_PROJETO.includes(padrao.uf) ? padrao.uf : 'MG';
-  // nenhum dos seis estados é o DF, então os cargos do ano não dependem do estado
-  const cargosValidos = ano => cargosDoAno(ano, ufPadrao).filter(c => !cargos || cargos.includes(c));
+  const ufPadrao = UFS_MUNICIPAIS.includes(padrao.uf) ? padrao.uf : 'MG';
+  // no DF o deputado distrital ocupa o lugar do estadual: a página que aceita um aceita o outro
+  const aceito = c => !cargos || cargos.includes(c) || (c === 'DEPUTADO DISTRITAL' && cargos.includes('DEPUTADO ESTADUAL'));
+  const cargosValidos = (ano, uf) => cargosDoAno(ano, uf).filter(aceito);
+  const ufsDoAno = ano => (ano % 4 === 0 ? UFS_MUNICIPAIS : UFS_PROJETO);
   const ufs = [...UFS_PROJETO].sort((a, b) => NOME_UF[a].localeCompare(NOME_UF[b]));
   const ajusta = novo => {
-    if (!cargosValidos(novo.ano).includes(novo.cargo)) novo.cargo = cargosValidos(novo.ano)[0];
-    const certo = ajustaLugar(novo, UFS_PROJETO, ufPadrao);
+    // o cargo "estadual" troca de nome com o estado (distrital no DF), e o DF sai dos anos municipais
+    if (novo.uf && !ufsDoAno(novo.ano).includes(novo.uf)) { delete novo.uf; delete novo.mun; }
+    if (novo.cargo === 'DEPUTADO DISTRITAL' && novo.uf && novo.uf !== 'DF') novo.cargo = 'DEPUTADO ESTADUAL';
+    if (novo.cargo === 'DEPUTADO ESTADUAL' && novo.uf === 'DF') novo.cargo = 'DEPUTADO DISTRITAL';
+    if (!cargosValidos(novo.ano, novo.uf).includes(novo.cargo)) novo.cargo = cargosValidos(novo.ano, novo.uf)[0];
+    const certo = ajustaLugar(novo, ufsDoAno(novo.ano), ufPadrao);
     if (municipioObrigatorio && MUNICIPAIS.includes(certo.cargo) && !certo.mun) certo.mun = CAPITAIS[certo.uf];
     for (const k of Object.keys(certo)) if (certo[k] === undefined) delete certo[k];
     return certo;
@@ -76,7 +102,7 @@ export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMu
   function ler() {
     const bruto = new URLSearchParams(location.hash.slice(1));
     const ano = anos.includes(Number(bruto.get('ano'))) ? Number(bruto.get('ano')) : padrao.ano;
-    return ajusta(leRecorte(location.hash, { ...padrao, ano }, { anos, cargos: cargosValidos(ano), ufs }));
+    return ajusta(leRecorte(location.hash, { ...padrao, ano }, { anos, cargos: [...new Set([...cargosValidos(ano), ...cargosValidos(ano, 'DF')])], ufs }));
   }
 
   async function desenha() {
@@ -85,8 +111,8 @@ export function montaSeletor(form, { anos, cargos, comLugar = true, padrao, aoMu
       : [];
     trocaMantendoTeclas(form, `
       ${grupoOpcoes('ano', 'Ano', anos.map(a => [a, a]), r.ano)}
-      ${grupoOpcoes('cargo', 'Cargo', cargosValidos(r.ano).map(c => [c, minusculo(c)]), r.cargo)}
-      ${comLugar && r.cargo !== 'PRESIDENTE' ? grupoOpcoes('uf', 'Estado', ufs.map(u => [u, NOME_UF[u]]), r.uf) : ''}
+      ${grupoOpcoes('cargo', 'Cargo', cargosValidos(r.ano, r.uf).map(c => [c, minusculo(c)]), r.cargo)}
+      ${comLugar && r.cargo !== 'PRESIDENTE' ? grupoLista('uf', 'Estado', ufs.filter(u => ufsDoAno(r.ano).includes(u)).map(u => [u, NOME_UF[u]]), r.uf) : ''}
       ${comLugar && r.cargo === 'PRESIDENTE' ? '<div class="grupo-opcoes"><span class="grupo-rotulo">Lugar</span><span class="seletor-nota">eleição nacional: o Brasil inteiro</span></div>' : ''}
       ${municipios.length ? `<div class="grupo-opcoes"><label class="grupo-rotulo" for="escolhe-mun">Município</label>
         <span class="campo"><select name="mun" id="escolhe-mun">${municipioObrigatorio ? '' : '<option value="">todo o estado</option>'}${municipios.map(([cod, m]) => `<option value="${cod}"${cod === r.mun ? ' selected' : ''}>${m.nome}</option>`).join('')}</select></span></div>` : ''}
@@ -143,7 +169,7 @@ export async function leCandidaturas(ue, ano) {
   });
 }
 
-export const nomeDe = c => (c.nomeado ? c.nome : `candidato ${c.sigla} de fora dos seis estados`);
+export const nomeDe = c => (c.nomeado ? c.nome : `candidato ${c.sigla} sem nome registrado`);
 
 // ---------------------------------------------------------------- dinheiro × votos
 
@@ -194,7 +220,7 @@ export function dispersaoDinheiroVotos(linhas, { campo, largura, destaque = null
 // ---------------------------------------------------------------- cartão de político
 
 /** O santinho de um candidato: gasto, votos, custo por voto e resultado; com foto e link para a
- *  carreira quando é dos seis estados ou presidente, anônimo nos outros casos. */
+ *  carreira quando a pessoa tem carreira no site (quem já se elegeu e os candidatos a presidente). */
 export function cartaoPolitico(c) {
   // gastos de dezenas de milhões não cabem inteiros ao lado da foto: o número grande vai abreviado, e o exato numa linha
   const abreviado = c.despesa >= 1e7;
@@ -208,12 +234,12 @@ export function cartaoPolitico(c) {
   ];
   return santinho({
     faixa: `${minusculo(c.cargo)} · ${c.ano}`,
-    nome: c.nomeado ? c.nome : 'Candidato de outro estado',
+    nome: c.nomeado ? c.nome : 'Candidato sem nome registrado',
     numero: c.despesa > 0 ? (abreviado ? abreviaReais(c.despesa) : formata.real(c.despesa)) : '—',
     rotulo: c.despesa > 0 ? 'de gasto de campanha.' : 'Sem gasto de campanha declarado.',
     linhas,
     foto: c.nomeado ? fotoCandidato(c.foto, 'santinho-foto') : '',
     classe: c.eleito ? 'santinho-vitoria' : 'santinho-derrota',
   }) + (c.pid ? `<a class="botao cartao-carreira" href="pergunta-10.html#${c.pid}">Ver a carreira</a>`
-    : c.nomeado ? '' : '<p class="apoio">Candidato de fora dos seis estados do projeto: aparece sem nome, foto ou carreira.</p>');
+    : '<p class="apoio">Sem carreira no site: as carreiras são de quem já se elegeu e dos candidatos a presidente.</p>');
 }

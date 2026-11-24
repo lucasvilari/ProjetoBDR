@@ -88,7 +88,7 @@ export function montaRelevo(alvo, { geo, chave, clicaveis, rotulo, aoEscolher, a
     pecas.set(chave(f), { malha, material, materialLinha, tracos, titulo: '' });
   }
 
-  // os contornos grossos (o lugar escolhido em laranja, os seis estados em preto): linhas com largura em pixels, presas
+  // os contornos grossos (o lugar escolhido em laranja; as chaves realçadas em preto): linhas com largura em pixels, presas
   // ao topo da peça, para a cor da peça continuar sendo só a do voto
   const grossos = [];
   const largas = [];

@@ -97,12 +97,13 @@ def test_meio_cifrao_de_dinheiro_publico():
 
 
 def test_territorios_do_projeto():
-    """Presidente entra só no Brasil; os demais cargos, só nos seis estados e nos municípios deles."""
+    """Presidente entra só no Brasil; os demais cargos, na UF e, se municipais, no município, em qualquer estado."""
     assert gera_dados.territorios_do_projeto('BR', None) == ['BR']
     assert gera_dados.territorios_do_projeto('MG', 'MG') == ['MG']
     assert gera_dados.territorios_do_projeto('41238', 'MG') == ['MG', '41238']
-    assert gera_dados.territorios_do_projeto('SP', 'SP') == []
-    assert gera_dados.territorios_do_projeto('71072', 'SP') == []
+    assert gera_dados.territorios_do_projeto('SP', 'SP') == ['SP']
+    assert gera_dados.territorios_do_projeto('71072', 'SP') == ['SP', '71072']
+    assert len(gera_dados.UFS_PROJETO) == 27
 
 
 def test_chave_da_foto_antiga_normaliza_como_a_carga():
@@ -112,7 +113,8 @@ def test_chave_da_foto_antiga_normaliza_como_a_carga():
              'DS_CARGO': 'Prefeito', 'SQ_CANDIDATO': '7', 'NR_TITULO_ELEITORAL_CANDIDATO': '123456789'}
     assert gera_dados.chave_da_foto_antiga(linha) == ((2004, '00035', 'PREFEITO', '000123456789'), 7)
     assert gera_dados.chave_da_foto_antiga({**linha, 'DS_CARGO': '1. Suplente'})[0][2] == '1º SUPLENTE'
-    assert gera_dados.chave_da_foto_antiga({**linha, 'SG_UF': 'SP'}) is None
+    assert gera_dados.chave_da_foto_antiga({**linha, 'SG_UF': 'SP'})[0][1] == '00035'
+    assert gera_dados.chave_da_foto_antiga({**linha, 'SG_UF': 'ZZ'}) is None
     assert gera_dados.chave_da_foto_antiga({**linha, 'NM_TIPO_ELEICAO': 'ELEIÇÃO SUPLEMENTAR'}) is None
     assert gera_dados.chave_da_foto_antiga({**linha, 'SQ_CANDIDATO': '#NULO#'}) is None
     presidente = {**linha, 'ANO_ELEICAO': '2006', 'SG_UF': 'BR', 'SG_UE': 'BR', 'DS_CARGO': 'PRESIDENTE', 'SQ_CANDIDATO': '10'}
@@ -135,7 +137,8 @@ def test_candidatura_antiga():
     c = gera_dados.candidatura_antiga(LINHA_1994)
     assert c == {'ano': 1994, 'turno': 1, 'uf': 'PB', 'ue': 'PB', 'cargo': 'GOVERNADOR', 'numero': 15, 'sigla': 'PMDB',
                  'situacao': '2º TURNO', 'pessoa': ('ANTONIO MARIZ', '1937-12-05')}
-    assert gera_dados.candidatura_antiga({**LINHA_1994, 'SG_UF': 'SP', 'SG_UE': 'SP'}) is None
+    assert gera_dados.candidatura_antiga({**LINHA_1994, 'SG_UF': 'SP', 'SG_UE': 'SP'})['uf'] == 'SP'
+    assert gera_dados.candidatura_antiga({**LINHA_1994, 'SG_UF': 'ZZ', 'SG_UE': 'ZZ'}) is None
     assert gera_dados.candidatura_antiga({**LINHA_1994, 'DT_NASCIMENTO': '0'}) is None
     assert gera_dados.candidatura_antiga({**LINHA_1994, 'SG_UE': '35', 'DS_SIT_TOT_TURNO': 'MÉDIA'})['ue'] == '00035'
     assert gera_dados.candidatura_antiga({**LINHA_1994, 'DS_SIT_TOT_TURNO': 'MÉDIA'})['situacao'] == 'ELEITO POR MÉDIA'

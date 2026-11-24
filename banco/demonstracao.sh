@@ -56,8 +56,8 @@ sql() {                         # mostra e executa uma consulta no banco
 if [ "$INICIO" -le 1 ]; then
 passo 1 "O ponto de partida"
 fala "O crawler baixou os arquivos do TSE, do IBGE, do Atlas e do survey de ideologia: 31 GB de CSV,"
-fala "organizados por fonte, tipo e ano. A carga grava nas 17 tabelas do modelo os seis estados do projeto"
-fala "(AP, MG, MS, PB, RO e RR) e os candidatos a presidente, que recebem votos neles:"
+fala "organizados por fonte, tipo e ano. A carga grava nas 17 tabelas do modelo as 27 UFs, os seus municípios"
+fala "e os candidatos a presidente:"
 roda "du -sh $DADOS/tse/* | sort -h"
 sql "SELECT string_agg(uf, ', ' ORDER BY uf) AS escopo FROM carga.escopo"
 sql "SELECT t.relname AS tabela, to_char(c.linhas, 'FM999G999G999') AS linhas,
@@ -134,7 +134,7 @@ sql "SELECT v.ano, v.cargo, count(*) FILTER (WHERE v.eleito) AS eleitos,
      WHERE v.ano IN (2018, 2022) AND v.cargo IN ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL')
      GROUP BY 1, 2 ORDER BY 1, 2"
 pausa
-fala "Segundo: receitas e despesas no banco somam quase 100% do total dos CSVs do TSE nos seis estados."
+fala "Segundo: receitas e despesas no banco somam quase 100% do total dos CSVs do TSE."
 fala "O que falta é de candidaturas de eleições suplementares, que o dicionário exclui."
 sql "WITH csv AS (SELECT ano, sum(valor) FILTER (WHERE tabela = 'receita') AS receitas,
                          sum(valor) FILTER (WHERE tabela = 'despesa') AS despesas
