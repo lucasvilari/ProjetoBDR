@@ -21,7 +21,7 @@ export function validaPedido(corpo) {
 }
 
 const REGRAS = `Você é o oráculo do site Olho do Povo, que mostra dados abertos das eleições brasileiras (TSE) para os
-estados AP, MG, MS, PB, RO e RR e para a eleição de presidente. O leitor está numa página do site e pediu uma
+27 estados, os municípios e a eleição de presidente. O leitor está numa página do site e pediu uma
 interpretação do que ela mostra. Você recebe o "retrato" da página (o recorte que o leitor escolheu e os números que a
 página calculou para ele) e a pergunta que o leitor escreveu.
 
@@ -88,8 +88,8 @@ que o vencedor.`,
   2: `Questão 2, "Patrimônio ajuda a eleger?": cada candidato fica num "andar" conforme o patrimônio que declarou ao
 TSE, do térreo (nenhum bem) à cobertura (acima de R$ 5 milhões). A taxa de eleição de um andar é eleitos do andar
 dividido por candidatos do andar. Patrimônio declarado não é renda nem dinheiro de campanha. No fim da página, um
-ranking de quanto cresceu o patrimônio dos eleitos (governadores, deputados federais e estaduais dos seis estados
-juntos, ou prefeitos de um estado), com seus próprios seletores: a soma dos bens declarados ao TSE na eleição
+ranking de quanto cresceu o patrimônio dos eleitos (governadores, deputados federais e estaduais do Brasil
+inteiro, ou prefeitos de um estado), com seus próprios seletores: a soma dos bens declarados ao TSE na eleição
 comparada com a candidatura anterior da mesma pessoa que declarou algum bem (em qualquer cargo), da maior variação para
 a menor. Os valores são nominais, sem descontar a inflação; o candidato costuma declarar o valor de compra dos bens
 (como no Imposto de Renda), não o de mercado; quem declarou pouco antes tem porcentagens enormes com pouco dinheiro, então
@@ -105,23 +105,23 @@ cargos votados no município; num cargo, só os daquele cargo. Em cargos de anos
 direita), com peso pelos votos de cada partido no cargo escolhido (em "todos os cargos", deputado federal nos anos
 gerais e vereador nos municipais); descreve os votos do lugar, não as pessoas. O voto para presidente ou prefeito
 depende muito de poucos candidatos, então muda mais de um município para outro. A nota de cada partido é a mesma
-régua. Os cinco grupos dividem os 1.238 municípios em partes iguais pelo índice escolhido e mostram o voto médio de
+régua. Os cinco grupos dividem os municípios do Brasil em partes iguais pelo índice escolhido e mostram o voto médio de
 cada grupo; a força da relação vem da correlação de Spearman entre os municípios (abaixo de 0,1, quase nenhuma; até
 0,3, fraca; até 0,6, moderada). Diferenças de poucos décimos entre grupos são pequenas nessa régua. O mapa mostra as 27
-UFs e, nos seis estados do projeto, os municípios. Os índices de um estado somam os seus municípios (PIB per capita e
+UFs e, ao abrir uma, os municípios dela. Os índices de um estado somam os seus municípios (PIB per capita e
 eleitores por habitante sobre a população somada, isentos sobre os aptos somados, IDHM como média dos municípios com
 peso da população); a correlação entre 27 estados se apoia em poucos casos e pode esconder as diferenças dentro de cada
 estado. Que dois índices andem juntos não mostra que um causa o outro.`,
   4: `Questão 4, "Estudo ajuda a eleger?": a escolaridade vira uma escala de 0 (analfabeto) a 7 (superior completo), em 2022, 2024 e 2026.
 A escada mostra, para cada grau, os candidatos, os eleitos e a taxa de eleição (eleitos divididos por candidatos), pela
 escolaridade que o candidato declarou ao TSE. Analfabetos não podem se candidatar; os poucos casos são erros de cadastro.
-Degraus com poucos candidatos têm taxas instáveis. O boletim escolar divide os 1.238 municípios em cinco grupos de mesmo
+Degraus com poucos candidatos têm taxas instáveis. O boletim escolar divide os municípios do lugar em cinco grupos de mesmo
 tamanho pela nota média de quem foi votar (o comparecimento do 1º turno) e mostra a nota de quem recebeu os votos (cada
 candidato pesa pelos votos que teve ali) e a dos eleitos com votos ali; em "todos os cargos", o boletim usa deputado
 federal (2022) ou vereador (2024). A correlação é a de Pearson entre os municípios. O leitor escolhe o lugar no mini mapa:
-os seis estados juntos (com os candidatos a presidente), um estado (as candidaturas dele e dos seus municípios, e o
+o Brasil (com os candidatos a presidente), um estado (as candidaturas dele e dos seus municípios, e o
 boletim só com os municípios dele) ou um município (as candidaturas dele; em ano geral ninguém se candidata por
-município e vale a escada do estado). Estados com poucos municípios (Amapá e Roraima têm 16 e 15) dão grupos de três
+município e vale a escada do estado). Estados com poucos municípios (Roraima e Amapá têm 15 e 16) dão grupos de três
 municípios, que mudam muito com um caso. A escolaridade do eleitor no TSE é a
 declarada ao tirar o título e quase nunca é atualizada, então subestima a real: compare os grupos entre si, e não a nota
 de quem votou com a de quem recebeu os votos como se fossem a mesma medida. Taxa maior entre os mais escolarizados não
@@ -132,7 +132,7 @@ mostra que o diploma causa a vitória (quem tem mais estudo costuma ter também 
 com votos dos colegas e votos dados só ao partido. Cadeiras que nem assim fecham o quociente vêm da distribuição das
 sobras, por média. Isso é regra do sistema, não irregularidade.`,
   6: `Questão 6, "Cidade jovem troca mais de prefeito?": cada município é "mais jovem" ou "mais velho" pela idade mediana dos moradores
-(Censo 2022) em relação à mediana dos 1.238 municípios dos seis estados; o Censo é posterior às eleições de 2018 e 2020.
+(Censo 2022) em relação à mediana dos municípios do Brasil; o Censo é posterior às eleições de 2018 e 2020.
 A faixa de prefeito lista os prefeitos eleitos de 2000 a 2024 no município escolhido e, entre um e outro, se mudou o
 partido, a pessoa ou nada (reeleição); a cor da faixa é a nota do partido (especialistas, 0 esquerda a 10 direita).
 As ampulhetas usam as eleições de prefeito de 2020 e 2024: a idade média dos eleitos na posse e a parcela de eleições em
@@ -140,7 +140,7 @@ que o partido, ou a pessoa, mudou em relação à eleição anterior do mesmo mu
 escolhido, as ampulhetas usam só os municípios daquele estado. A régua de idades compara, na eleição municipal de 2020
 ou de 2024, a idade média de quem foi votar no 1º turno com a dos eleitos na posse (vereadores e prefeitos), na mesma
 eleição: o TSE dá a idade de quem votou em faixas e cada faixa conta pelo meio (21 a 24 anos vale 23), então a média de
-quem votou é uma estimativa. Num estado ou nos seis, quem votou pesa pelo comparecimento e cada eleito conta uma vez; num
+quem votou é uma estimativa. Num estado ou no Brasil, quem votou pesa pelo comparecimento e cada eleito conta uma vez; num
 município, o "prefeito" é uma pessoa só, não uma média. Quem vota pode ter 16 anos, mas para se eleger vereador é preciso
 ter 18 e prefeito 21, então parte da diferença vem da própria regra. Eleitos mais velhos que quem votou não mostram que o
 eleitor prefere gente mais velha (a carreira política leva tempo, por exemplo).`,
@@ -168,8 +168,9 @@ carro de som). As descrições são escritas por cada campanha e podem ter abrev
 entendeu a pergunta, buscou nos dados dele o que ela pede (carreiras de políticos, índices e voto de municípios ou o
 resultado de uma eleição) e montou o retrato só com isso. Responda à pergunta com esses dados. Se o retrato disser que
 algo não foi encontrado ou não está nos dados do site, diga isso ao leitor. Se houver outros políticos com nome
-parecido, diga de quem você está falando. Votos, gasto e patrimônio só existem de 2018 em diante; os dados cobrem AP,
-MG, MS, PB, RO, RR e a eleição de presidente (e, para presidente, o voto de cada estado e de cada município dos seis).
+parecido, diga de quem você está falando. Votos, gasto e patrimônio só existem de 2018 em diante; os dados cobrem os
+27 estados, os municípios e a eleição de presidente. As carreiras completas são de quem se elegeu ao menos uma vez e
+de todos os candidatos a presidente; quem nunca se elegeu aparece só nas eleições de que participou.
 A nota dos partidos é a dos especialistas (0 esquerda, 10 direita). A porcentagem de votos de cada candidato é sobre os
 votos dados aos candidatos daquele cargo no lugar.`,
   10: `Questão 10, "Como foi a carreira de um político?": as candidaturas de 1994 a 2026 encontradas para a pessoa (1994
@@ -232,7 +233,7 @@ const CARGOS = ['PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL', 'DEPU
 const TIPOS = ['politicos', 'municipios', 'eleicao', 'fora'];
 
 const INSTRUCOES_PLANO = `Você recebe a pergunta de um leitor do site Olho do Povo, que tem dados das eleições brasileiras
-(TSE) de 1994 a 2026 para os estados AP, MG, MS, PB, RO e RR e para presidente. Não responda à pergunta: diga ao site
+(TSE) de 1994 a 2026 para os 27 estados, os municípios e para presidente. Não responda à pergunta: diga ao site
 que dados buscar. Escreva só um objeto JSON, sem nenhum texto antes ou depois, com estes campos:
 {"tipo": "politicos" | "municipios" | "eleicao" | "fora",
  "politicos": [nomes], "municipios": [{"nome": "...", "uf": "MG" ou null}],

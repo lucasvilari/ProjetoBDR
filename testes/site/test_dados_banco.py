@@ -44,14 +44,31 @@ def test_tamanho_das_fatias():
 
 
 @pytest.mark.banco
-def test_so_os_seis_estados_e_presidente():
-    """Fora dos seis estados não há lista de candidatos; no Brasil, só a de presidente, com todos nomeados."""
-    assert not (DADOS / gera_dados.fatia_de('SP', 2022)).exists()
+def test_todas_as_ufs_e_presidente():
+    """Cada UF tem a sua lista de candidatos; no Brasil, só a de presidente, com todos nomeados."""
+    for uf in gera_dados.UFS_PROJETO:
+        assert (DADOS / gera_dados.fatia_de(uf, 2022)).exists(), uf
+        for pasta in ('propaganda', 'partidos-recorte'):
+            assert (DADOS / f'{pasta}/{uf}.json').exists(), (pasta, uf)
     br = json.loads((DADOS / gera_dados.fatia_de('BR', 2022)).read_text())
     assert {br['cargos'][l[CAMPOS.index('cargo')]] for l in br['linhas']} == {'PRESIDENTE'}
     assert all(len(l) > CAMPOS.index('nome') for l in br['linhas'])
-    for pasta in ('propaganda', 'partidos-recorte'):
-        assert not (DADOS / f'{pasta}/SP.json').exists()
+
+
+@pytest.mark.banco
+def test_carreira_so_de_quem_se_elegeu_ou_concorreu_a_presidente():
+    """Quem nunca se elegeu aparece com nome na lista da eleição, mas sem número de carreira; quem se elegeu, com ele."""
+    fatia = json.loads((DADOS / gera_dados.fatia_de('SP', 2022)).read_text())
+    i_nome, i_pid, i_eleito = CAMPOS.index('nome'), CAMPOS.index('pid'), CAMPOS.index('eleito')
+    linhas = [l for l in fatia['linhas'] if fatia['cargos'][l[CAMPOS.index('cargo')]] == 'DEPUTADO FEDERAL']
+    assert all(len(l) > i_nome and l[i_nome] for l in linhas)
+    assert all(l[i_pid] for l in linhas if l[i_eleito])
+    assert any(not l[i_pid] for l in linhas if not l[i_eleito])
+    t = json.loads((DADOS / 'politicos/tabelas.json').read_text())
+    eleito = set(t['eleito'])
+    for f in list((DADOS / 'politicos/carreira').glob('*.json'))[:20]:
+        for nome, linhas_c, _ in json.loads(f.read_text()).values():
+            assert any(t['situacoes'][l[4]] in eleito or t['cargos'][l[1]] == 'PRESIDENTE' for l in linhas_c), nome
 
 
 @pytest.mark.banco
@@ -83,7 +100,7 @@ def test_legenda_bate_com_p05(sigla):
 @pytest.mark.banco
 def test_vies_por_cargo():
     """O índice combinado do Brasil em 2022 continua 6,56 (deputado federal); presidente tem índice próprio,
-    e cada cargo municipal dos seis estados tem seu arquivo."""
+    e cada cargo municipal de cada estado tem seu arquivo."""
     d = json.loads((DADOS / 'vies/brasil.json').read_text())
     linhas = [dict(zip(d['campos'], l)) for l in d['linhas']]
     br22 = {l['cargo']: l for l in linhas if l['territorio'] == 'BR' and l['ano'] == 2022}
@@ -91,32 +108,33 @@ def test_vies_por_cargo():
     assert br22['DEPUTADO FEDERAL']['indice'] == 6.56
     assert br22['PRESIDENTE']['indice'] != br22['COMBINADO']['indice']
     assert br22['PRESIDENTE']['presidente'] and br22['SENADOR']['presidente'] is None
-    for uf in ['AP', 'MG', 'MS', 'PB', 'RO', 'RR']:
+    for uf in gera_dados.UFS_PROJETO:
         assert (DADOS / f'vies/municipios/{uf}.json').exists()
-        assert (DADOS / f'vies/municipios/{uf}-vereador.json').exists()
+        if uf != 'DF':     # o DF não tem eleição municipal
+            assert (DADOS / f'vies/municipios/{uf}-vereador.json').exists()
 
 
-SQL_P09A_SEIS_ESTADOS_2024 = """
+SQL_P09A_2024 = """
 SELECT d.tipo, SUM(d.valor) FROM despesa d JOIN vw_candidatura v ON v.sq_candidato = d.sq_candidato
-WHERE v.ano = 2024 GROUP BY 1
+WHERE v.ano = 2024 AND v.cargo IN ('PREFEITO', 'VEREADOR') GROUP BY 1
 """
 
 
 @pytest.mark.banco
 def test_propaganda_bate_com_p09a():
-    """O gasto por tipo de 2024 nos seis estados, somado dos arquivos de propaganda, é o da p09a no banco dos seis estados."""
+    """O gasto por tipo de 2024 (prefeito e vereador), somado dos arquivos de propaganda de cada UF, é o da p09a no banco."""
     import psycopg
     with psycopg.connect('dbname=eleicoes') as conn:
-        esperado = {t or 'Não informado': float(v) for t, v in conn.execute(SQL_P09A_SEIS_ESTADOS_2024)}
+        esperado = {t or 'Não informado': float(v) for t, v in conn.execute(SQL_P09A_2024)}
     somado = {}
-    for uf in ['AP', 'MG', 'MS', 'PB', 'RO', 'RR']:
+    for uf in gera_dados.UFS_PROJETO:
         d = json.loads((DADOS / f'propaganda/{uf}.json').read_text())
         for cargo, r in d['anos'].get('2024', {}).items():
             for i, v in r['gasto']:
                 somado[d['tipos'][i]] = somado.get(d['tipos'][i], 0) + v
     assert somado.keys() == esperado.keys()
     for t, v in esperado.items():
-        assert abs(somado[t] - v) <= 1 + 0.5 * 12, t     # cada um dos 12 recortes (6 UFs × 2 cargos) arredonda ao real
+        assert abs(somado[t] - v) <= 1 + 0.5 * 54, t     # cada um dos 54 recortes (27 UFs × 2 cargos) arredonda ao real
 
 
 @pytest.mark.banco
@@ -338,7 +356,7 @@ def test_indices_dos_estados_cobrem_o_pais_e_batem_com_o_banco():
     import psycopg
     est = json.loads((DADOS / 'indices/estados.json').read_text())
     assert len(est['valores']['2022']) == 28 and 'BR' in est['valores']['2022']
-    with psycopg.connect('dbname=eleicoes_nacional') as conn:
+    with psycopg.connect('dbname=eleicoes') as conn:
         for ano, cargo in ((2022, 'PRESIDENTE'), (2024, 'PREFEITO')):
             aptos, isentos = conn.execute(
                 """SELECT SUM(a.aptos), SUM(a.brancos + a.nulos + a.abstencoes) FROM apuracao a
@@ -356,7 +374,7 @@ def test_escada_dos_diplomas_bate_com_p04a():
     esc = json.loads((DADOS / 'escolaridade/escolaridade.json').read_text())
     for ano, escolaridade, candidatos, eleitos, taxa in _consulta('p04a_escolaridade_sucesso.sql'):
         nivel = esc['niveis'].index(escolaridade)
-        assert esc['escada'][str(ano)]['SEIS']['TODOS'][nivel] == [candidatos, eleitos]
+        assert esc['escada'][str(ano)]['BR']['TODOS'][nivel] == [candidatos, eleitos]
 
 
 def _ntile(n, partes=5):
@@ -381,7 +399,9 @@ def test_boletim_escolar_bate_com_p04b(ano, cargo):
         inicio += tamanho
         assert municipios == len(grupo)
         assert statistics.fmean(l[0] for l in grupo) == pytest.approx(float(n_eleitor), abs=0.006)
-        assert statistics.fmean(l[1] for l in grupo) == pytest.approx(float(n_votado), abs=0.006)
+        # empates no nível do eleitorado, na fronteira dos quintis, caem em ordem arbitrária no NTILE: alguns municípios
+        # trocam de quintil e a média de quem recebeu os votos varia um pouco
+        assert statistics.fmean(l[1] for l in grupo) == pytest.approx(float(n_votado), abs=0.02)
     total = resultado[5]
     assert total[1] == len(linhas)
     assert statistics.correlation([l[0] for l in linhas], [l[1] for l in linhas]) == pytest.approx(float(total[5]), abs=0.0006)
@@ -413,7 +433,7 @@ def test_escolaridade_dos_estados_bate_com_o_banco_nacional():
     import psycopg
     est = json.loads((DADOS / 'escolaridade/estados.json').read_text())
     assert len(est['eleitorado']['2022']) == 27
-    with psycopg.connect('dbname=eleicoes_nacional') as conn:
+    with psycopg.connect('dbname=eleicoes') as conn:
         eleitor = conn.execute("""SELECT SUM(pc.comparecimento * nivel_escolaridade(pc.escolaridade))::NUMERIC
               / NULLIF(SUM(pc.comparecimento) FILTER (WHERE nivel_escolaridade(pc.escolaridade) IS NOT NULL), 0)
             FROM perfil_comparecimento pc JOIN eleicao e USING (cod_eleicao) JOIN municipio m USING (cod_tse)
@@ -453,14 +473,16 @@ def test_candidatos_trazem_a_escolaridade_de_quem_votou_neles(ue, ano, cargo):
 
 @pytest.mark.banco
 def test_alternancia_e_idade_dos_prefeitos_batem_com_p06a():
-    """Mais jovens e mais velhos pela mediana dos 1.238 municípios; em 2020 e 2024, a idade média dos prefeitos eleitos
+    """Mais jovens e mais velhos pela mediana dos municípios; em 2020 e 2024, a idade média dos prefeitos eleitos
     e a parcela de eleições em que o partido, ou a pessoa, mudou em relação à eleição anterior."""
     import statistics
     ida = json.loads((DADOS / 'idade/idade.json').read_text())
     c = {n: i for i, n in enumerate(ida['campos_prefeito'])}
-    mediana = statistics.median(m[3] for m in ida['municipios'])
+    mediana = statistics.median(m[3] for m in ida['municipios'] if m[3] is not None)
     grupos = {'Mais jovem': [0, [], [0, 0], [0, 0]], 'Mais velho': [0, [], [0, 0], [0, 0]]}
     for cod, _, _, idade_mediana, _ in ida['municipios']:
+        if idade_mediana is None:     # município novo, sem eleitorado com idade (Boa Esperança do Norte, MT)
+            continue
         g = grupos['Mais velho' if idade_mediana >= mediana else 'Mais jovem']
         lista = ida['prefeitos'].get(cod, [])
         if any(p[c['ano']] in (2020, 2024) for p in lista):
@@ -507,11 +529,44 @@ def test_regua_so_tem_cargos_do_municipio():
 
 
 @pytest.mark.banco
-def test_lugares_tem_os_municipios_dos_seis_estados():
-    """O nome dos municípios que o oráculo procura nas perguntas: os 1.238 dos seis estados, como na tabela municipio."""
+def test_lugares_tem_os_municipios_do_brasil():
+    """O nome dos municípios que o oráculo procura nas perguntas: os de todas as UFs, como na tabela municipio."""
     import psycopg
     lug = json.loads((DADOS / 'lugares.json').read_text())
     assert lug['campos'] == ['cod', 'nome', 'uf']
     with psycopg.connect('dbname=eleicoes') as conn:
         banco = conn.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s)', (list(gera_dados.UFS_PROJETO),)).fetchall()
     assert sorted(map(tuple, lug['municipios'])) == sorted(banco)
+
+
+@pytest.mark.banco
+def test_retrospecto_traz_emprego_pnad_e_saneamento():
+    """Empregos formais (CEMPRE, pessoal ocupado total), desocupação e informalidade (PNAD Contínua, 4º trimestre) e
+    saneamento (Censos 2010 e 2022, média dos municípios) da Paraíba, conferidos no SIDRA; e todas as UFs com dado."""
+    d = json.loads((DADOS / 'retrospecto/uf.json').read_text())
+    c = d['campos_ano']
+    pb = {l[0]: dict(zip(c, l)) for l in d['ufs']['PB']['anos']}
+    assert pb[2024]['empregos_por_mil_hab'] == pytest.approx(220.2, abs=0.1)
+    assert min(pb) == 2010
+    assert pb[2011]['empregos_por_mil_hab'] == pytest.approx(177.6, abs=0.1)
+    assert (pb[2012]['taxa_desocupacao'], pb[2020]['taxa_desocupacao'], pb[2022]['taxa_desocupacao']) == (9.1, 15.7, 10.3)
+    assert (pb[2015]['taxa_informalidade'], pb[2023]['taxa_informalidade']) == (51.9, 50.7)
+    # saneamento: média simples dos municípios no Censo mais próximo do ano
+    import psycopg
+    with psycopg.connect('dbname=eleicoes') as conn:
+        censo = dict((ano, (float(a), float(e))) for ano, a, e in conn.execute(
+            "SELECT ano, ROUND(AVG(pct_agua_rede), 1), ROUND(AVG(pct_esgoto_adequado), 1) FROM saneamento_censo "
+            "JOIN municipio USING (cod_tse) WHERE uf = 'PB' GROUP BY ano"))
+    assert (pb[2012]['pct_agua_rede'], pb[2012]['pct_esgoto_adequado']) == censo[2010]
+    assert (pb[2022]['pct_agua_rede'], pb[2022]['pct_esgoto_adequado']) == censo[2022]
+    for uf in gera_dados.UFS_PROJETO:
+        anos = {l[0]: dict(zip(c, l)) for l in d['ufs'][uf]['anos']}
+        assert anos[2022]['taxa_desocupacao'] is not None and anos[2022]['pct_agua_rede'] is not None, uf
+
+
+def test_contornos_dos_municipios_de_todas_as_ufs():
+    """Cada UF tem o arquivo de contornos dos municípios, com o código do TSE em cada um (o mini mapa e a pergunta 7
+    abrem por ele)."""
+    for uf in gera_dados.UFS_PROJETO:
+        geo = json.loads((DADOS / f'geo/municipios/{uf}.json').read_text())
+        assert geo['features'] and all(f['properties']['mun'] for f in geo['features']), uf

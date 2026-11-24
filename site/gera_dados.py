@@ -4,43 +4,40 @@
 O site é estático: não consulta o banco. Este script roda as consultas uma vez
 e grava os resultados em arquivos pequenos.
 
-    politicos    carreiras com votos do 1º turno e índice de busca (banco dos seis estados; votos de
-                 presidente do banco nacional)
-    mapa         perguntas 1, 2 e 8 no Brasil, por estado e por município (banco nacional)
+    politicos    carreiras com votos do 1º turno e índice de busca, de quem se elegeu ao menos uma vez e dos
+                 candidatos a presidente
+    mapa         perguntas 1, 2 e 8 no Brasil, por estado e por município
     geo          contornos dos estados e municípios (API de malhas do IBGE)
-    partidos     medidas de ideologia e eleitos por partido (banco nacional)
-    vies         pergunta 7: índice ideológico ponderado pelos votos, combinado e por cargo, no
-                 Brasil, nas regiões, nas UFs e nos municípios dos seis estados (banco nacional)
-    partidos_recorte  pergunta 1: cadeiras, gasto e votos dos eleitos de cada partido nos seis estados, e a
-                 nota de cada partido em cada ano (banco nacional)
-    candidaturas cada candidato de 2018 a 2026 dos seis estados e a presidente, por unidade eleitoral e
-                 ano, com votos e dinheiro (banco nacional; nomes do banco dos seis estados)
-    legenda      pergunta 5: eleitos das eleições proporcionais dos seis estados, quociente
-                 eleitoral e quem entrou pela legenda (banco dos seis estados)
+    partidos     medidas de ideologia e eleitos por partido
+    vies         pergunta 7: índice ideológico ponderado pelos votos, combinado e por cargo, no Brasil, nas
+                 regiões, nas UFs e nos municípios
+    partidos_recorte  pergunta 1: cadeiras, gasto e votos dos eleitos de cada partido em cada UF, e a nota de cada
+                 partido em cada ano
+    candidaturas cada candidato de 2018 a 2026, por unidade eleitoral e ano, com votos e dinheiro
+    legenda      pergunta 5: eleitos das eleições proporcionais, quociente eleitoral e quem entrou pela legenda
     dependencia  pergunta 8: candidatos e eleitos por fatia de 5% de dinheiro público na receita, para
-                 presidente e nos seis estados e seus municípios (banco nacional)
-    propaganda   pergunta 9: gasto por tipo de despesa e palavras das descrições, por recorte
-                 (banco nacional) e por candidatura dos políticos com nome (banco dos seis estados)
+                 presidente, em cada UF e em cada município
+    propaganda   pergunta 9: gasto por tipo de despesa e palavras das descrições, por recorte e por candidatura dos
+                 políticos com carreira no site
     indices      pergunta 3: PIB per capita, IDHM, eleitores por habitante, isentos e partido do prefeito de
                  cada município em cada eleição, e o ranking de partidos por votos e eleitos, somando os cargos e
-                 de cada cargo (banco dos seis estados); o voto ideológico de cada município, combinado e por
-                 cargo, vem dos arquivos da parte vies, que precisa rodar antes
+                 de cada cargo; o voto ideológico de cada município, combinado e por cargo, vem dos arquivos da
+                 parte vies, que precisa rodar antes
     indices_estados
-                 pergunta 3: os mesmos índices somados por estado, das 27 UFs e do Brasil (banco nacional)
+                 pergunta 3: os mesmos índices somados por estado, das 27 UFs e do Brasil
     escolaridade pergunta 4: candidatos e eleitos por grau de escolaridade, e o nível médio de quem votou e de
                  quem recebeu os votos em cada município, em 2022, 2024 e 2026, e a escada de cada estado e município
-                 (banco dos seis estados)
     escolaridade_estados
-                 pergunta 4: o nível de quem votou e de quem recebeu os votos em cada uma das 27 UFs (banco nacional)
+                 pergunta 4: o nível de quem votou e de quem recebeu os votos em cada uma das 27 UFs
     idade        pergunta 6: perfil etário de cada município, prefeitos eleitos de 2000 a 2024 e idade de quem recebeu
-                 os votos ao lado da parcela de votantes até 34 anos (banco dos seis estados)
+                 os votos ao lado da parcela de votantes até 34 anos
     retrospecto  pergunta 11: PIB per capita, setores e homicídios por UF e município, e a variação
-                 durante o mandato de prefeitos e governadores eleitos (banco dos seis estados)
+                 durante o mandato de prefeitos e governadores eleitos
 
 Uso (com o ambiente de banco/.venv):
     ../banco/.venv/bin/python gera_dados.py                 # tudo
     ../banco/.venv/bin/python gera_dados.py --partes politicos
-Bancos: --banco (padrão dbname=eleicoes) e --nacional (padrão dbname=eleicoes_nacional).
+Banco: --banco (padrão dbname=eleicoes), com as 27 UFs.
 
 Título eleitoral, CPF e data de nascimento não saem do banco: cada político
 recebe um número sequencial próprio.
@@ -55,13 +52,15 @@ import shutil
 import time
 import unicodedata
 import urllib.request
+from decimal import ROUND_HALF_UP, Decimal
 from collections import Counter, defaultdict
 from pathlib import Path
 
 import psycopg
 
 DADOS = Path(__file__).resolve().parent / 'dados'
-UFS_PROJETO = ('AP', 'MG', 'MS', 'PB', 'RO', 'RR')
+UFS_PROJETO = ('AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR',
+               'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO')
 POR_ARQUIVO = 1000                       # políticos por arquivo de carreira
 PALAVRAS_IGNORADAS = {'DA', 'DE', 'DI', 'DO', 'DU', 'DAS', 'DOS', 'E', 'D'}
 
@@ -124,7 +123,6 @@ CAMPOS_CANDIDATURA = ['ano', 'cargo', 'local', 'partido', 'situacao', 'reeleicao
 # o número do candidato no TSE, com que o site monta o endereço da foto (ano/foto_sq/local). De 2018 em
 # diante é o sq_candidato do banco; de 2004 a 2016, o banco guarda um número sintético (o do TSE se repete entre
 # candidaturas), e o número vem dos arquivos de candidatos que o crawler baixou (ver le_arquivos_tse).
-# votos de presidente vêm do banco nacional: o dos seis estados só tem a apuração deles
 SQL_VOTOS_PRESIDENTE = """
 SELECT c.sq_candidato, SUM(v.votos) FILTER (WHERE v.turno = 1)
 FROM candidatura c JOIN votos_cand v ON v.sq_candidato = c.sq_candidato
@@ -196,7 +194,7 @@ def _nulo(t):
 def chave_da_foto_antiga(linha):
     """Uma linha de consulta_cand_<ano>_BRASIL.csv vira ((ano, UE, cargo, título), número no TSE), com as mesmas
     normalizações de banco/carga.py (stg.nulo, stg.cargo, stg.ordinaria, UE e título com zeros à esquerda). None
-    para eleição suplementar, linha fora dos seis estados (presidente entra) ou sem número, título ou cargo."""
+    para eleição suplementar, linha sem número, título ou cargo."""
     tipo = linha.get('NM_TIPO_ELEICAO') or ''
     if not re.search('ordin', tipo, re.I) or re.search('extra', tipo, re.I):
         return None
@@ -229,7 +227,7 @@ def chave_de_pessoa(nome, nascimento):
 
 
 def candidatura_antiga(linha):
-    """Uma linha de 1994 ou 1996, nos seis estados (ou presidente), com as normalizações da carga; None fora disso."""
+    """Uma linha de 1994 ou 1996, com as normalizações da carga; None fora disso."""
     tipo = linha.get('NM_TIPO_ELEICAO') or ''
     if not re.search('ordin', tipo, re.I) or re.search('extra', tipo, re.I):
         return None
@@ -295,12 +293,12 @@ def le_arquivos_tse():
     return fotos, liga_candidaturas_antigas(antigas, titulos)
 
 
-RECORTE_DO_CARGO = {'GOVERNADOR': 'gov', 'DEPUTADO FEDERAL': 'depfed', 'DEPUTADO ESTADUAL': 'depest'}
+RECORTE_DO_CARGO = {'GOVERNADOR': 'gov', 'DEPUTADO FEDERAL': 'depfed', 'DEPUTADO ESTADUAL': 'depest', 'DEPUTADO DISTRITAL': 'depest'}
 
 
 def ranking_patrimonio(carreiras, cargos, partidos, municipios):
-    """O ranking de patrimônio dos eleitos da pergunta 10: governadores, deputados federais e estaduais dos seis
-    estados juntos e, por estado, os prefeitos. `carreiras`: [(pid, nome, [(uf, eleito, linha)])], com as linhas no
+    """O ranking de patrimônio dos eleitos da pergunta 10: governadores, deputados federais e estaduais do
+    Brasil inteiro e, por estado, os prefeitos. `carreiras`: [(pid, nome, [(uf, eleito, linha)])], com as linhas no
     formato de CAMPOS_CANDIDATURA. Cada eleição de 2018 em diante (quando o TSE publica os bens) vira
     [pid, nome, partido, lugar, patrimônio, patrimônio anterior, ano anterior, variação %, foto]: o anterior é a
     candidatura mais recente antes desta, de qualquer cargo, que declarou algum bem. Cada lista vem da maior variação
@@ -328,18 +326,17 @@ def ranking_patrimonio(carreiras, cargos, partidos, municipios):
     return {k: dict(v) for k, v in recortes.items()}
 
 
-def parte_politicos(nacional, conn):
+def parte_politicos(conn):
     log('políticos: lendo nomes e candidaturas')
     cargos, situacoes = Tabela(), Tabela()
     fotos_antigas, antigas = le_arquivos_tse()
     log(f'políticos: {len(fotos_antigas):,} números de foto de 2004 a 2016 nos arquivos do TSE; candidaturas de 1994 e '
         f'1996 ligadas pelo nome e nascimento a {len(antigas):,} políticos')
-    with nacional.cursor() as cur:
+    with conn.cursor() as cur:
         cur.execute(SQL_VOTOS_PRESIDENTE)
         votos_presidente = dict(cur.fetchall())
+    politicos = [(t, nome) for t, nome, pid in politicos_do_site(conn) if pid]
     with conn.cursor() as cur:
-        cur.execute('SELECT titulo_eleitoral, nome FROM politico ORDER BY nome, titulo_eleitoral')
-        politicos = cur.fetchall()
         cur.execute("SELECT cod_tse, nome || ' (' || uf || ')' FROM municipio")
         municipios = dict(cur.fetchall())
         cur.execute('SELECT id_partido, sigla, numero FROM partido ORDER BY id_partido')
@@ -563,10 +560,10 @@ def parte_mapa(conn):
 # --------------------------------------------------------------------------- contornos (IBGE)
 
 MALHAS = 'https://servicodados.ibge.gov.br/api/v3/malhas'
-CODIGO_UF = {'RO': 11, 'RR': 14, 'AP': 16, 'PB': 25, 'MG': 31, 'MS': 50}
 SIGLA_UF = {11: 'RO', 12: 'AC', 13: 'AM', 14: 'RR', 15: 'PA', 16: 'AP', 17: 'TO', 21: 'MA', 22: 'PI',
             23: 'CE', 24: 'RN', 25: 'PB', 26: 'PE', 27: 'AL', 28: 'SE', 29: 'BA', 31: 'MG', 32: 'ES',
             33: 'RJ', 35: 'SP', 41: 'PR', 42: 'SC', 43: 'RS', 50: 'MS', 51: 'MT', 52: 'GO', 53: 'DF'}
+CODIGO_UF = {uf: codigo for codigo, uf in SIGLA_UF.items()}
 
 
 def baixa_malha(caminho):
@@ -668,8 +665,8 @@ def parte_partidos(conn):
 
 # --------------------------------------------------------------------------- candidaturas (cada candidato de um recorte)
 
-# Cada candidato de 2018 a 2026, um arquivo por unidade eleitoral e ano: com nome, número público e foto nos
-# seis estados e para presidente; anônimo nas demais UFs.
+# Cada candidato de 2018 a 2026, um arquivo por unidade eleitoral e ano, com nome e foto; o número público só para
+# quem tem carreira no site (ver SQL_POLITICOS).
 CAMPOS_CANDIDATURAS_RECORTE = ['ano', 'cargo', 'partido', 'unidade', 'eleito', 'situacao', 'votos', 'votos_2t',
                                'despesa', 'receita', 'receita_publica', 'patrimonio', 'nome', 'pid', 'foto']
 DINHEIRO = ('despesa', 'receita', 'receita_publica', 'patrimonio')
@@ -704,7 +701,7 @@ ORDER BY a.ue, a.ano, a.cargo, a.sq_candidato
 
 def territorios_do_projeto(ue, uf):
     """Onde uma candidatura entra nos dados das páginas com seletor: presidente (unidade BR) só no Brasil; os
-    demais cargos só nos seis estados do projeto, na UF e, se for municipal, no município."""
+    demais cargos na UF e, se for municipal, no município."""
     if ue == 'BR':
         return ['BR']
     if uf not in UFS_PROJETO:
@@ -728,17 +725,43 @@ def linha_candidatura(r, nomeado):
     return sem_vazios_no_fim([inteiro(r.get(c)) if c in DINHEIRO else r.get(c) for c in campos])
 
 
+# Quem tem carreira no site (ficha e busca da pergunta 10, gastos por pessoa da pergunta 9): quem se elegeu ao menos
+# uma vez de 1998 em diante e todos os candidatos a presidente. Os demais aparecem com nome nas listas de cada eleição,
+# sem número público.
+SQL_POLITICOS = """
+WITH com_carreira AS (SELECT DISTINCT titulo_eleitoral FROM vw_candidatura WHERE eleito OR cargo = 'PRESIDENTE')
+SELECT p.titulo_eleitoral, p.nome, c.titulo_eleitoral IS NOT NULL
+FROM politico p LEFT JOIN com_carreira c USING (titulo_eleitoral)
+ORDER BY p.nome, p.titulo_eleitoral
+"""
+
+
+@functools.lru_cache(maxsize=None)
+def _politicos(dsn):
+    with psycopg.connect(dsn) as conn, conn.cursor() as cur:
+        cur.execute(SQL_POLITICOS)
+        lista, pid = [], 0
+        for titulo, nome, carreira in cur:
+            pid += carreira
+            lista.append((titulo, nome, pid if carreira else None))
+        return lista
+
+
+def politicos_do_site(conn):
+    """[(título, nome, número público ou None)] de todos os políticos, em ordem de nome; os números vão de 1 em
+    diante, só para quem tem carreira no site."""
+    return _politicos(conn.info.dsn)
+
+
 def mapa_pid(conn):
-    """Título eleitoral -> número público do político, na mesma ordem de parte_politicos."""
+    """Título eleitoral -> (número público ou None, nome), na mesma ordem de parte_politicos."""
+    return {t: (pid, nome) for t, nome, pid in politicos_do_site(conn)}
+
+
+def parte_candidaturas(conn):
+    log('candidaturas: lendo candidatos de 2018 a 2026')
+    pids = mapa_pid(conn)
     with conn.cursor() as cur:
-        cur.execute('SELECT titulo_eleitoral, nome FROM politico ORDER BY nome, titulo_eleitoral')
-        return {t: (pid, nome) for pid, (t, nome) in enumerate(cur.fetchall(), start=1)}
-
-
-def parte_candidaturas(nacional, seis):
-    log('candidaturas: lendo candidatos de 2018 a 2026 (banco nacional)')
-    pids = mapa_pid(seis)
-    with nacional.cursor() as cur:
         cur.execute(SQL_CANDIDATURAS_RECORTE, {'anos': list(ANOS), 'ufs': list(UFS_PROJETO)})
         linhas = cur.fetchall()
     cargos = list(CARGOS_MAPA)
@@ -771,7 +794,7 @@ def parte_candidaturas(nacional, seis):
 
 # --------------------------------------------------------------------------- legenda (pergunta 5)
 
-# Eleitos das eleições proporcionais dos seis estados, por unidade eleitoral: deputados federais e
+# Eleitos das eleições proporcionais, por unidade eleitoral: deputados federais e
 # estaduais por UF (2018, 2022 e 2026) e vereadores por município (2020 e 2024), com os votos nominais, o
 # quociente eleitoral e a coligação ou federação que recebeu as cadeiras. Mesma regra de
 # banco/sql/p05_eleitos_legenda.sql: eleito por QP ou média com votação nominal abaixo do quociente.
@@ -886,7 +909,7 @@ def parte_legenda(conn):
     for ue, arq in arquivos.items():
         grava(f'legenda/{ue}.json', {'anos': arq['anos'], 'unidades': arq['unidades'].lista,
                                      'campos_eleito': ['pid', 'nome', 'partido', 'unidade', 'votos', 'situacao', 'foto']})
-    # resumo dos seis estados por partido, ano e cargo (municípios somados na UF deles)
+    # resumo de cada UF por partido, ano e cargo (municípios somados na UF deles)
     with conn.cursor() as cur:
         cur.execute('SELECT cod_tse, uf FROM municipio')
         uf_do = dict(cur.fetchall())
@@ -1033,7 +1056,8 @@ def parte_vies(conn):
                 round(100 * a['cam_votos'] / a['com_nota'], 1) if a['com_nota'] else None,
                 round(100 * a['com_nota'] / a['total'], 1) if a['total'] else None,
                 a['total'],
-                [[siglas[i], round(100 * v / a['total'], 1), nota(i, ano)] for i, v in top],
+                # um lugar pode ter zero votos num cargo (todas as candidaturas sem votos válidos): sem partidos
+                [[siglas[i], round(100 * v / a['total'], 1), nota(i, ano)] for i, v in top] if a['total'] else [],
                 presidente_em(ano, terr) if cargo in ('COMBINADO', 'PRESIDENTE') else None,
                 cargo]
 
@@ -1059,7 +1083,7 @@ def parte_vies(conn):
 
 # --------------------------------------------------------------------------- partidos de cada recorte (pergunta 1)
 
-# Cadeiras, candidatos, gasto e votos dos eleitos de cada partido em cada um dos seis estados (cargos municipais
+# Cadeiras, candidatos, gasto e votos dos eleitos de cada partido em cada UF (cargos municipais
 # somados no estado), para os recortes da pergunta 1 que não têm a lista de candidatos; e a nota de cada
 # partido em cada ano, inclusive dos que já não existem. Mesmos eleitos e gastos de SQL_BASE.
 SQL_PARTIDOS_RECORTE = """
@@ -1085,7 +1109,7 @@ CAMPOS_PARTIDOS_RECORTE = ['ano', 'cargo', 'partido', 'cadeiras', 'candidatos', 
 
 
 def parte_partidos_recorte(conn):
-    log('partidos por recorte: cadeiras, gasto e votos dos eleitos por partido (banco nacional)')
+    log('partidos por recorte: cadeiras, gasto e votos dos eleitos por partido')
     with conn.cursor() as cur:
         cur.execute('SELECT id_partido, ano_survey, nota FROM ideologia_partido')
         surveys = defaultdict(list)
@@ -1121,7 +1145,7 @@ def parte_partidos_recorte(conn):
 # --------------------------------------------------------------------------- dependência em meios cifrões (pergunta 8)
 
 # Candidatos e eleitos por fatia de 5% de dinheiro público na receita (meio cifrão), para presidente no Brasil e
-# nos seis estados e seus municípios. O leitor preenche os cifrões e a página soma as fatias. Mesma receita e mesma
+# em cada UF e seus municípios. O leitor preenche os cifrões e a página soma as fatias. Mesma receita e mesma
 # regra de dinheiro público de SQL_BASE (fontes que começam com FUNDO); candidatos sem receita ficam de fora.
 SQL_DEPENDENCIA = """
 WITH rec AS (SELECT sq_candidato, SUM(valor) AS total,
@@ -1145,7 +1169,7 @@ def meio_cifrao(publica, total):
 
 
 def parte_dependencia(conn):
-    log('dependência: candidatos e eleitos por meio cifrão de dinheiro público (banco nacional)')
+    log('dependência: candidatos e eleitos por meio cifrão de dinheiro público')
     soma = defaultdict(lambda: [0, 0])
     with conn.cursor(name='dependencia') as cur:
         cur.itersize = 100_000
@@ -1287,12 +1311,12 @@ GROUP BY 1, 2, 3, 4, 5
 """
 
 
-def parte_propaganda(nacional, seis):
+def parte_propaganda(conn):
     tipos = Tabela()
     recortes = defaultdict(lambda: {'gasto': Counter(), 'palavras': ContaPalavras()})
-    log('propaganda: somando despesas por tipo e palavras (banco nacional)')
+    log('propaganda: somando despesas por tipo e palavras')
     params = {'anos': list(ANOS), 'cargos': list(CARGOS_MAPA)}
-    with nacional.cursor(name='propaganda') as cur:
+    with conn.cursor(name='propaganda') as cur:
         cur.itersize = 50_000
         cur.execute(SQL_PROPAGANDA, params)
         for ano, cargo, ue, uf, tipo, descricao, n, valor in cur:
@@ -1302,7 +1326,7 @@ def parte_propaganda(nacional, seis):
                 r['gasto'][it] += valor
                 r['palavras'].soma(descricao, n, valor)
     candidatos = Counter()
-    with nacional.cursor() as cur:
+    with conn.cursor() as cur:
         cur.execute(SQL_PROPAGANDA_CANDIDATOS, params)
         for ano, cargo, ue, uf, n in cur:
             for un in territorios_do_projeto(ue, uf):
@@ -1319,7 +1343,7 @@ def parte_propaganda(nacional, seis):
     log('propaganda: exemplos de despesa de cada palavra dos recortes')
     exemplos = {(un, ano, cargo): ExemplosDePalavras(w for w, _, _ in r['palavras'])
                 for un, anos in por_ue.items() for ano, cargos in anos.items() for cargo, r in cargos.items()}
-    with nacional.cursor(name='propaganda_exemplos') as cur:
+    with conn.cursor(name='propaganda_exemplos') as cur:
         cur.itersize = 50_000
         cur.execute(SQL_PROPAGANDA, params)
         for ano, cargo, ue, uf, tipo, descricao, n, valor in cur:
@@ -1333,14 +1357,14 @@ def parte_propaganda(nacional, seis):
         exemplos_ue[un][ano][cargo] = {'descricoes': descricoes, 'por_palavra': por_palavra}
     exemplos.clear()
 
-    log('propaganda: despesas de cada político dos seis estados e dos presidentes')
-    pids = mapa_pid(seis)
+    log('propaganda: despesas de cada político com carreira no site')
+    pids = mapa_pid(conn)
     pessoas = defaultdict(lambda: {'gasto': Counter(), 'palavras': ContaPalavras()})
-    with seis.cursor(name='propaganda_pessoas') as cur:
+    with conn.cursor(name='propaganda_pessoas') as cur:
         cur.itersize = 50_000
         cur.execute(SQL_PROPAGANDA_PESSOAS, {'anos': list(ANOS)})
         for titulo, ano, cargo, tipo, descricao, n, valor in cur:
-            if titulo not in pids:
+            if pids.get(titulo, (None,))[0] is None:
                 continue
             r = pessoas[(pids[titulo][0], f'{ano}|{cargo}')]
             r['gasto'][tipos(tipo or 'Não informado')] += float(valor)
@@ -1358,7 +1382,7 @@ def parte_propaganda(nacional, seis):
     pessoas.clear()
     log('propaganda: exemplos de despesa de cada palavra dos políticos')
     exemplos = {k: ExemplosDePalavras(ws) for k, ws in topo_pessoa.items()}
-    with seis.cursor(name='propaganda_pessoas_exemplos') as cur:
+    with conn.cursor(name='propaganda_pessoas_exemplos') as cur:
         cur.itersize = 50_000
         cur.execute(SQL_PROPAGANDA_PESSOAS, {'anos': list(ANOS)})
         for titulo, ano, cargo, tipo, descricao, n, valor in cur:
@@ -1392,7 +1416,7 @@ def parte_propaganda(nacional, seis):
 # taxa de homicídios, por UF e por município, e a variação entre o ano da eleição e o último ano medido
 # do mandato (views vw_retrospecto_prefeito e vw_retrospecto_governador). O PIB per capita é a preços
 # correntes: a variação é nominal, não desconta a inflação. É retrato do período, não prova de causa.
-ANO_INICIAL_RETRO, ANO_FINAL_RETRO = 2010, 2024
+ANO_INICIAL_RETRO, ANO_FINAL_RETRO = 2010, 2025
 SETORES = ['AGROPECUÁRIA', 'INDÚSTRIA', 'SERVIÇOS', 'ADMINISTRAÇÃO PÚBLICA']
 ELEICOES_PREFEITO = (2012, 2016, 2020, 2024)
 ELEICOES_GOVERNADOR = (2014, 2018, 2022)
@@ -1479,6 +1503,9 @@ def arred(v, casas):
     """NUMERIC -> número JSON arredondado (None continua None; 0 casas dá inteiro)."""
     if v is None:
         return None
+    if isinstance(v, Decimal):
+        # meio para cima, como o ROUND do PostgreSQL (float(Decimal('47.275')) daria 47.27)
+        v = v.quantize(Decimal(1).scaleb(-casas), rounding=ROUND_HALF_UP)
     return int(round(float(v))) if casas == 0 else round(float(v), casas)
 
 
@@ -1511,7 +1538,7 @@ def linha_mandato_gov(r, ue):
 
 
 def parte_retrospecto(conn):
-    log('retrospecto: PIB, setores, homicídios e emprego por UF e município, e variação nos mandatos (banco dos seis estados)')
+    log('retrospecto: PIB, setores, homicídios e emprego por UF e município, e variação nos mandatos')
     periodo = {'de': ANO_INICIAL_RETRO, 'ate': ANO_FINAL_RETRO}
     shutil.rmtree(DADOS / 'retrospecto', ignore_errors=True)
     with conn.cursor() as cur:
@@ -1808,7 +1835,7 @@ WHERE vc.turno = 1 AND v.ano = ANY(%(anos)s)
 GROUP BY 1, 2, 3
 """
 
-# Cada candidato dos seis estados (menos presidente) com o grau dele e a nota média de quem foi votar nos municípios
+# Cada candidato (menos presidente) com o grau dele e a nota média de quem foi votar nos municípios
 # onde ele teve votos, com peso pelos votos que teve em cada um. Um arquivo por unidade eleitoral e ano, como em
 # candidaturas/: municípios nos anos municipais, estados nos gerais.
 CAMPOS_CANDIDATOS_ESCOLARIDADE = ['nome', 'pid', 'partido', 'cargo', 'eleito', 'nivel', 'nivel_eleitores', 'votos', 'foto']
@@ -1840,16 +1867,16 @@ WHERE v.ano = ANY(%(anos)s) AND v.ue <> 'BR'
 def parte_escolaridade(conn):
     log('escolaridade: candidatos e eleitos por grau, e o nível de quem votou e de quem recebeu os votos')
     anos = list(ANOS_ESCOLARIDADE)
-    num = lambda v, casas=3: None if v is None else round(float(v), casas)
+    num = lambda v, casas=3: None if v is None else arred(v, casas)
     with conn.cursor() as cur:
         cur.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
         municipios = cur.fetchall()
         cur.execute(SQL_ESCADA, {'anos': anos})
-        # a escada de cada lugar: os seis estados juntos (SEIS, com presidente), cada estado (as candidaturas dele e
+        # a escada de cada lugar: o Brasil (BR, com presidente), cada estado (as candidaturas dele e
         # dos seus municípios) e cada município (as dele, só nos anos municipais)
         escada = {ano: defaultdict(lambda: defaultdict(lambda: [[0, 0] for _ in NIVEIS_ESCOLARIDADE])) for ano in anos}
         for ano, cargo, ue, uf_mun, nivel, candidatos, eleitos in cur.fetchall():
-            lugares = ['SEIS']
+            lugares = ['BR']
             if ue in UFS_PROJETO:
                 lugares.append(ue)
             elif uf_mun:
@@ -1880,7 +1907,7 @@ def parte_escolaridade(conn):
         grava(f'escolaridade/candidatos/{ue}-{ano}.json', {'campos': CAMPOS_CANDIDATOS_ESCOLARIDADE,
                                                           'partidos': arq['partidos'].lista, 'cargos': arq['cargos'].lista,
                                                           'linhas': [sem_vazios_no_fim(l) for l in arq['linhas']]})
-    cargos = {ano: [c for c in CARGOS_VIES if c in escada[ano]['SEIS']] for ano in anos}
+    cargos = {ano: [c for c in CARGOS_VIES if c in escada[ano]['BR']] for ano in anos}
     grava('escolaridade/escolaridade.json', {
         'anos': anos, 'niveis': NIVEIS_ESCOLARIDADE, 'cargos': cargos,
         'escada': {ano: {lugar: dict(por_cargo) for lugar, por_cargo in escada[ano].items()} for ano in anos},
@@ -1985,8 +2012,8 @@ def parte_idade(conn):
         # regua[ano]['votantes'][cod] = [idade média, quem votou]; regua[ano][cargo][cod] = [idade média, eleitos]
         regua = {ano: defaultdict(dict) for ano in anos}
         for ano, cargo, cod, idade_v, n_v, idade_e, n_e in cur.fetchall():
-            regua[ano]['votantes'][cod] = [round(float(idade_v), 2), int(n_v)]
-            regua[ano][cargo][cod] = [round(float(idade_e), 2), int(n_e)]
+            regua[ano]['votantes'][cod] = [arred(idade_v, 2), int(n_v)]
+            regua[ano][cargo][cod] = [arred(idade_e, 2), int(n_e)]
     pids = mapa_pid(conn)
     # o partido é sigla e número: há siglas repetidas em partidos diferentes (o PSD de 41 e o de 55)
     partidos = Tabela()
@@ -2006,7 +2033,7 @@ def parte_idade(conn):
         f'{tamanho_pasta(DADOS / "idade") / 1e6:.1f} MB')
 
 
-# o nome dos municípios dos seis estados, para o leitor de pedidos do oráculo achar o município citado numa pergunta
+# o nome dos municípios, para o leitor de pedidos do oráculo achar o município citado numa pergunta
 def parte_lugares(conn):
     with conn.cursor() as cur:
         cur.execute('SELECT cod_tse, nome, uf FROM municipio WHERE uf = ANY(%s) ORDER BY uf, nome', (list(UFS_PROJETO),))
@@ -2023,23 +2050,15 @@ PARTES = {'politicos': parte_politicos, 'mapa': parte_mapa, 'geo': parte_geo,
           'indices_estados': parte_indices_estados, 'escolaridade': parte_escolaridade,
           'escolaridade_estados': parte_escolaridade_estados, 'idade': parte_idade,
           'retrospecto': parte_retrospecto, 'lugares': parte_lugares}
-# partes que leem os dois bancos: recebem (nacional, seis estados)
-DOIS_BANCOS = {'candidaturas', 'propaganda', 'politicos'}
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--partes', default=','.join(PARTES), help='lista separada por vírgula: ' + ', '.join(PARTES))
-    ap.add_argument('--banco', default='dbname=eleicoes', help='banco dos seis estados')
-    ap.add_argument('--nacional', default='dbname=eleicoes_nacional', help='banco com o país inteiro')
+    ap.add_argument('--banco', default='dbname=eleicoes', help='banco com as 27 UFs')
     args = ap.parse_args()
     for parte in args.partes.split(','):
-        if parte in DOIS_BANCOS:
-            with psycopg.connect(args.nacional) as nacional, psycopg.connect(args.banco) as seis:
-                PARTES[parte](nacional, seis)
-            continue
-        dsn = args.banco if parte in ('legenda', 'indices', 'escolaridade', 'idade', 'retrospecto', 'lugares') else args.nacional
-        with psycopg.connect(dsn) as conn:
+        with psycopg.connect(args.banco) as conn:
             PARTES[parte](conn)
 
 

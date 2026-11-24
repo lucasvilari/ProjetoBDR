@@ -1,11 +1,11 @@
 // O ranking de patrimônio dos eleitos, no fim da pergunta 2: quanto cresceu a soma dos bens declarados ao TSE por quem
-// se elegeu governador, deputado federal ou estadual (os seis estados juntos) ou prefeito (um estado por vez), comparada
+// se elegeu governador, deputado federal ou estadual (o Brasil inteiro) ou prefeito (um estado por vez), comparada
 // com a candidatura anterior da mesma pessoa. Cada faixa é um link para a carreira do político na pergunta 10.
 //
 // Dados: politicos/patrimonio.json (gera_dados.py, parte politicos).
-import { carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261163';
-import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261163';
-import { numeroBr } from './lib/retrospecto.js?v=20261163';
+import { carregaDados, formata, fotoCandidato, NOME_UF, em } from './comum.js?v=20261170';
+import { UFS_MUNICIPAIS, grupoOpcoes, grupoLista, trocaMantendoTeclas } from './pecas.js?v=20261170';
+import { numeroBr } from './lib/retrospecto.js?v=20261170';
 
 const real = v => formata.real(v);
 const pct = v => `${numeroBr(v, 1, true)}%`;
@@ -40,11 +40,11 @@ export async function montaRankingPatrimonio(caixa, hrefDe) {
   const corridaDiv = caixa.querySelector('#corrida-patrimonio');
   const rankingsDiv = caixa.querySelector('#rankings-patrimonio');
 
-  const ehPrefeito = () => UFS_PROJETO.includes(estado.recorte);
+  const ehPrefeito = () => UFS_MUNICIPAIS.includes(estado.recorte);
   const lista = () => recortes[estado.recorte]?.[estado.ano] ?? [];
   const lugarDe = e => (ehPrefeito() ? e.lugar : NOME_UF[e.lugar] ?? e.lugar);
-  const titulo = () => ({ gov: 'Governadores eleitos nos seis estados', depfed: 'Deputados federais eleitos nos seis estados',
-    depest: 'Deputados estaduais eleitos nos seis estados' })[estado.recorte] ?? `Prefeitos eleitos ${em(NOME_UF[estado.recorte])}`;
+  const titulo = () => ({ gov: 'Governadores eleitos no Brasil', depfed: 'Deputados federais eleitos no Brasil',
+    depest: 'Deputados estaduais e distritais eleitos no Brasil' })[estado.recorte] ?? `Prefeitos eleitos ${em(NOME_UF[estado.recorte])}`;
 
   // o cargo e, para prefeitos, o estado; a eleição depende do cargo (governador e deputados em 2018, 2022, 2026; prefeito em 2020, 2024)
   function montaControles() {
@@ -52,7 +52,7 @@ export async function montaRankingPatrimonio(caixa, hrefDe) {
     if (pref) ufPrefeitos = estado.recorte;
     trocaMantendoTeclas(form, grupoOpcoes('cargo', 'Cargo', CARGOS, pref ? 'pref' : estado.recorte)
       + grupoOpcoes('ano', 'Eleição', anosDe(estado.recorte).map(a => [a, a]), estado.ano)
-      + (pref ? grupoOpcoes('uf', 'Estado', UFS_PROJETO.map(u => [u, u]), estado.recorte) : ''));
+      + (pref ? grupoLista('uf', 'Estado', [...UFS_MUNICIPAIS].sort((a, b) => NOME_UF[a].localeCompare(NOME_UF[b])).map(u => [u, NOME_UF[u]]), estado.recorte) : ''));
     // sem prefeitos, a fileira de estados some
     if (!pref) form.querySelector('[data-opcoes^="uf:"]')?.remove();
   }

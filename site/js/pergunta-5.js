@@ -3,19 +3,19 @@
 // puxadores transbordam, e a sobra deles enche os copos dos colegas; o que ainda falta vem da jarra da chapa (votos
 // dos colegas que não se elegeram e votos de legenda). Clicar num copo mostra o eleito e de onde veio cada voto.
 //
-// Dados: legenda/<ue>.json (eleitos, votos, quociente e os votos de cada chapa; UFs dos seis estados e seus
+// Dados: legenda/<ue>.json (eleitos, votos, quociente e os votos de cada chapa; as 27 UFs e seus
 // municípios) e legenda/resumo.json (eleitos e eleitos pela legenda por partido, ano, cargo e UF).
-import { montaPagina, carregaDados, formata, NOME_UF, em, registraRetrato } from './comum.js?v=20261163';
-import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261163';
-import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261163';
-import { abreviaReais } from './lib/dinheiro.js?v=20261163';
-import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261163';
+import { montaPagina, carregaDados, formata, NOME_UF, em, registraRetrato } from './comum.js?v=20261170';
+import { corIdeologia, contraste, COR } from './lib/cores.js?v=20261170';
+import { porLegenda, resumoPorPartido, enchimento } from './lib/quociente.js?v=20261170';
+import { abreviaReais } from './lib/dinheiro.js?v=20261170';
+import { montaSeletor, leCandidaturas, cartaoPolitico } from './pecas.js?v=20261170';
 
 montaPagina();
 
 const CARGOS = ['DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL', 'DEPUTADO DISTRITAL', 'VEREADOR'];
 const { partidos } = await carregaDados('partidos.json');
-const resumoSeis = await carregaDados('legenda/resumo.json');
+const resumoBrasil = await carregaDados('legenda/resumo.json');
 const nota = (sigla, ano) => partidos.find(p => p.sigla === sigla)?.especialistas[ano <= 2020 ? '2018' : '2022'] ?? null;
 const reduz = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const minusculo = c => c.toLowerCase();
@@ -193,17 +193,17 @@ async function mostraCartao(pid) {
 
 function tabelaPartidos(r, eleitos, q) {
   const doRecorte = resumoPorPartido(eleitos, q);
-  const seis = new Map();
-  for (const [ano, cargo, , partido, n, leg] of resumoSeis.linhas) {
+  const brasil = new Map();
+  for (const [ano, cargo, , partido, n, leg] of resumoBrasil.linhas) {
     if (ano !== r.ano || cargo !== r.cargo) continue;
-    const p = seis.get(partido) ?? { eleitos: 0, leg: 0 };
-    p.eleitos += n; p.leg += leg; seis.set(partido, p);
+    const p = brasil.get(partido) ?? { eleitos: 0, leg: 0 };
+    p.eleitos += n; p.leg += leg; brasil.set(partido, p);
   }
   return `<div class="rolagem"><table class="tabela">
     <thead><tr><th>Partido</th><th class="num">Eleitos aqui</th><th class="num">Pela legenda aqui</th><th class="num">%</th>
-      <th class="num">Eleitos nos seis estados</th><th class="num">Pela legenda nos seis estados</th></tr></thead>
+      <th class="num">Eleitos no Brasil</th><th class="num">Pela legenda no Brasil</th></tr></thead>
     <tbody>${doRecorte.map(p => {
-      const s = seis.get(p.partido) ?? { eleitos: 0, leg: 0 };
+      const s = brasil.get(p.partido) ?? { eleitos: 0, leg: 0 };
       return `<tr><td>${p.partido}</td><td class="num">${p.eleitos}</td><td class="num">${p.porLegenda}</td>
         <td class="num">${formata.pct(p.pct)}</td><td class="num">${formata.numero(s.eleitos)}</td>
         <td class="num">${formata.numero(s.leg)} (${formata.pct(s.eleitos ? (100 * s.leg) / s.eleitos : 0)})</td></tr>`;

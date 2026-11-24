@@ -7,14 +7,14 @@
 //
 // Dados: politicos/ (busca e carreiras), indices/municipios.json e idade/idade.json (municípios),
 // candidaturas/<ue>-<ano>.json, mapa/ e vies/ (eleições).
-import { montaPagina, carregaDados, formata, NOME_UF, fotoCandidato } from './comum.js?v=20261163';
-import { ENDERECO, AVISOS } from './oraculo.js?v=20261163';
-import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261163';
-import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261163';
-import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261163';
-import { achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from './lib/cabine.js?v=20261163';
-import { ehRecusa } from './lib/som.js?v=20261163';
-import { toca, destrava } from './som.js?v=20261163';
+import { montaPagina, carregaDados, formata, NOME_UF, fotoCandidato } from './comum.js?v=20261170';
+import { ENDERECO, AVISOS } from './oraculo.js?v=20261170';
+import { procuraPoliticos, carreiraDe, tabelasPoliticos } from './busca.js?v=20261170';
+import { leCandidaturas, nomeDe, UFS_PROJETO } from './pecas.js?v=20261170';
+import { retratoEmTexto, comparacao } from './lib/retrato.js?v=20261170';
+import { achaMunicipios, escolhePolitico, resumoCarreira, votacao, citados, linksDoCandidato, linksDoMunicipio } from './lib/cabine.js?v=20261170';
+import { ehRecusa } from './lib/som.js?v=20261170';
+import { toca, destrava } from './som.js?v=20261170';
 
 montaPagina();
 
@@ -23,7 +23,7 @@ const ANOS_GERAIS = [2018, 2022, 2026], ANOS_MUNICIPAIS = [2020, 2024];
 const UNICO = ['PRESIDENTE', 'GOVERNADOR', 'PREFEITO'];
 const PROPORCIONAIS = ['DEPUTADO FEDERAL', 'DEPUTADO ESTADUAL', 'VEREADOR'];
 const NEVOAS = 'As névoas não me deixam ver o que você pergunta. Pergunte sobre a carreira de políticos, sobre municípios '
-  + 'dos seis estados ou sobre o resultado de uma eleição.';
+  + 'do Brasil ou sobre o resultado de uma eleição.';
 const dec = (v, casas = 2) => (v == null ? '—' : v.toFixed(casas).replace('.', ','));
 const pct = v => (v == null ? '—' : `${dec(v, 1)}%`);
 const minusculo = t => t.toLowerCase();
@@ -86,7 +86,7 @@ async function retratoMunicipios(pedidos) {
   const secoes = [], cartoes = [], faltas = [], achados = [];
   for (const pedido of pedidos) {
     const achadosNome = achaMunicipios(pedido, ind.municipios);
-    if (!achadosNome.length) { faltas.push(`nenhum município chamado "${pedido.nome}"${pedido.uf ? ` em ${pedido.uf}` : ''} nos seis estados do site`); continue; }
+    if (!achadosNome.length) { faltas.push(`nenhum município chamado "${pedido.nome}"${pedido.uf ? ` em ${pedido.uf}` : ''} nos dados do site`); continue; }
     const m = achadosNome[0];
     const i = ind.municipios.findIndex(([cod]) => cod === m.cod);
     const linhaIdade = idade.municipios.find(([cod]) => cod === m.cod);
@@ -108,7 +108,7 @@ async function retratoMunicipios(pedidos) {
   }
   if (achados.length) {
     const todos = ind.municipios.map((_, i) => i);
-    secoes.push({ titulo: `Medianas dos ${formata.numero(ind.municipios.length)} municípios dos seis estados em ${ultimo}`, linhas: [
+    secoes.push({ titulo: `Medianas dos ${formata.numero(ind.municipios.length)} municípios do Brasil em ${ultimo}`, linhas: [
       ['PIB per capita', formata.real(mediana(todos.map(i => campo(ultimo, i, 'pib_per_capita'))))],
       ['IDHM', dec(mediana(todos.map(i => campo(ultimo, i, 'idhm'))), 3)],
       ['Voto (0 esquerda, 10 direita)', dec(mediana(todos.map(i => campo(ultimo, i, 'ideologia'))))],
@@ -151,7 +151,7 @@ async function retratoEleicao(plano) {
   if (plano.municipio) {
     ind = await carregaDados('indices/municipios.json');
     mun = achaMunicipios(plano.municipio, ind.municipios)[0] ?? null;
-    if (!mun) faltas.push(`nenhum município chamado "${plano.municipio.nome}" nos seis estados do site`);
+    if (!mun) faltas.push(`nenhum município chamado "${plano.municipio.nome}" nos dados do site`);
   }
   const uf = mun?.uf ?? (plano.uf !== 'BR' ? plano.uf : null);
   let ue;
@@ -159,11 +159,11 @@ async function retratoEleicao(plano) {
   else if (municipal) ue = mun?.cod ?? null;
   else ue = uf;
   if (!ue) {
-    faltas.push(municipal ? `para ${minusculo(cargo)}, diga o município (dos seis estados)` : `para ${minusculo(cargo)}, diga o estado`);
+    faltas.push(municipal ? `para ${minusculo(cargo)}, diga o município` : `para ${minusculo(cargo)}, diga o estado`);
     return { secoes, cartoes, faltas };
   }
   if (cargo !== 'PRESIDENTE' && !UFS_PROJETO.includes(uf)) {
-    faltas.push(`o site só tem os candidatos a ${minusculo(cargo)} de AP, MG, MS, PB, RO e RR (pedido: ${NOME_UF[uf] ?? uf})`);
+    faltas.push(`não há estado chamado ${uf}`);
     return { secoes, cartoes, faltas };
   }
   const nomeLugar = ue === 'BR' ? 'Brasil' : municipal ? `${mun.nome} (${mun.uf})` : NOME_UF[uf];

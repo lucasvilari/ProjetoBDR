@@ -2,12 +2,64 @@
 
 Projeto da disciplina de Bancos de Dados Relacionais.
 Reúne dados abertos do TSE sobre candidaturas, votação, patrimônio e prestação de
-contas de 1998 a 2024, cruzados com indicadores municipais do IBGE e do Atlas do
-Desenvolvimento Humano e com uma classificação ideológica dos partidos, num banco
-PostgreSQL que responde a dez perguntas sobre seis estados: Amapá, Mato Grosso do Sul,
-Minas Gerais, Paraíba, Rondônia e Roraima.
+contas de 1994 a 2026, cruzados com indicadores municipais do IBGE, do Atlas do
+Desenvolvimento Humano e do Atlas da Violência e com uma classificação ideológica dos
+partidos, num banco PostgreSQL que responde a onze perguntas sobre o Brasil inteiro:
+as 27 UFs, os 5.571 municípios e a Presidência. As carreiras completas (a linha do
+tempo de cada político, de 1994 a 2026) são de quem já se elegeu ao menos uma vez e de
+todos os candidatos a presidente; os demais candidatos aparecem, com nome, nas
+eleições de que participaram e em todos os totais.
 
 Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
+
+## O site: Olho do Povo
+
+Os dados eleitorais são públicos, mas chegam em milhões de linhas de planilha que
+quase ninguém consegue ler. O Olho do Povo transforma cada resposta do banco num
+desenho que se entende de relance: um prédio, um mapa, copos que enchem, uma linha do
+tempo. Cada pergunta tem uma página, e um clique leva do desenho ao número exato e
+ao candidato por trás dele.
+
+![Pergunta 2: o prédio de patrimônio dos candidatos a deputado federal em Minas Gerais, 2022](docs/fotos/pergunta-2.png)
+
+*Pergunta 2: cada andar é uma faixa de patrimônio declarado, cada janela um candidato; as acesas são os eleitos.*
+
+![A página inicial: a roda com as perguntas em volta do olho](docs/fotos/inicio.png)
+
+*A página inicial: cada pergunta em volta do olho; apontar uma mostra o que ela responde e como é calculada.*
+
+## A IA: o oráculo
+
+Mesmo com o desenho, nem todo mundo sabe o que procurar nele. Por isso cada página tem
+um oráculo, o olho no canto da tela, a quem se pergunta em português o que os números
+querem dizer. A IA lê; não calcula: todos os números saem do banco, e ela só os explica.
+
+- **O que ela vê.** A página monta um *retrato* do que está na tela (o recorte
+  escolhido e os números exibidos) e o envia junto com o método da pergunta, que diz
+  como cada número foi calculado e o que ele não prova. A IA não tem acesso ao banco
+  nem à internet. As regras mandam usar só os números do retrato, não fazer contas
+  novas, ser neutra (sem avaliar candidatos, partidos ou ideologias) e dizer quando
+  falta algo para responder em vez de forçar uma conclusão.
+- **Mudar a página pela pergunta.** Antes da IA, uma regra fixa no navegador lê a
+  pergunta: se ela pede outro estado, ano ou cargo ("e em Roraima?"), a página muda
+  para esse recorte e avisa, com um botão de desfazer. Assim a resposta fala do que
+  está na tela.
+- **Onde ela roda.** Uma função na Cloudflare (`oraculo/`) recebe o retrato e pergunta
+  a um modelo aberto, o Gemma, no Workers AI, dentro da cota gratuita. Não há chave de
+  API no site; a função só aceita pedidos do próprio site e limita cada visitante a
+  6 perguntas por minuto. A resposta chega aos poucos, enquanto é escrita.
+- **A cabine do oráculo.** Na página `cabine.html` a pergunta é livre ("compare a
+  carreira de Lula e de Ciro Gomes"). Aqui são dois passos: a IA primeiro transforma a
+  pergunta num pedido de dados; o site busca esses dados nos mesmos arquivos das
+  páginas e só então a IA responde, com cartões que levam às páginas de onde os
+  números vieram.
+- **Os limites.** Toda resposta traz o aviso de que a IA pode errar e aponta onde
+  conferir. Quando a cota do dia acaba ou o serviço cai, o oráculo avisa que está
+  descansando; o resto do site continua funcionando sem ele.
+
+![A cabine do oráculo: a caixa da pergunta e os exemplos](docs/fotos/cabine.png)
+
+*A cabine do oráculo: a pergunta é livre, e a resposta usa só os dados do site.*
 
 ## Estrutura
 
@@ -16,7 +68,8 @@ Lucas Vilarinho, Raimundo Nonato, Matheus Carneiro e Gabriel Araújo.
 ├── crawler/     baixa das fontes só os arquivos que as perguntas usam (python -m crawler)
 ├── banco/       esquema, carga, validação e as 18 consultas das perguntas
 ├── scripts/     geração e restauração do dump do banco
-├── site/        Olho do Povo, o site estático das perguntas 1, 2, 5, 7, 8, 9 e 10 (GitHub Pages)
+├── site/        Olho do Povo, o site estático das onze perguntas (GitHub Pages)
+├── oraculo/     o oráculo: a função na Cloudflare que leva o retrato da página à IA
 └── docs/        página do modelo (D.E.R. e tabelas) e figuras do D.E.R.
 ```
 
@@ -29,7 +82,7 @@ consulta. As seções abaixo detalham cada parte.
 ### Ver o modelo
 
 Abra `docs/modelo/modelo_relacional.html` no navegador. A página tem os três diagramas
-do D.E.R. e as 17 tabelas, com o mapeamento entre eles.
+do D.E.R. e as 21 tabelas, com o mapeamento entre eles.
 
 ### Antes de montar o banco: PostgreSQL e um papel com permissão
 
@@ -60,7 +113,7 @@ comando que resolve.
 ### Montar o banco a partir do dump
 
 É o caminho rápido: não precisa do crawler nem dos 31 GB de CSV. Requer PostgreSQL 16.
-Baixe o `eleicoes.dump` da página de Releases do repositório e restaure; leva menos
+Baixe o `eleicoes.dump` (cerca de 900 MB) da página de Releases do repositório e restaure; leva cerca
 de um minuto:
 
 ```bash
@@ -71,7 +124,7 @@ Para gerar um dump novo depois de refazer a carga: `scripts/gera_dump.sh`.
 
 ### Montar o banco do zero
 
-Requer Python 3.10+, PostgreSQL 16 e cerca de 40 GB livres (33 GB de arquivos e 1,7 GB
+Requer Python 3.10+, PostgreSQL 16 e cerca de 50 GB livres (33 GB de arquivos e 9 GB
 de banco). O download é de uns 6 GB.
 
 ```bash
@@ -88,9 +141,8 @@ createdb eleicoes
 psql -d eleicoes -f 03_validacao.sql
 ```
 
-A carga leva cerca de 15 minutos. Os arquivos do TSE são nacionais, e a carga grava
-só as UFs do projeto; outro conjunto pode ser escolhido com `--ufs` (veja
-`banco/README.md`). O que cada etapa gravou e descartou fica na tabela
+A carga leva cerca de uma hora e grava as 27 UFs; um recorte menor pode ser escolhido
+com `--ufs` (veja `banco/README.md`). O que cada etapa gravou e descartou fica na tabela
 `carga.log`, e as decisões que os dados reais exigiram estão em `banco/README.md`.
 
 ### Responder às perguntas
@@ -103,10 +155,8 @@ em `banco/evidencias/`:
 cd banco && ./evidencias.sh
 ```
 
-O site em `site/`, o Olho do Povo, mostra as respostas de sete perguntas (custo da cadeira,
-patrimônio, eleitos pela legenda, viés ideológico, dinheiro público, gastos com propaganda e
-carreira dos políticos), cada uma numa página própria, a partir de arquivos gerados do banco; veja
-`site/README.md`.
+O site em `site/`, o Olho do Povo, mostra as respostas das onze perguntas, cada uma numa
+página própria, a partir de arquivos gerados do banco; veja `site/README.md`.
 
 As perguntas sobre ideologia usam três medidas por partido (especialistas,
 coligações e votações na Câmara), explicadas em
@@ -116,7 +166,10 @@ coligações e votações na Câmara), explicadas em
 
 - **TSE**, Portal de Dados Abertos: candidaturas, bens, vagas, votação, prestação de
   contas e comparecimento.
-- **IBGE**, APIs SIDRA e de Localidades: PIB, população, Censo 2022 e territórios.
+- **IBGE**, APIs SIDRA e de Localidades: PIB, população, Censos 2010 e 2022 (idade,
+  instrução e saneamento), empregos formais (CEMPRE), desocupação e informalidade
+  (PNAD Contínua) e territórios.
+- **Atlas da Violência** (Ipea): taxa de homicídios por município.
 - **Atlas do Desenvolvimento Humano** (PNUD, Ipea e FJP), pela API do Ipeadata: IDHM,
   escolaridade e envelhecimento.
 - **Harvard Dataverse**, doi:10.7910/DVN/MFIXKW: classificação ideológica dos partidos

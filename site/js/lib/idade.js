@@ -31,7 +31,7 @@ export function alternancia(listas, anos) {
 }
 
 // Quem é eleito tem a idade de quem vota? Cada município traz a idade média de quem foi votar (com o comparecimento) e a
-// dos eleitos de cada cargo (com quantos são); um estado, ou os seis, é a média dos municípios com esses pesos.
+// dos eleitos de cada cargo (com quantos são); um estado, ou o Brasil, é a média dos municípios com esses pesos.
 
 /** A média de várias médias [valor, peso] (nulos ficam de fora): { media (null sem dado), peso total, lugares com dado }. */
 export function mediaPonderada(pares) {

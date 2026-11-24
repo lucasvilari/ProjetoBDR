@@ -18,6 +18,9 @@ SELECT 'municipio', count(*) FROM municipio UNION ALL
 SELECT 'idhm_municipio', count(*) FROM idhm_municipio UNION ALL
 SELECT 'indicador_anual', count(*) FROM indicador_anual UNION ALL
 SELECT 'homicidio_municipio', count(*) FROM homicidio_municipio UNION ALL
+SELECT 'emprego_formal', count(*) FROM emprego_formal UNION ALL
+SELECT 'pnad_emprego_uf', count(*) FROM pnad_emprego_uf UNION ALL
+SELECT 'saneamento_censo', count(*) FROM saneamento_censo UNION ALL
 SELECT 'apuracao', count(*) FROM apuracao UNION ALL
 SELECT 'perfil_comparecimento', count(*) FROM perfil_comparecimento UNION ALL
 SELECT 'votos_cand', count(*) FROM votos_cand UNION ALL
@@ -29,7 +32,7 @@ SELECT v.ano, v.cargo, count(*) FILTER (WHERE v.eleito) AS eleitos,
          WHERE e.ano = v.ano AND g.cargo = v.cargo) AS vagas
 FROM vw_candidatura v
 WHERE v.ano >= 2018 AND v.cargo IN ('PRESIDENTE', 'GOVERNADOR', 'SENADOR', 'DEPUTADO FEDERAL',
-                                    'DEPUTADO ESTADUAL', 'PREFEITO', 'VEREADOR')
+                                    'DEPUTADO ESTADUAL', 'DEPUTADO DISTRITAL', 'PREFEITO', 'VEREADOR')
 GROUP BY 1, 2 ORDER BY 1, 2;
 
 \echo '== 3. Receitas e despesas carregadas x total dos CSVs no escopo (diferença = candidatura não carregada)'
@@ -93,7 +96,7 @@ SELECT ano, count(*) FILTER (WHERE NOT sem_registro) AS com_taxa, count(*) FILTE
        count(*) AS municipios
 FROM vw_homicidio_anual GROUP BY 1 ORDER BY 1;
 
-echo '== 10b. Taxa de homicídios da UF (vw_indicador_uf) x série estadual oficial do Atlas, ano a ano (conferir a olho)'
+\echo '== 10b. Taxa de homicídios da UF (vw_indicador_uf) x série estadual oficial do Atlas, ano a ano (conferir a olho)'
 SELECT uf, ano, round(taxa_homicidios, 2) AS taxa_calculada
 FROM vw_indicador_uf WHERE ano IN (2018, 2022) AND uf IN ('MS', 'MG', 'PB') ORDER BY uf, ano;
 -- Atlas (estados, taxa de homicídios registrados): MS 2018 20,83 e 2022 19,27; MG 2018 16,21 e 2022 12,74; PB 2018 31,03 e 2022 26,91.

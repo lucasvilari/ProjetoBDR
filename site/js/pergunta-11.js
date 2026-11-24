@@ -1,4 +1,4 @@
-// Pergunta 11: o que mudou no mandato? O mapa dos seis estados (e, ao clicar, dos municípios) pintado por um indicador
+// Pergunta 11: o que mudou no mandato? O mapa dos 27 estados (e, ao clicar, dos municípios) pintado por um indicador
 // de um ano: setor que mais pesa, PIB per capita, homicídios, ou a variação de PIB e homicídios durante o mandato de
 // quem foi eleito (governador no mapa do Brasil, prefeito no mapa do estado).
 //
@@ -7,11 +7,11 @@
 // O PIB per capita é a preços correntes: a variação não desconta a inflação. É retrato, não prova de causa.
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261163';
-import { registraRecortes } from './oraculo.js?v=20261163';
-import { COR } from './lib/cores.js?v=20261163';
-import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261163';
-import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261163';
+import { montaPagina, carregaDados, formata, santinho, fotoCandidato, NOME_UF, em, registraRetrato } from './comum.js?v=20261170';
+import { registraRecortes } from './oraculo.js?v=20261170';
+import { COR } from './lib/cores.js?v=20261170';
+import { UFS_PROJETO, grupoOpcoes, trocaMantendoTeclas } from './pecas.js?v=20261170';
+import { SETORES, indiceDoMaior, limitesPorQuantis, limitesDivergentes, faixaDe, numeroBr, mandatoDe, rotuloMandato, extremos } from './lib/retrospecto.js?v=20261170';
 
 montaPagina();
 
@@ -51,7 +51,7 @@ const DEFINICAO_SETOR = {
   'Serviços': 'Comércio, transporte, alimentação, informação, finanças, seguros, imóveis, serviços profissionais, educação e saúde privadas, artes e outros serviços.',
   'Administração pública': 'Administração pública, defesa, seguridade social, educação e saúde públicas. É o peso do Estado (federal, estadual e municipal) na economia do lugar.',
 };
-const DEFINICAO_SEM_DADO = 'O dado não está disponível para este lugar e ano. Os setores vão até 2021, o PIB per capita até 2022, os homicídios até 2024 e os empregos formais até 2024. A desocupação e a informalidade vêm da PNAD e só existem por estado (não por município); não há dado estadual em 2020-2021 por causa da pandemia. O saneamento (água e esgoto) vem do Censo e só tem dado em 2010 e 2022. No mapa de variação do mandato, a eleição de 2024 ainda não tem desfecho medido.';
+const DEFINICAO_SEM_DADO = 'O dado não está disponível para este lugar e ano. Os setores vão até 2021, o PIB per capita até 2022, os homicídios até 2024 e os empregos formais até 2024. A desocupação e a informalidade vêm da PNAD e só existem por estado (não por município). O saneamento (água e esgoto) vem do Censo e só tem dado em 2010 e 2022. No mapa de variação do mandato, a eleição de 2024 ainda não tem desfecho medido.';
 const DEFINICAO_SEM_REGISTRO = 'O Atlas da Violência (Ipea) não publica município sem nenhum homicídio no ano. Esses municípios entram com taxa zero, que é a melhor estimativa (as taxas dos estados, somadas assim, batem com as do Atlas).';
 
 function criaInfoBtn(texto, container) {
@@ -90,9 +90,9 @@ const IND = {
   emprego: { rotulo: 'empregos formais / mil hab', anos: d3.range(2011, 2025), paleta: VERDES, texto: v => `${numeroBr(v, 1)} / mil`,
     explica: 'Empregos formais por mil habitantes (CEMPRE/IBGE, Cadastro Central de Empresas, até 2024). Conta o pessoal ocupado total em empresas e organizações formalmente registradas; não inclui trabalhadores informais.' },
   desocupacao: { rotulo: 'taxa de desocupação', anos: d3.range(2012, 2026), paleta: LARANJAS, somenteUF: true, texto: v => `${numeroBr(v, 1)}%`,
-    explica: 'Porcentagem da força de trabalho que procura emprego e não encontra (PNAD Contínua/IBGE, 4º trimestre, até 2025). Só existe por estado, não por município. Não há dado estadual em 2020 e 2021 por causa das restrições da pandemia.' },
+    explica: 'Porcentagem da força de trabalho que procura emprego e não encontra (PNAD Contínua/IBGE, 4º trimestre, até 2025). Só existe por estado, não por município.' },
   informalidade: { rotulo: 'taxa de informalidade', anos: d3.range(2015, 2026), paleta: LARANJAS, somenteUF: true, texto: v => `${numeroBr(v, 1)}%`,
-    explica: 'Porcentagem dos ocupados em trabalho informal (PNAD Contínua/IBGE, 4º trimestre, a partir de 2015). Inclui empregados sem carteira, conta-própria sem CNPJ e trabalhadores familiares. Só existe por estado. Sem dado em 2020-2021.' },
+    explica: 'Porcentagem dos ocupados em trabalho informal (PNAD Contínua/IBGE, 4º trimestre, a partir de 2015). Inclui empregados sem carteira, conta-própria sem CNPJ e trabalhadores familiares. Só existe por estado.' },
   var_emp: { rotulo: 'variação dos empregos no mandato', mandato: true, paleta: VERDES, texto: v => `${numeroBr(v, 1, true)} / mil`,
     explica: 'Quanto os empregos formais por mil habitantes mudaram entre o ano da eleição e o último ano medido do mandato. Mais verde: mais empregos formais criados.' },
   var_desoc: { rotulo: 'variação da desocupação no mandato', mandato: true, paleta: DIVERGE, divergente: true, somenteUF: true, texto: v => `${numeroBr(v, 1, true)} pp`,
@@ -275,7 +275,7 @@ async function constroiMapa(largura, id) {
     .on('click', (_, f) => seleciona(f))
     .on('keydown', (e, f) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); seleciona(f); } });
   svg.append('g').attr('class', 'contornos').attr('aria-hidden', 'true')
-    .selectAll('path').data(geo.features.filter(f => (naUF ? f.properties.mun === estado.mun : ufsProjeto.has(f.properties.uf))))
+    .selectAll('path').data(geo.features.filter(f => naUF && f.properties.mun === estado.mun))
     .join('path').attr('d', caminho).attr('class', naUF ? 'municipio selecionado' : 'estado projeto');
   const foco = svg.append('path').attr('class', 'contorno-foco').attr('aria-hidden', 'true');
   clicavel.on('focus', (e, f) => { if (e.target.matches(':focus-visible')) foco.attr('d', caminho(f)); })
@@ -296,7 +296,7 @@ function pintaMapa(animar) {
   forma.select('title').text(f => {
     const k = chave(f), v = valores[k];
     const nome = naUF ? nomeMun(k) : NOME_UF[f.properties.uf];
-    return `${nome}: ${v == null ? 'sem dado' : textoValor(estado.ind, v)}${!naUF && !ufsProjeto.has(f.properties.uf) ? ' · fora dos seis estados do projeto' : ''}`;
+    return `${nome}: ${v == null ? 'sem dado' : textoValor(estado.ind, v)}`;
   });
   const legDiv = document.getElementById('legenda');
   legDiv.innerHTML = `
@@ -313,7 +313,7 @@ function pintaMapa(animar) {
   if (semDadoSpan) semDadoSpan.append(criaInfoBtn(DEFINICAO_SEM_DADO, legDiv));
   document.getElementById('dica').textContent = naUF
     ? 'Clique num município para ver os números dele; clique de novo para voltar ao estado.'
-    : 'Os seis estados do projeto têm contorno escuro e podem ser clicados; os outros não fazem parte da base.';
+    : 'Clique num estado para ver os municípios e os prefeitos dele.';
 }
 
 const textoValor = (ind, v) => (IND[ind].tipo === 'categorias' ? SETORES[v] : IND[ind].texto(v));
@@ -354,7 +354,7 @@ function desenhaSantinho() {
   const terr = territorio();
   if (!terr) {
     caixa.innerHTML = santinho({ faixa: `${IND[estado.ind].rotulo} · ${estado.ano}`, nome: 'Brasil', numero: '—',
-      rotulo: 'Clique num dos seis estados do mapa para ver os números dele.', classe: 'santinho-neutro' });
+      rotulo: 'Clique num estado do mapa para ver os números dele.', classe: 'santinho-neutro' });
     return;
   }
   const ind = estado.ind, ano = estado.ano;
@@ -650,7 +650,7 @@ function desenhaPainel() {
   const terr = territorio();
   if (!terr) {
     const todos = UFS_PROJETO.flatMap(u => (uf.ufs[u]?.governadores ?? []).map(m => ({ uf: u, m }))).sort((a, b) => a.uf.localeCompare(b.uf) || a.m[D.eleicao] - b.m[D.eleicao]);
-    painel.innerHTML = `<h3>Os governadores dos seis estados e o que mudou no mandato</h3>
+    painel.innerHTML = `<h3>Os governadores dos 27 estados e o que mudou no mandato</h3>
       ${tabelaMandatos(todos, true)}
       <p class="apoio">A variação do PIB per capita é real (R$ de 2022, corrigida pelo IPCA). O mandato de 2022 vai até 2026 e ainda não tem o PIB medido
         (o IBGE publica o PIB com cerca de dois anos de atraso); a taxa de homicídios vai até 2024; os empregos formais vêm do CEMPRE/IBGE (até 2024).
@@ -680,7 +680,7 @@ function desenhaPainel() {
     ${tabelaMandatos(mandatos)}
     <p class="apoio">Mandatos em andamento, ou sem o dado publicado ainda, aparecem como "sem dado". O PIB per capita é a preços constantes de 2022 (corrigido pelo IPCA), e a taxa de homicídios
       dos municípios pequenos oscila muito de um ano para outro: leia a tendência, não um ano isolado.
-      Empregos formais vêm do CEMPRE/IBGE. ${ehUF ? 'A desocupação e a informalidade vêm da PNAD Contínua (4º trimestre); não há dado estadual em 2020-2021.' : ''}
+      Empregos formais vêm do CEMPRE/IBGE. ${ehUF ? 'A desocupação e a informalidade vêm da PNAD Contínua (4º trimestre).' : ''}
         Os indicadores de saneamento (água e esgoto) vêm do Censo/IBGE e só existem para 2010 e 2022.</p>`;
   if (meu !== pedido) return;
   caixa.querySelector('#g-pib').append(graficoLinha(dados, 'pib', COR.vitoria, 'PIB per capita', mandatos, largura, v => formata.real(v), 84));
@@ -697,7 +697,7 @@ function desenhaPainel() {
 
 // ---------------------------------------------------------------- retrato para o oráculo
 
-// os lugares do nível aberto (os seis estados, ou os municípios do estado) no indicador e ano escolhidos
+// os lugares do nível aberto (os 27 estados, ou os municípios do estado) no indicador e ano escolhidos
 function secaoDosLugares(nome) {
   const ind = estado.ind, ano = estado.ano, rot = IND[ind].rotulo;
   const lugares = estado.uf ? Object.keys(MUN) : UFS_PROJETO;
@@ -708,11 +708,11 @@ function secaoDosLugares(nome) {
     const conta = SETORES.map((_, i) => pares.filter(([, v]) => v === i).length);
     const linhas = SETORES.map((s, i) => [s, `${conta[i]} ${estado.uf ? (conta[i] === 1 ? 'município' : 'municípios') : (conta[i] === 1 ? 'estado' : 'estados')}`]);
     if (!estado.uf) pares.forEach(([t, v]) => linhas.push([nomeUF(t), v == null ? 'sem dado' : SETORES[v]]));
-    return { titulo: `${estado.uf ? `Municípios ${em(nome)}` : 'Os seis estados'}: setor que mais pesa em ${ano}`, linhas };
+    return { titulo: `${estado.uf ? `Municípios ${em(nome)}` : 'Os 27 estados'}: setor que mais pesa em ${ano}`, linhas };
   }
   if (!estado.uf) {
     const quando = ehMandato(ind) ? `no mandato do governador eleito em ${ano}` : `em ${ano}`;
-    return { titulo: `Os seis estados: ${rot} ${quando} (o que o mapa pinta agora)`, linhas: pares.map(([t, v]) => {
+    return { titulo: `Os 27 estados: ${rot} ${quando} (o que o mapa pinta agora)`, linhas: pares.map(([t, v]) => {
       const m = ehMandato(ind) ? mandatoUF(t, ano) : null;
       return [nomeUF(t), `${v == null ? 'sem dado' : `${textoValor(ind, v)} ${quando}`}${m ? ` (${nomeCurto(m[D.nome])}, ${m[D.partido]})` : ''}`];
     }) };
@@ -771,18 +771,25 @@ registraRetrato(() => {
       return [String(l.ano), txt];
     }) });
   } else {
-    secoes.push({ titulo: 'Governadores dos seis estados e o que mudou no mandato', linhas: UFS_PROJETO.flatMap(u =>
-      (uf.ufs[u]?.governadores ?? []).map(m => [`${nomeUF(u)}, ${rotuloMandato(m[D.eleicao])}`, textoMandato(m)])) });
+    // um governador por estado (todos os mandatos dos 27 passariam do tamanho do retrato): o eleito no ano escolhido,
+    // nos indicadores do mandato; nos outros, o que governava naquele ano
+    const governadorDe = u => {
+      const gs = uf.ufs[u]?.governadores ?? [];
+      return ehMandato(ind) ? gs.find(m => m[D.eleicao] === ano) : [...gs].reverse().find(m => m[D.eleicao] < ano) ?? gs.at(-1);
+    };
+    secoes.push({ titulo: `Governadores dos 27 estados e o que mudou no mandato (${ehMandato(ind) ? `eleitos em ${ano}` : `quem governava em ${ano}`})`,
+      linhas: UFS_PROJETO.map(u => [u, governadorDe(u)]).filter(([, m]) => m)
+        .map(([u, m]) => [`${nomeUF(u)}, ${rotuloMandato(m[D.eleicao])}`, textoMandato(m)]) });
   }
   secoes.push({ titulo: 'Cuidados na leitura', linhas: [
     ['Mapa', estado.uf && !estado.mun ? 'o mapa do estado mostra os municípios; nos indicadores do mandato, os prefeitos eleitos no ano escolhido'
-      : 'o mapa do Brasil mostra os seis estados; nos indicadores do mandato, os governadores eleitos no ano escolhido'],
+      : 'o mapa do Brasil mostra os 27 estados; nos indicadores do mandato, os governadores eleitos no ano escolhido'],
     ['PIB per capita', 'a preços constantes de 2022, corrigido pelo IPCA: a inflação já foi descontada'],
     ['Setores', 'o IBGE publica o valor adicionado por setor só até 2021; o PIB per capita, até 2022'],
     ['Homicídios', 'registros do Ministério da Saúde no Atlas da Violência; nos municípios, média de 3 anos, e os pequenos oscilam muito'],
     ['Homicídios sem registro', 'o Atlas não publica município sem nenhum homicídio no ano; a página conta o ausente como taxa zero (as taxas dos estados, somadas assim, batem com as do Atlas)'],
     ['Empregos formais', 'do CEMPRE/IBGE (Cadastro Central de Empresas, até 2024): só conta trabalhadores em empresas e organizações formais'],
-    ['Desocupação e informalidade', 'da PNAD Contínua/IBGE (4º trimestre); só existem por estado, não por município; sem dado estadual em 2020 e 2021 por causa da pandemia'],
+    ['Desocupação e informalidade', 'da PNAD Contínua/IBGE (4º trimestre); só existem por estado, não por município'],
     ['Saneamento', 'do Censo/IBGE, só em 2010 e 2022; água da rede: % com abastecimento da rede geral; esgoto adequado: % com rede geral/pluvial ou fossa séptica; nos anos entre censos, usa o dado do censo mais próximo'],
     ['Causa', 'mostra o que mudou durante o mandato, não que o eleito causou a mudança']] });
   return { numero: 11, pergunta: 'O que mudou no mandato?', recorte: `${nome} · ${rotulo}`, secoes };

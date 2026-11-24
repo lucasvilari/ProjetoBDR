@@ -4,12 +4,12 @@
 //
 // Dados: politicos/ (índice, fichas e carreiras; ver js/busca.js).
 import * as Plot from 'https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.17/+esm';
-import { montaPagina, formata, santinho, fotoCandidato, registraRetrato } from './comum.js?v=20261163';
-import { COR, corIdeologia } from './lib/cores.js?v=20261163';
-import { custoPorVoto } from './lib/dinheiro.js?v=20261163';
-import { montaBusca, carreiraDe } from './busca.js?v=20261163';
-import { evolucaoDoPatrimonio } from './lib/patrimonio.js?v=20261163';
-import { numeroBr } from './lib/retrospecto.js?v=20261163';
+import { montaPagina, formata, santinho, fotoCandidato, registraRetrato } from './comum.js?v=20261170';
+import { COR, corIdeologia } from './lib/cores.js?v=20261170';
+import { custoPorVoto } from './lib/dinheiro.js?v=20261170';
+import { montaBusca, carreiraDe } from './busca.js?v=20261170';
+import { evolucaoDoPatrimonio } from './lib/patrimonio.js?v=20261170';
+import { numeroBr } from './lib/retrospecto.js?v=20261170';
 
 montaPagina();
 

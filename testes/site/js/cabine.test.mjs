@@ -68,7 +68,7 @@ test('citados acha os nomes que a resposta cita: o nome inteiro ou duas palavras
   assert.deepEqual(citados('Macapá cresceu.', ['Macapá']), ['Macapá']);
 });
 
-test('linksDoCandidato leva à carreira e, de 2018 em diante nos seis estados ou para presidente, às páginas do recorte', () => {
+test('linksDoCandidato leva à carreira e, de 2018 em diante em qualquer estado, às páginas do recorte', () => {
   const presidente = linksDoCandidato({ pid: 7, ano: 2026, cargo: 'PRESIDENTE', uf: null, mun: null });
   assert.deepEqual(presidente.map(l => l.href), [
     'pergunta-10.html#7',
@@ -81,7 +81,7 @@ test('linksDoCandidato leva à carreira e, de 2018 em diante nos seis estados ou
   assert.equal(prefeito[1].href, 'pergunta-1.html#ano=2024&cargo=PREFEITO&uf=AP&mun=06050&pid=3');
   const deputado = linksDoCandidato({ pid: 4, ano: 2022, cargo: 'DEPUTADO FEDERAL', uf: 'MG', mun: '41238' });
   assert.equal(deputado[1].href, 'pergunta-1.html#ano=2022&cargo=DEPUTADO+FEDERAL&uf=MG&pid=4');
-  assert.deepEqual(linksDoCandidato({ pid: 5, ano: 2022, cargo: 'GOVERNADOR', uf: 'CE', mun: null }).map(l => l.href), ['pergunta-10.html#5']);
+  assert.equal(linksDoCandidato({ pid: 5, ano: 2022, cargo: 'GOVERNADOR', uf: 'CE', mun: null })[1].href, 'pergunta-1.html#ano=2022&cargo=GOVERNADOR&uf=CE&pid=5');
   assert.deepEqual(linksDoCandidato({ pid: 6, ano: 2014, cargo: 'SENADOR', uf: 'PB', mun: null }).map(l => l.href), ['pergunta-10.html#6']);
   assert.deepEqual(linksDoCandidato({ pid: null, ano: 2026, cargo: 'PRESIDENTE', uf: null, mun: null }).length, 4);
 });
